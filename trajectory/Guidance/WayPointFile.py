@@ -32,7 +32,7 @@ import logging
 from trajectory.Guidance.Haversine import points2distanceMeters, points2bearingDegrees, LatitudeLongitudeAtDistanceBearing
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 
-from trajectory.Environment.RunWaysDatabaseFile import RunWayDataBase
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
 
 
 def to_positive_angle(angleDegrees):
