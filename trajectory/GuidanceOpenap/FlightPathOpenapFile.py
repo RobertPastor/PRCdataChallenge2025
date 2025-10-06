@@ -43,8 +43,8 @@ The aircraft speed is used to calculate a turn radius.
 import math
 import logging
 
-from trajectory.Environment.Atmosphere import Atmosphere
-from trajectory.Environment.Earth import Earth
+from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
+from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Utils import logElapsedRealTime
 
 from trajectory.Guidance.FlightPlanFile import FlightPlan

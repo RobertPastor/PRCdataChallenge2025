@@ -13,8 +13,8 @@ import json
 from trajectory.Openap.AircraftConfigurationFile import OpenapAircraftConfiguration
 import time
 
-from trajectory.Environment.Earth import Earth
-from trajectory.Environment.Atmosphere import Atmosphere
+from trajectory.Environment.Earth.EarthFile import Earth
+from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.Environment.Constants import Meter2NauticalMiles
 
 import logging

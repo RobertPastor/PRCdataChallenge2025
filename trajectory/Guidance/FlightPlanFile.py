@@ -99,14 +99,16 @@ class FlightPlan(FixList):
         '''
         self.wayPointsDict = {}
         
+        ''' fill self departure airport and self.arrivalAirport '''
         self.createFixList()
         for fix in self.getFix():
             
-            logging.info(fix)
+            logging.info(self.className + ": next fix = " + fix)
             
             wayPoint = self.wayPointsDb.getWayPoint(fix)
             if (wayPoint):
                 logging.info("waypoint = {0} in wayPoints database".format(wayPoint))
+                self.wayPointsDict[fix] = wayPoint
             else:
                 self.deleteFix(fix)
         
@@ -114,46 +116,36 @@ class FlightPlan(FixList):
         self.arrivalAirport = self.airportsDb.getAirportFromICAOCode(ICAOcode = self.arrivalAirportICAOcode)
         assert ( not (self.arrivalAirport is None) and isinstance( self.arrivalAirport, Airport))
         
-        logging.info( self.className + " : arrival airport : " + (self.arrivalAirport))
+        logging.info( self.className + " : arrival airport : " + str(self.arrivalAirport))
+        logging.info( self.className + " : arrival runway : " + str(self.arrivalRunwayName))
         
-        #self.arrivalRunway =  runwaysDb.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, runwayName = self.arrivalRunwayName)
-        arrivalRunway = AirlineRunWay.objects.filter(Airport=arrivalAirport, Name=self.arrivalRunwayName).first()
+        self.arrivalRunway =  self.runwaysDb.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, runwayName = self.arrivalRunwayName)
+        assert ( not (self.arrivalRunway is None) and isinstance(self.arrivalRunway, RunWay ))
         
-        assert ( not (arrivalRunway is None) and isinstance(arrivalRunway, AirlineRunWay ))
-        
-        self.arrivalRunway = RunWay(Name = arrivalRunway.Name,
+        self.arrivalRunway = RunWay(Name               = self.arrivalRunway.Name,
                                     airportICAOcode    = self.arrivalAirport.ICAOcode,
-                                    LengthFeet         = arrivalRunway.LengthFeet,
-                                    TrueHeadingDegrees = arrivalRunway.TrueHeadingDegrees,
-                                    LatitudeDegrees    = arrivalRunway.LatitudeDegrees,
-                                    LongitudeDegrees   = arrivalRunway.LongitudeDegrees)
+                                    LengthFeet         = self.arrivalRunway.LengthFeet,
+                                    TrueHeadingDegrees = self.arrivalRunway.TrueHeadingDegrees,
+                                    LatitudeDegrees    = self.arrivalRunway.LatitudeDegrees,
+                                    LongitudeDegrees   = self.arrivalRunway.LongitudeDegrees)
         
-        #print ( self.className + " : arrival runway : " + str(self.arrivalRunway) )
+        logging.info ( self.className + " : arrival runway : " + str(self.arrivalRunway) )
 
-        #self.departureAirport = airportsDb.getAirportFromICAOCode(ICAOcode = self.departureAirportICAOcode)
-        departureAirport = AirlineAirport.objects.filter(AirportICAOcode=self.departureAirportICAOcode).first()
-        assert ( not (departureAirport is None) and isinstance( departureAirport, AirlineAirport))
+        self.departureAirport = self.airportsDb.getAirportFromICAOCode(ICAOcode = self.departureAirportICAOcode)
+        assert ( not (self.departureAirport is None) and isinstance( self.departureAirport, Airport))
         
-        self.departureAirport = Airport(Name = departureAirport.AirportName,
-                                      LatitudeDegrees = departureAirport.Latitude,
-                                      LongitudeDegrees = departureAirport.Longitude,
-                                      fieldElevationAboveSeaLevelMeters = departureAirport.FieldElevationAboveSeaLevelMeters,
-                                      isDeparture = True, 
-                                      isArrival = False,
-                                      ICAOcode = departureAirport.AirportICAOcode,
-                                      Country = departureAirport.Continent)
-        print( self.className + " : departure airport : " + str(self.departureAirport))
+        logging.info( self.className + " : departure airport : " + str(self.departureAirport))
         #self.departureRunway = runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
-        departureRunway = AirlineRunWay.objects.filter(Airport=departureAirport, Name=self.departureRunwayName).first()
-        assert ( not (departureRunway is None) and isinstance(departureRunway, AirlineRunWay ))
+        self.departureRunway = self.runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
+        assert ( not (self.departureRunway is None) and isinstance(self.departureRunway, RunWay ))
         
-        self.departureRunway = RunWay(Name = departureRunway.Name,
-                                    airportICAOcode = self.departureAirport.ICAOcode,
-                                    LengthFeet = departureRunway.LengthFeet,
-                                    TrueHeadingDegrees = departureRunway.TrueHeadingDegrees,
-                                    LatitudeDegrees = departureRunway.LatitudeDegrees,
-                                    LongitudeDegrees = departureRunway.LongitudeDegrees)
-        print ( self.className + " : departure runway : " + str(self.departureRunway) )
+        self.departureRunway = RunWay(Name             = self.departureRunway.Name,
+                                    airportICAOcode    = self.departureAirport.ICAOcode,
+                                    LengthFeet         = self.departureRunway.LengthFeet,
+                                    TrueHeadingDegrees = self.departureRunway.TrueHeadingDegrees,
+                                    LatitudeDegrees    = self.departureRunway.LatitudeDegrees,
+                                    LongitudeDegrees   = self.departureRunway.LongitudeDegrees)
+        logging.info ( self.className + " : departure runway : " + str(self.departureRunway) )
 
         #logging.debug self.className + ': fix list= ' + str(self.fixList)
         assert (self.allAnglesLessThan90degrees(minIntervalNautics = 10.0))

@@ -62,10 +62,9 @@ class FixList(object):
         for fix in self.fixList:
             yield fix
             
-
     def createFixList(self):
 
-        #logging.info self.className + ': ================ get Fix List ================='
+        logging.info (self.className + ': ================ create Fix List =================' )
         self.fixList = []
         index = 0
         for fix in self.strRoute.split('-'):

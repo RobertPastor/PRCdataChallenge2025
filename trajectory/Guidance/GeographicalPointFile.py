@@ -9,7 +9,7 @@ from methodtools import lru_cache
 
 from trajectory.Guidance.Haversine import  LatitudeLongitudeAtDistanceBearing
 
-from trajectory.Environment.Earth.Earth import EarthRadiusMeters
+from trajectory.Environment.Earth.EarthFile import EarthRadiusMeters
 from trajectory.Guidance.Haversine import points2distanceMeters
 
 class GeographicalPoint(object):

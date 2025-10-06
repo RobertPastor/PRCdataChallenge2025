@@ -6,7 +6,7 @@ Created on 21 déc. 2020
 
 import math
 from trajectory.Environment.Constants import Feet2Meter
-from trajectory.Environment.Earth.Earth import EarthRadiusMeters
+from trajectory.Environment.Earth.EarthFile import EarthRadiusMeters
 
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 

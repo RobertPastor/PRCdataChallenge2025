@@ -141,12 +141,10 @@ class AirportsDatabase(object):
         for row in self.airportsDb:
             logging.info ( "{0} - {1}".format(self.className , row ))
     
-    
     def getNumberOfAirports(self):
         if self.airportsDb is None: return 0
         return len(self.airportsDb.keys())
-            
-            
+    
     def dumpCountry(self, Country="France"):
         if self.airportsDb is None: return
         for key , airport in self.airportsDb.items():

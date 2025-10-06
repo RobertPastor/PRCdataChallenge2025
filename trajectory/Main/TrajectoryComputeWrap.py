@@ -14,8 +14,8 @@ import sys
 import math
 import logging
 
-from trajectory.Environment.Earth.Earth import Earth
-from trajectory.Environment.Atmosphere.Atmosphere import Atmosphere
+from trajectory.Environment.Earth.EarthFile import Earth
+from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Guidance.WayPointFile import Airport
@@ -56,13 +56,13 @@ class Test_Main(unittest.TestCase):
         #aircraftICAOcode = 'a332'
         
         logging.info("Trajectory Compute Wrap - " + aircraftICAOcode)
-        Adep = "KLAX"
-        Ades = "KATL"
-        route = 'KLAX-KATL'
+        Adep = "KATL"
+        Ades = "KLAX"
+        route = 'KATL-KLAX'
         #route = "MMMX-KSEA"
         
-        AdepRunway = "24R"
-        AdesRunway = "26L"
+        AdepRunway = "27R"
+        AdesRunway = "07L"
         
         runwaysDB = RunWayDataBase()
         if (runwaysDB.exists()):
@@ -99,10 +99,12 @@ class Test_Main(unittest.TestCase):
                 logging.error( "Aircraft code = {0} not in openap Wrap".format( aircraftICAOcode ))
             else:
             
-                    strRoute = "ADEP" + "/" + Adep + "/" + AdepRunway + "-" + "ADES" + "/" + Ades + "/" + AdesRunway 
+                    strRoute = "ADEP" + "/" + Adep + "/" + AdepRunway 
+                    strRoute += "-" + "VUZ" + "-" + "ABQ" + "-" + "TNP" 
+                    strRoute += "-" + "ADES" + "/" + Ades + "/" + AdesRunway 
                     logging.info(strRoute)
                     flightPath = FlightPathOpenap(
-                            route                = Adep + "-" + Ades, 
+                            route                = strRoute, 
                             aircraftICAOcode     = aircraftICAOcode,
                             RequestedFlightLevel = cruiseFlightLevel, 
                             cruiseMach           = targetCruiseMach, 

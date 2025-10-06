@@ -14,7 +14,7 @@ curr_path = os.path.dirname(os.path.realpath(__file__))
 dir_fuelmodel = os.path.join(curr_path, "data/fuel/")
 file_synonym = os.path.join(curr_path, "data/fuel/_synonym.csv")
 
-print(" openap/fuel : =================== read data fuel synonym.csv file ==============")
+print(" openap/fuel : ==================== read data fuel synonym.csv file ==============")
 fuel_synonym = pd.read_csv(file_synonym)
 
 

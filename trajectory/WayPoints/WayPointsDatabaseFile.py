@@ -63,7 +63,7 @@ class WayPointsDatabase(object):
         logging.info( wayPointName )
         wayPointAsDict = {}
         if wayPointName in self.WayPointsDict:
-            logging.info("wayPoint with name = {0} found in database".format( wayPointName ))
+            logging.info(self.className + ": wayPoint with name = {0} found in database".format( wayPointName ))
             wayPointAsDict = self.WayPointsDict[wayPointName]
             logging.info(wayPointAsDict)
             return WayPoint(Name = wayPointName , 
@@ -81,8 +81,8 @@ class WayPointsDatabase(object):
             df_source = pd.DataFrame(pd.read_excel(self.FilePath, sheet_name=self.sheetName , engine="openpyxl"))
             
             for index, row in df_source.iterrows():
-                logging.info('Index is: {}'.format(index))
-                logging.info('ID is: {} - WayPoint is: {} - Latitude = {} - Longitude = {}'.format(index, row['WayPoint'], row['Latitude'], row['Longitude']))
+                #logging.info('Index is: {}'.format(index))
+                #logging.info('ID is: {} - WayPoint is: {} - Latitude = {} - Longitude = {}'.format(index, row['WayPoint'], row['Latitude'], row['Longitude']))
                 
                 WayPointName = str(row['WayPoint']).strip().upper()
                 if not(WayPointName in self.WayPointsDict.keys()):
