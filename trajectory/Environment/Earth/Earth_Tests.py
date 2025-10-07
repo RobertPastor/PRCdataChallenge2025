@@ -10,7 +10,7 @@ import unittest
 import os
 import math
 
-from trajectory.Environment.Earth.Earth import Earth
+from trajectory.Environment.Earth.EarthFile import Earth
 
 #============================================
 class Test_Main(unittest.TestCase):

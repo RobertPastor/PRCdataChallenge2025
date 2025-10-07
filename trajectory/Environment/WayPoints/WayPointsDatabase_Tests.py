@@ -7,10 +7,9 @@ Created on 5 oct. 2025
 
 import logging
 import unittest
-from trajectory.Guidance.WayPointFile import Airport, WayPoint
+from trajectory.Guidance.WayPointFile import  WayPoint
 
-from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
-from trajectory.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
+from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
 
 #============================================
 class Test_Main(unittest.TestCase):

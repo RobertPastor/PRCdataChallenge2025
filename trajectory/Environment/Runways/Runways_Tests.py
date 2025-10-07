@@ -9,8 +9,8 @@ import csv
 import unittest
 import os
 import math
-
-from trajectory.Environment.Earth.Earth import Earth
+import logging
+from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Guidance.WayPointFile import Airport
 
@@ -54,6 +54,7 @@ class Test_Main(unittest.TestCase):
                 
             airportICAOcode = "LFPG"
             airportLFPG = airportsDatabase.getAirportFromICAOCode(airportICAOcode)
+            logging.info(airportLFPG)
             
             runwaysDB = RunWayDataBase()
             

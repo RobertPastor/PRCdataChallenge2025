@@ -7,11 +7,10 @@ Created on 5 oct. 2025
 
 
 from time import time
-import csv
+
 import unittest
-import os
+
 import sys
-import math
 import logging
 
 from trajectory.Environment.Earth.EarthFile import Earth

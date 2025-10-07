@@ -7,7 +7,7 @@ Created on 15 août 2023
 import unittest
 import os
 import xlsxwriter
-from trajectory.Environment.Atmosphere import Atmosphere
+from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.aerocalc.airspeed import tas2cas, cas2tas
 
 class Test_Main(unittest.TestCase):

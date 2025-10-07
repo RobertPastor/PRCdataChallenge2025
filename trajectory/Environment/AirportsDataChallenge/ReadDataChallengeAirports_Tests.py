@@ -1,0 +1,43 @@
+'''
+Created on 7 oct. 2025
+
+@author: robert
+'''
+
+
+
+
+import logging
+import unittest
+
+from trajectory.Environment.AirportsDataChallenge.AirportsDataChallengeDatabaseFile import AirportsDataChallengeDatabase
+
+#============================================
+class Test_Main(unittest.TestCase):
+
+    def test_main_one(self):
+        logging.basicConfig(level=logging.DEBUG)
+        
+        logging.info("Read Data Challenge Airports")
+        
+        airportsDb = AirportsDataChallengeDatabase()
+        assert airportsDb.read() == True
+        
+        if airportsDb.read():
+            
+            logging.info("Data Challenge Airports correctly read")
+        else:
+            logging.error("Data Challenge Airports - read failed")
+            
+    def test_main_two(self):
+        
+        airportsDb = AirportsDataChallengeDatabase()
+        if airportsDb.read():
+            ParisCDG = "LFPG"
+            
+            logging.info( airportsDb.getAirPort( ParisCDG ))
+            assert ( not ( airportsDb.getAirPort( ParisCDG ) is None ))
+        
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    unittest.main()

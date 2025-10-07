@@ -40,7 +40,7 @@ purpose : build a fix list from a route expressed as a sequence of names
 import math
 import logging
 
-from trajectory.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
+from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
 
@@ -51,7 +51,7 @@ from trajectory.Environment.Runways.RunWayFile import RunWay
 from trajectory.Environment.Constants import Meter2NauticalMiles
 
 from trajectory.Guidance.FixListClass import FixList
-        
+
 
 class FlightPlan(FixList):
     
