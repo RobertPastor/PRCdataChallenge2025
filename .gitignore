@@ -83,7 +83,7 @@ profile_default/
 ipython_config.py
 
 # do not manage virtual env in git
-.PRCdataChallenge/
+.PRCdataChallengeVirtualEnv/
 
 #do not push parquet files
 *.parquet
