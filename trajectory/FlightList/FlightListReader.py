@@ -9,9 +9,10 @@ import os
 import pandas as pd
 from pathlib import Path
 
+expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id']
+
 class FlightListDatabase(object):
     className = ''
-    
     
     def __init__(self):
         self.className = self.__class__.__name__
@@ -30,6 +31,13 @@ class FlightListDatabase(object):
         self.filePathFlightListRank = os.path.join(self.filesFolder , self.fileNameFlightListRank)
         logging.info(self.filePathFlightListRank)
         
+        
+    def checkTrainFlightListHeaders(self):
+        return (set(self.TrainFlightListDataframe) == set(expectedHeaders))
+        
+    def checkRankFligthListHeaders(self):
+        return (set(self.RankFlightListDataframe) == set(expectedHeaders))
+        
     def readTrainFlightList(self ):
         logging.info(self.filePathFlightListTrain)
         
@@ -40,11 +48,11 @@ class FlightListDatabase(object):
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
             
-            df = pd.read_parquet ( self.filePathFlightListTrain )
-            logging.info ( str(df.shape ) )
-            logging.info ( str(  list ( df)) )
+            self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
+            logging.info ( str(self.TrainFlightListDataframe.shape ) )
+            logging.info ( str(  list ( self.TrainFlightListDataframe)) )
             
-            logging.info ( df.head(10) )
+            logging.info ( self.TrainFlightListDataframe.head(10) )
         
         return True
 
@@ -59,10 +67,47 @@ class FlightListDatabase(object):
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
             
-            df = pd.read_parquet ( self.filePathFlightListRank )
-            logging.info ( str(df.shape ) )
-            logging.info ( str(  list ( df)) )
+            self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
+            logging.info ( str(self.RankFlightListDataframe.shape ) )
+            logging.info ( str(  list ( self.RankFlightListDataframe)) )
             
-            logging.info ( df.head(10) )
+            logging.info ( self.RankFlightListDataframe.head(10) )
         
         return True
+    
+    def collectUniqueAircraftTypes(self):
+        pass
+        df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+        logging.info( df.head (100 ))
+    
+    def collectUniqueAirports(self):
+        
+        logging.info(self.className + "------- collectUniqueAirports -------- ")
+        
+        dfTrain = self.TrainFlightListDataframe [self.TrainFlightListDataframe['origin_icao'].notnull()]
+        dfTrain = dfTrain['origin_icao']
+        logging.info ( str(  list ( dfTrain)) )
+        
+        dfTrain = dfTrain.rename( columns={'origin_icao':'airport_icao'} , axis=1)
+        logging.info ( str(  list ( dfTrain)) )
+
+        logging.info( dfTrain.head (100 ))
+        logging.info ( str(dfTrain.shape ) )
+        
+        dfRank = self.RankFlightListDataframe [self.RankFlightListDataframe['destination_icao'].notnull()]
+        dfRank = dfRank['destination_icao']
+        dfTrain = dfTrain.rename( columns= {'destination_icao':'airport_icao'} , axis=1)
+
+        logging.info ( str(  list ( dfRank)) )
+
+        logging.info( dfRank.head (100 ))
+        logging.info ( str(dfRank.shape ) )
+        
+        
+        #dfConcat = pd.concat( [dfTrain , dfRank] )
+        #dfConcat = pd.unique ( dfConcat )
+        #logging.info ( str(dfConcat.shape ) )
+
+        #logging.info( dfConcat.head(100))
+        
+        

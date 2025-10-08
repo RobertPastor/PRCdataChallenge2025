@@ -10,9 +10,12 @@ import pandas as pd
 from pathlib import Path
 from trajectory.Guidance.WayPointFile import Airport
 
+expectedHeaders = ['icao'  , 'longitude' ,'latitude' , 'elevation']
+
 class AirportsDataChallengeDatabase(object):
     className = ''
     DataChallengeAirports = {}
+    dataframe = None
     
     def __init__(self):
         
@@ -24,6 +27,10 @@ class AirportsDataChallengeDatabase(object):
         
         self.filePath = os.path.join(self.airportsFilesFolder , self.fileName)
         logging.info ( self.className + ': file path= {0}'.format(self.filePath) )
+        
+        
+    def checkHeaders(self):
+        return (set(self.dataframe) == set(expectedHeaders))
         
     def getAirPort(self , ICAOcode = ""):
         if ICAOcode in self.DataChallengeAirports:
@@ -46,15 +53,15 @@ class AirportsDataChallengeDatabase(object):
             
             df = pd.read_parquet ( self.filePath )
             logging.info ( str(df.shape ) )
-            logging.info ( str(  list ( df)) )
+            logging.info (self.className + ": list of headers = " +  str(  list ( df)) )
             
             logging.info ( df.head(10) )
             
-            df = df.dropna()
+            self.dataframe = df.dropna()
             
-            logging.info ( df.head(10) )
+            logging.info ( self.dataframe.head(10) )
             
-            for index, row in df.iterrows():
+            for index, row in self.dataframe.iterrows():
                 #logging.info("index = " + str(index))
                 #print(row['icao'], row['longitude'] , row['latitude'], row['latitude'] , )
                 
