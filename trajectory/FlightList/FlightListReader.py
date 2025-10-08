@@ -44,7 +44,9 @@ class FlightListDatabase(object):
         directory = Path(self.filesFolder)
         logging.info(directory)
         
-        if directory.is_dir():
+        file = Path(self.filePathFlightListTrain)
+        
+        if directory.is_dir() and file.is_file():
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
             
@@ -54,7 +56,9 @@ class FlightListDatabase(object):
             
             logging.info ( self.TrainFlightListDataframe.head(10) )
         
-        return True
+            return True
+        else:
+            return False
 
         
     def readRankFlightList(self ):
@@ -63,7 +67,9 @@ class FlightListDatabase(object):
         directory = Path(self.filesFolder)
         logging.info(directory)
         
-        if directory.is_dir():
+        file = Path(self.filePathFlightListRank)
+        
+        if directory.is_dir() and file.is_file():
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
             
@@ -73,7 +79,9 @@ class FlightListDatabase(object):
             
             logging.info ( self.RankFlightListDataframe.head(10) )
         
-        return True
+            return True
+        else:
+            return False
     
     def collectUniqueAircraftTypes(self):
         pass
