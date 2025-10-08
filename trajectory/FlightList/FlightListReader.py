@@ -72,6 +72,7 @@ class FlightListDatabase(object):
         if directory.is_dir() and file.is_file():
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
+            logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListRank))
             
             self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
             logging.info ( str(self.RankFlightListDataframe.shape ) )
@@ -90,13 +91,13 @@ class FlightListDatabase(object):
     
     def collectUniqueAirports(self):
         
-        logging.info(self.className + "------- collectUniqueAirports -------- ")
+        logging.info(self.className + ": ------- collectUniqueAirports -------- ")
         
         dfTrain = self.TrainFlightListDataframe [self.TrainFlightListDataframe['origin_icao'].notnull()]
         dfTrain = dfTrain['origin_icao']
         logging.info ( str(  list ( dfTrain)) )
         
-        dfTrain = dfTrain.rename( columns={'origin_icao':'airport_icao'} , axis=1)
+        dfTrain = dfTrain.rename( 'airport_icao' )
         logging.info ( str(  list ( dfTrain)) )
 
         logging.info( dfTrain.head (100 ))
@@ -104,18 +105,20 @@ class FlightListDatabase(object):
         
         dfRank = self.RankFlightListDataframe [self.RankFlightListDataframe['destination_icao'].notnull()]
         dfRank = dfRank['destination_icao']
-        dfTrain = dfTrain.rename( columns= {'destination_icao':'airport_icao'} , axis=1)
+        dfTrain = dfTrain.rename( 'airport_icao' )
 
         logging.info ( str(  list ( dfRank)) )
 
         logging.info( dfRank.head (100 ))
         logging.info ( str(dfRank.shape ) )
         
+        dfConcat = pd.concat( [dfTrain , dfRank] )
+        logging.info( dfConcat )
         
-        #dfConcat = pd.concat( [dfTrain , dfRank] )
-        #dfConcat = pd.unique ( dfConcat )
-        #logging.info ( str(dfConcat.shape ) )
+        logging.info ( str(dfConcat.shape ) )
+        dfConcat = dfConcat.unique ( )
+        logging.info ( str(dfConcat.shape ) )
 
         #logging.info( dfConcat.head(100))
-        
+
         

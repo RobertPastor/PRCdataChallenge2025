@@ -12,6 +12,9 @@ from trajectory.FlightList.FlightListReader import FlightListDatabase
 class Test_Main(unittest.TestCase):
 
     def test_main_one(self):
+        
+        print("---------------- test_main_one  ----------------")
+
         logging.basicConfig(level=logging.INFO)
         
         logging.info("Read Flight List")
@@ -22,6 +25,9 @@ class Test_Main(unittest.TestCase):
             
             
     def test_main_two(self):
+        
+        print("---------------- test_main_two  ----------------")
+
         logging.basicConfig(level=logging.INFO)
         
         logging.info("Read Flight List")
@@ -32,8 +38,6 @@ class Test_Main(unittest.TestCase):
             
     def test_main_three(self):
         
-        logging.basicConfig(level=logging.INFO)
-
         print("---------------- test_main_three  ----------------")
 
         flightList = FlightListDatabase()
@@ -46,7 +50,6 @@ class Test_Main(unittest.TestCase):
             assert flightList.checkTrainFlightListHeaders() ==  True
 
     def test_main_four(self):
-        
         logging.basicConfig(level=logging.INFO)
 
         print("---------------- test main four ----------------")
@@ -54,7 +57,6 @@ class Test_Main(unittest.TestCase):
         flightList = FlightListDatabase()
         assert ( flightList.readRankFlightList() == True )
         assert ( flightList.readTrainFlightList() == True )
-        
         
         flightList.collectUniqueAirports()
             
