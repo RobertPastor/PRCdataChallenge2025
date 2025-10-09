@@ -32,7 +32,6 @@ class FuelDatabase(object):
     def checkFuelTrainHeaders(self):
         return (set(self.FuelTrainDataframe) == set(expectedHeaders))
         
-        
     def readFuelTrain(self):
         
         logging.info(self.filePathFuelTrain)

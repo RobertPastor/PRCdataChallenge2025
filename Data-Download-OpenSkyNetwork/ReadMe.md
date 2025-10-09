@@ -28,7 +28,11 @@ Added `prc-2025-datasets` successfully.
 C:\Users\rober\git\PRCdataChallenge2025\Data-Download-OpenSkyNetwork>
 
 ## download parquet files
+## do not use mc copy as there is a problem when the dataset contains DASHes
 
 mc.exe mirror prc-2025-datasets/  .
 
 this will create a subfolder called competition-data and download the parquet files into
+
+## read list of files in remote bucket
+mc ls --recursive --versions prc-2025-datasets

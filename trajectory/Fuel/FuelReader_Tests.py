@@ -39,6 +39,5 @@ class Test_Main(unittest.TestCase):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     print(pd. __version__)
-    os.sys.exit(1)
     
     unittest.main()

@@ -31,7 +31,6 @@ class FlightListDatabase(object):
         self.filePathFlightListRank = os.path.join(self.filesFolder , self.fileNameFlightListRank)
         logging.info(self.filePathFlightListRank)
         
-        
     def checkTrainFlightListHeaders(self):
         return (set(self.TrainFlightListDataframe) == set(expectedHeaders))
         
