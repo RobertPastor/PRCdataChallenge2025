@@ -1,7 +1,7 @@
 '''
 Created on 7 oct. 2025
 
-@author: rober
+@author: robert
 '''
 import logging
 import unittest

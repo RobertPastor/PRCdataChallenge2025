@@ -1,6 +1,8 @@
 ## how to download the parquet files
 
-## et the current dir into AnsPRCDataChallenge\trajectory\AdsBtrajectories\AnsPerformanceChallenge
+https://s3-console.opensky-network.org/login 
+
+## set the current dir into AnsPRCDataChallenge\trajectory\AdsBtrajectories\AnsPerformanceChallenge
 
 open command lines window -> not a power shell -> only a cmd
 

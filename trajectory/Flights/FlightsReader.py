@@ -8,14 +8,11 @@ import logging
 import os
 from pathlib import Path
 import pandas as pd
-from calendar import Calendar, monthrange
+
 from datetime import date
 
-expectedHeaders = ['flight_id', 'timestamp', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'icao24', 'u_component_of_wind', 'v_component_of_wind', 'temperature', 'specific_humidity']
+expectedHeaders = ['timestamp', 'flight_id', 'typecode', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 
-def date_iter( year, month):
-    for i in range(1, monthrange(year, month)[1]  + 1):
-        yield date(year, month, i)
 
 class FlightsDatabase(object):
     
@@ -23,9 +20,6 @@ class FlightsDatabase(object):
     
     def __init__(self):
         self.className = self.__class__.__name__
-        
-        self.fileNameFlightsPattern = "YYYY-MM-DD.parquet"
-        logging.info(self.fileNameFlightsPattern)
         
         self.filesFolder = "C:\\Users\\rober\\git\\PRCdataChallenge2025\\Data-Download-OpenSkyNetwork\\competition-train-data"
         
@@ -38,39 +32,41 @@ class FlightsDatabase(object):
         
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
-
         
     def readSomeFiles(self, testMode = False):
-        
-        first = True
-        df_final = None
-        yearInt = 2022
-        
-        #testMode = True
-        if ( testMode == True ):
-            theDate = date(yearInt, 1, 1)
-            fileName = str(theDate) + "." + "parquet"
-            logging.info(self.className + ": file name = " + fileName)
+        file_count = 0
+        if testMode == True:
+            file_count = 0
             
-            self.filePath = os.path.join(self.filesFolder , fileName)
+        directory = Path(self.filesFolder)
+        if directory.is_dir():
             
-            file = Path(self.filePath)
-            if file.is_file():
+            for fileName in os.listdir(directory):
+                logging.info(self.className + ": file name = " + fileName)
                 
-                self.FlightsTrainDataframe = pd.read_parquet(file)
-                logging.info( str ( self.FlightsTrainDataframe.head()))
-                logging.info( str ( self.FlightsTrainDataframe.shape ) )
+                self.filePath = os.path.join(self.filesFolder , fileName)
                 
-                logging.info ( str(  list ( self.FlightsTrainDataframe )) )
-                return True
+                file = Path(self.filePath)
+                if file.is_file() and fileName.endswith("parquet"):
+                    
+                    if (testMode == True) and (file_count < 10):
+                        
+                        self.FlightsTrainDataframe = pd.read_parquet(self.filePath)
+                        logging.info( str ( self.FlightsTrainDataframe.head()))
+                        logging.info( str ( self.FlightsTrainDataframe.shape ) )
+                        
+                        logging.info ( str(  list ( self.FlightsTrainDataframe )) )
+                        file_count = file_count + 1
+                    
+                    else:
+                        self.FlightsTrainDataframe = pd.read_parquet(self.filePath)
+                        logging.info( str ( self.FlightsTrainDataframe.head()))
+                        logging.info( str ( self.FlightsTrainDataframe.shape ) )
+                        
+                        logging.info ( str(  list ( self.FlightsTrainDataframe )) )
+                    return True
 
     
         else:
-            for iMonth in range(1,13):
-                for d in date_iter( yearInt, iMonth):
-                    print(str( d ))
-                    fileName = str(d) + "." + "parquet"
-                    logging.info(self.className + ": file name = " + fileName)
-                    
-        return False
+            return False
                     

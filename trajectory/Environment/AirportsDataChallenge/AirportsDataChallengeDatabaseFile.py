@@ -47,7 +47,7 @@ class AirportsDataChallengeDatabase(object):
         directory = Path(self.airportsFilesFolder)
         logging.info(directory)
         
-        self.DataChallengeAirports = {}
+        self.dataChallengeAirportsDict = {}
         
         file = Path(self.filePath)
         
@@ -57,8 +57,8 @@ class AirportsDataChallengeDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePath))
             
             df = pd.read_parquet ( self.filePath )
-            logging.info ( str(df.shape ) )
-            logging.info (self.className + ": list of headers = " +  str(  list ( df)) )
+            logging.info ( self.className + ": shape = " + str(df.shape ) )
+            logging.info ( self.className + ": list of headers = " +  str(  list ( df)) )
             
             #logging.info ( df.head(10) )
             
@@ -69,7 +69,7 @@ class AirportsDataChallengeDatabase(object):
                 #logging.info("index = " + str(index))
                 #print(row['icao'], row['longitude'] , row['latitude'], row['latitude'] , )
                 
-                self.dataChallengeAirportsDict[row['icao']] = Airport (Name                              = row['icao'],
+                self.dataChallengeAirportsDict[row['icao']] = Airport (Name                          = row['icao'],
                                                                    LatitudeDegrees                   = float( row['latitude'] ) ,
                                                                    LongitudeDegrees                  = float( row['longitude'] ) ,
                                                                    fieldElevationAboveSeaLevelMeters = float( row['elevation']) ,
@@ -79,9 +79,9 @@ class AirportsDataChallengeDatabase(object):
             return True
             
         else:
+            self.airportsDataframe = None
             logging.error("Path = {0} is not a directory".format( directory ))
             return False
-        
         
     def getAirportsDataframe(self):
         return self.airportsDataframe

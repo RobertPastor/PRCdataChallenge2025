@@ -53,10 +53,10 @@ class FlightListDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListTrain))
             
             self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
-            logging.info ( str(self.TrainFlightListDataframe.shape ) )
-            logging.info ( str(  list ( self.TrainFlightListDataframe)) )
+            logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
+            logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
             
-            #logging.info ( self.TrainFlightListDataframe.head(10) )
+            logging.info (self.className + str( self.TrainFlightListDataframe.head(10) ) )
             return True
         else:
             return False
@@ -91,26 +91,26 @@ class FlightListDatabase(object):
     
     def collectUniqueAirports(self):
         
-        logging.info(self.className + ": ------- collectUniqueAirports -------- ")
+        logging.info(self.className + ": ------- collect Unique Airports -------- ")
         
         self.train = self.TrainFlightListDataframe [self.TrainFlightListDataframe['origin_icao'].notnull()]
         dfTrain = self.train['origin_icao']
         dfTrain = dfTrain.rename( 'airport_icao' )
-        logging.info ( str(  list ( dfTrain)) )
+        #logging.info ( self.className + ": columns = " + str(  list ( dfTrain)) )
 
         #logging.info( dfTrain.head (100 ))
-        logging.info ( str(dfTrain.shape ) )
+        logging.info ( self.className + ": shape = " +str(dfTrain.shape ) )
         
         self.rank  = self.RankFlightListDataframe [self.RankFlightListDataframe['destination_icao'].notnull()]
         dfRank = self.rank ['destination_icao']
         dfRank = dfRank.rename( 'airport_icao' )
 
-        logging.info ( str(  list ( dfRank)) )
+        #logging.info ( self.className + ": columns = " + str(  list ( dfRank )) )
         #logging.info( dfRank.head (100 ))
         logging.info ( str(dfRank.shape ) )
         
         dfConcat = pd.concat( [dfTrain , dfRank] )
-        logging.info( dfConcat )
+        #logging.info( dfConcat )
         
         logging.info ( str(dfConcat.shape ) )
         dfConcat = dfConcat.unique ( )
@@ -119,7 +119,7 @@ class FlightListDatabase(object):
         
     def extendFlightListWithAirportData(self):
         
-        logging.info(self.className + ": ---------- extendFlightListWithAirportData ---- ")
+        logging.info(self.className + ": ---------- extend Flight List With Airport Data ---- ")
         
         airportsDb = AirportsDataChallengeDatabase()
         assert airportsDb.read() == True

@@ -43,6 +43,7 @@ class Test_Main(unittest.TestCase):
             assert ( not ( airportsDb.getAirPort( ParisCDG ) is None ))
             
     def test_main_three(self):
+        
         logging.basicConfig(level=logging.INFO)
 
         print("------------test_main_three----------------")
