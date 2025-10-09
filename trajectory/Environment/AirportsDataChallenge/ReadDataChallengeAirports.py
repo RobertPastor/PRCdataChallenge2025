@@ -5,4 +5,3 @@ Created on 7 oct. 2025
 '''
 
 
-from trajectory.

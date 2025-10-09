@@ -18,7 +18,7 @@ class Test_Main(unittest.TestCase):
     def test_main_one(self):
         print("------------test_main_one----------------")
 
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
         
         logging.info("Read Data Challenge Airports")
         
@@ -26,12 +26,13 @@ class Test_Main(unittest.TestCase):
         assert airportsDb.read() == True
         
         if airportsDb.read():
-            
-            logging.info("Data Challenge Airports correctly read")
+            logging.info("Data Challenge Airports - correctly read")
         else:
             logging.error("Data Challenge Airports - read failed")
             
     def test_main_two(self):
+        logging.basicConfig(level=logging.INFO)
+
         print("------------test_main_two----------------")
 
         airportsDb = AirportsDataChallengeDatabase()
@@ -42,7 +43,8 @@ class Test_Main(unittest.TestCase):
             assert ( not ( airportsDb.getAirPort( ParisCDG ) is None ))
             
     def test_main_three(self):
-        
+        logging.basicConfig(level=logging.INFO)
+
         print("------------test_main_three----------------")
         airportsDb = AirportsDataChallengeDatabase()
         if airportsDb.read():
@@ -51,5 +53,5 @@ class Test_Main(unittest.TestCase):
             
         
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     unittest.main()

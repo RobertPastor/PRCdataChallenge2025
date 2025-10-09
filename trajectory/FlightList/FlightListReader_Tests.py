@@ -5,8 +5,7 @@ Created on 7 oct. 2025
 '''
 import logging
 import unittest
-import pandas as pd
-import os
+
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 #============================================
 class Test_Main(unittest.TestCase):
@@ -15,7 +14,7 @@ class Test_Main(unittest.TestCase):
         
         print("---------------- test_main_one  ----------------")
 
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
         
         logging.info("Read Flight List")
         
@@ -28,7 +27,7 @@ class Test_Main(unittest.TestCase):
         
         print("---------------- test_main_two  ----------------")
 
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
         
         logging.info("Read Flight List")
         
@@ -37,7 +36,8 @@ class Test_Main(unittest.TestCase):
             logging.info("rank flight list read correctly")
             
     def test_main_three(self):
-        
+        logging.basicConfig(level=logging.DEBUG)
+
         print("---------------- test_main_three  ----------------")
 
         flightList = FlightListDatabase()
@@ -50,7 +50,8 @@ class Test_Main(unittest.TestCase):
             assert flightList.checkTrainFlightListHeaders() ==  True
 
     def test_main_four(self):
-        logging.basicConfig(level=logging.INFO)
+        
+        logging.basicConfig(level=logging.DEBUG)
 
         print("---------------- test main four ----------------")
         
@@ -59,10 +60,25 @@ class Test_Main(unittest.TestCase):
         assert ( flightList.readTrainFlightList() == True )
         
         flightList.collectUniqueAirports()
+        
+    def test_main_five(self):
+        
+        logging.basicConfig(level=logging.INFO)
+
+        print("---------------- test main five ----------------")
+        
+        flightList = FlightListDatabase()
+        assert ( flightList.readTrainFlightList() == True )
+        assert ( flightList.readRankFlightList() == True )
+        
+        assert flightList.checkTrainFlightListHeaders() == True
+        assert flightList.checkRankFligthListHeaders() == True
+        #flightList.collectUniqueAirports()
+        
+        flightList.extendFlightListWithAirportData()
             
         
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    print(pd. __version__)
     
     unittest.main()

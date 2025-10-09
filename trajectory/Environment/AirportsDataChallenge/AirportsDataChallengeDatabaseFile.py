@@ -14,7 +14,7 @@ expectedHeaders = ['icao'  , 'longitude' ,'latitude' , 'elevation']
 
 class AirportsDataChallengeDatabase(object):
     className = ''
-    DataChallengeAirports = {}
+    dataChallengeAirportsDict  = {}
     dataframe = None
     
     def __init__(self):
@@ -28,13 +28,15 @@ class AirportsDataChallengeDatabase(object):
         self.filePath = os.path.join(self.airportsFilesFolder , self.fileName)
         logging.info ( self.className + ': file path= {0}'.format(self.filePath) )
         
+        self.airportsDataframe = None
+        self.dataChallengeAirportsDict = {}
         
     def checkHeaders(self):
-        return (set(self.dataframe) == set(expectedHeaders))
+        return (set(self.airportsDataframe) == set(expectedHeaders))
         
     def getAirPort(self , ICAOcode = ""):
-        if ICAOcode in self.DataChallengeAirports:
-            airport = self.DataChallengeAirports[ICAOcode]
+        if ICAOcode in self.dataChallengeAirportsDict:
+            airport = self.dataChallengeAirportsDict[ICAOcode]
             assert  isinstance( airport , Airport )
             return airport
         else:
@@ -47,30 +49,32 @@ class AirportsDataChallengeDatabase(object):
         
         self.DataChallengeAirports = {}
         
-        if directory.is_dir():
+        file = Path(self.filePath)
+        
+        if directory.is_dir() and file.is_file():
             
             logging.info (self.className + "it is a directory - {0}".format(self.airportsFilesFolder))
+            logging.info (self.className + "it is a file - {0}".format(self.filePath))
             
             df = pd.read_parquet ( self.filePath )
             logging.info ( str(df.shape ) )
             logging.info (self.className + ": list of headers = " +  str(  list ( df)) )
             
-            logging.info ( df.head(10) )
+            #logging.info ( df.head(10) )
             
-            self.dataframe = df.dropna()
+            self.airportsDataframe = df.dropna()
+            #logging.info ( self.airportsDataframe.head(10) )
             
-            logging.info ( self.dataframe.head(10) )
-            
-            for index, row in self.dataframe.iterrows():
+            for index, row in self.airportsDataframe.iterrows():
                 #logging.info("index = " + str(index))
                 #print(row['icao'], row['longitude'] , row['latitude'], row['latitude'] , )
                 
-                self.DataChallengeAirports[row['icao']] = Airport (Name = row['icao'],
-                                                                   LatitudeDegrees = float( row['latitude'] ) ,
-                                                                   LongitudeDegrees = float( row['longitude'] ) ,
+                self.dataChallengeAirportsDict[row['icao']] = Airport (Name                              = row['icao'],
+                                                                   LatitudeDegrees                   = float( row['latitude'] ) ,
+                                                                   LongitudeDegrees                  = float( row['longitude'] ) ,
                                                                    fieldElevationAboveSeaLevelMeters = float( row['elevation']) ,
-                                                                   ICAOcode = row['icao'] ,
-                                                                   Country = "unknown")
+                                                                   ICAOcode                          = row['icao'] ,
+                                                                   Country                           = "unknown")
             
             return True
             
@@ -78,3 +82,6 @@ class AirportsDataChallengeDatabase(object):
             logging.error("Path = {0} is not a directory".format( directory ))
             return False
         
+        
+    def getAirportsDataframe(self):
+        return self.airportsDataframe
