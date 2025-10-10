@@ -36,6 +36,7 @@ class Test_Main(unittest.TestCase):
             logging.info("rank flight list read correctly")
             
     def test_main_three(self):
+        
         logging.basicConfig(level=logging.DEBUG)
 
         print("---------------- test_main_three  ----------------")
@@ -63,7 +64,7 @@ class Test_Main(unittest.TestCase):
         
     def test_main_five(self):
         
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
 
         print("---------------- test main five ----------------")
         
@@ -75,10 +76,21 @@ class Test_Main(unittest.TestCase):
         assert flightList.checkRankFligthListHeaders() == True
         #flightList.collectUniqueAirports()
         
-        flightList.extendFlightListWithAirportData()
+        flightList.extendTrainFlightListWithAirportData()
+        
+    def test_main_six(self):
             
+        logging.basicConfig(level=logging.INFO)
+
+        print("---------------- test main six ----------------")
+        
+        flightList = FlightListDatabase()
+        assert ( flightList.readTrainFlightList() == True )
+        
+        flightList.extendTrainFlightDataWithFlightListData()
+
         
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     
     unittest.main()

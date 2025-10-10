@@ -31,6 +31,9 @@ class FuelDatabase(object):
         
     def checkFuelTrainHeaders(self):
         return (set(self.FuelTrainDataframe) == set(expectedHeaders))
+    
+    def getFuelTrainDataframe(self):
+        return self.FuelTrainDataframe
         
     def readFuelTrain(self):
         
@@ -53,5 +56,6 @@ class FuelDatabase(object):
         
             return True
         else:
+            self.FuelTrainDataframe = None
             return False
         

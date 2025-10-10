@@ -10,6 +10,7 @@ import pandas as pd
 from pathlib import Path
 
 from trajectory.Environment.AirportsDataChallenge.AirportsDataChallengeDatabaseFile import AirportsDataChallengeDatabase
+from trajectory.Flights.FlightsReader import FlightsDatabase
 
 expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id']
 
@@ -117,7 +118,7 @@ class FlightListDatabase(object):
         logging.info (self.className + ": size of unique list of airports : " + str(dfConcat.shape ) )
         #logging.info( dfConcat.head(100))
         
-    def extendFlightListWithAirportData(self):
+    def extendTrainFlightListWithAirportData(self):
         
         logging.info(self.className + ": ---------- extend Flight List With Airport Data ---- ")
         
@@ -150,6 +151,43 @@ class FlightListDatabase(object):
         logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
         
         self.extendedTrainFlightListDataframe = df_flightListExtendedWithAirportData
+        self.TrainFlightListDataframe = df_flightListExtendedWithAirportData
 
+        return True
         #logging.info ( df_flightListExtendedWithAirportData.head(10) )
         
+    def getTrainFlightDataWithFlightListData(self):
+        return self.TrainFlightDataWithFlightListData
+        
+    def extendTrainFlightDataWithFlightListData(self):
+        '''
+        loop through the flight ids in the flight list 
+        using the flight id , open the flight data file and extend the flight data with the data from the flight list
+        '''
+        
+        flightsDatabase = FlightsDatabase()
+        count = 0
+        df_concat = None
+        
+        for index, row in self.TrainFlightListDataframe.iterrows():
+            print(f"----- Index: {index} , Name: { row['flight_id'] } ----- ")
+            flightName = row['flight_id']
+            if count < 10:
+                df_flight = flightsDatabase.readOneFile(flightName)
+                
+                df_join = pd.merge ( df_flight , self.TrainFlightListDataframe , on = 'flight_id' , how = "inner")
+                #logging.info("df_shape columns = " + str ( list ( df_join ) ) )
+                if count == 0:
+                    df_concat = df_join
+                else:
+                    df_concat = pd.concat( [df_concat, df_join], ignore_index=True)
+                    
+                logging.info ("df_concat shape = " +  str(df_concat.shape ) )
+
+                count = count + 1
+            else:
+                break
+            
+        self.TrainFlightDataWithFlightListData = df_concat
+        df_concat.sample(5)
+        return True

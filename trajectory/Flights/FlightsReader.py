@@ -22,7 +22,10 @@ class FlightsDatabase(object):
         self.className = self.__class__.__name__
         
         self.filesFolder = "C:\\Users\\rober\\git\\PRCdataChallenge2025\\Data-Download-OpenSkyNetwork\\competition-train-data"
+        self.filesFolder = os.path.dirname(__file__)
+        self.filesFolder = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data")
         
+        assert Path(self.filesFolder).is_dir() == True
         logging.info(self.filesFolder)
         
         directory = Path(self.filesFolder)
@@ -32,6 +35,25 @@ class FlightsDatabase(object):
         
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
+    
+    def readOneFile(self, fileName):
+        
+        if str(fileName).endswith("parque") == False:
+            fileName = fileName + ".parquet"
+        
+        logging.info(self.className + ": file name = " + fileName)
+        filePath = os.path.join( self.filesFolder , fileName)
+        file = Path(filePath)
+        
+        assert file.is_file() == True
+        
+        self.FlightsDataframe = pd.read_parquet(filePath)
+        assert (set(self.FlightsDataframe) == set(expectedHeaders))
+        
+        #logging.info( str ( self.FlightsDataframe.head()))
+        logging.info( str ( self.FlightsDataframe.shape ) )
+        logging.info ( str(  list ( self.FlightsDataframe )) )
+        return self.FlightsDataframe
         
     def readSomeFiles(self, testMode = False):
         file_count = 0
