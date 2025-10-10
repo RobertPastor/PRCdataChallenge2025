@@ -29,11 +29,43 @@ class FuelDatabase(object):
         self.filePathFuelTrain = os.path.join(self.filesFolder , self.fileNameFuelTrain)
         logging.info(self.filePathFuelTrain)
         
+        self.filePathFuelRank = os.path.join(self.filesFolder , self.fileNameFuelRank)
+        logging.info(self.filePathFuelRank)
+        
     def checkFuelTrainHeaders(self):
         return (set(self.FuelTrainDataframe) == set(expectedHeaders))
     
+    def checkFuelRankHeaders(self):
+        return (set(self.FuelRankDataframe) == set(expectedHeaders))
+
     def getFuelTrainDataframe(self):
         return self.FuelTrainDataframe
+    
+    def getFuelRankDataframe(self):
+        return self.FuelRankDataframe
+    
+    def readFuelRank(self):
+        logging.info(self.filePathFuelRank)
+        
+        directory = Path(self.filesFolder)
+        logging.info(directory)
+        
+        file = Path(self.filePathFuelRank)
+        
+        if directory.is_dir() and file.is_file():
+            
+            logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
+            logging.info (self.className + "it is a file - {0}".format(self.filePathFuelRank))
+            
+            self.FuelRankDataframe = pd.read_parquet ( self.filePathFuelRank )
+            
+            logging.info ( str(self.FuelRankDataframe.shape ) )
+            logging.info ( str(  list ( self.FuelRankDataframe)) )
+        
+            return True
+        else:
+            self.FuelRankDataframe = None
+            return False
         
     def readFuelTrain(self):
         

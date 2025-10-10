@@ -172,7 +172,7 @@ class FlightListDatabase(object):
         for index, row in self.TrainFlightListDataframe.iterrows():
             print(f"----- Index: {index} , Name: { row['flight_id'] } ----- ")
             flightName = row['flight_id']
-            if count < 10:
+            if count < 1000:
                 df_flight = flightsDatabase.readOneFile(flightName)
                 
                 df_join = pd.merge ( df_flight , self.TrainFlightListDataframe , on = 'flight_id' , how = "inner")
@@ -182,7 +182,7 @@ class FlightListDatabase(object):
                 else:
                     df_concat = pd.concat( [df_concat, df_join], ignore_index=True)
                     
-                logging.info ("df_concat shape = " +  str(df_concat.shape ) )
+                #logging.info ("df_concat shape = " +  str(df_concat.shape ) )
 
                 count = count + 1
             else:
