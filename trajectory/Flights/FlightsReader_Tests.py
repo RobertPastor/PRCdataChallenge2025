@@ -18,8 +18,6 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
 
         print("---------------- test_main_one  ----------------")
-
-        logging.basicConfig(level=logging.INFO)
         
         logging.info("Read Flight data")
         flightsDatabase = FlightsDatabase()
@@ -30,14 +28,29 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
 
         print("---------------- test_main_two  ----------------")
-
-        logging.basicConfig(level=logging.INFO)
         
         logging.info("Read Flight data")
         flightsDatabase = FlightsDatabase()
         assert flightsDatabase.readSomeFiles(testMode = True) == True
         
         assert flightsDatabase.checkFlightsTrainHeaders()
+        
+    def test_main_three(self):
+        logging.basicConfig(level=logging.INFO)
+
+        print("---------------- test_main_three  ----------------")
+        print("show aircraft type code distribution ")
+        
+        fileName = "prc770822360.parquet"
+        flightsDatabase = FlightsDatabase()
+        df = flightsDatabase.readOneFile(fileName)
+
+        print("---------show aircraft type code distribution ")
+        logging.info( str ( df['aircraft_type_code'].value_counts()))
+                
+        print("---------------- show nulls  ----------------")
+        logging.info ( str ( df.isnull().sum() ))
+
         
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

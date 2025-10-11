@@ -10,8 +10,8 @@ from pathlib import Path
 import pandas as pd
 
 from datetime import date
-
-expectedHeaders = ['timestamp', 'flight_id', 'typecode', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
+''' type_code renamed as aircraft_type_code '''
+expectedHeaders = ['timestamp', 'flight_id', 'aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 
 
 class FlightsDatabase(object):
@@ -36,9 +36,28 @@ class FlightsDatabase(object):
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
     
+    def renameColumns(self, df):
+        return df.rename(columns= {'typecode':'aircraft_type_code'})
+    
+    def oneHotEncodeSource(self , df , columnName):
+        ''' source columns contains only two values
+        INFO:root:source
+        adsb     25453
+        acars        8 '''
+        
+        print("---------show column values distribution ")
+        logging.info( str ( df[columnName].value_counts()))
+
+        # Get one hot encoding of columns B
+        one_hot = pd.get_dummies(df[columnName])
+        # Drop column B as it is now encoded
+        df = df.drop(columnName ,axis = 1)
+        # Join the encoded df
+        return df.join(one_hot) 
+    
     def readOneFile(self, fileName):
         
-        if str(fileName).endswith("parque") == False:
+        if str(fileName).endswith("parquet") == False:
             fileName = fileName + ".parquet"
         
         logging.info(self.className + ": file name = " + fileName)
@@ -48,11 +67,21 @@ class FlightsDatabase(object):
         assert file.is_file() == True
         
         self.FlightsDataframe = pd.read_parquet(filePath)
+        self.FlightsDataframe = self.renameColumns(self.FlightsDataframe)
+        
         assert (set(self.FlightsDataframe) == set(expectedHeaders))
         
         #logging.info( str ( self.FlightsDataframe.head()))
         logging.info( str ( self.FlightsDataframe.shape ) )
         logging.info ( str(  list ( self.FlightsDataframe )) )
+        
+        ''' rename typecode into aircraft type code '''
+        self.FlightsDataframe  = self.renameColumns(self.FlightsDataframe )
+        ''' one hot encode the source column '''
+        self.FlightsDataframe  = self.oneHotEncodeSource(self.FlightsDataframe, "source")
+        
+        logging.info ( str(  list ( self.FlightsDataframe )) )
+        
         return self.FlightsDataframe
         
     def readSomeFiles(self, testMode = False):
@@ -74,6 +103,8 @@ class FlightsDatabase(object):
                     if (testMode == True) and (file_count < 10):
                         
                         self.FlightsTrainDataframe = pd.read_parquet(self.filePath)
+                        self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
+                        
                         logging.info( str ( self.FlightsTrainDataframe.head()))
                         logging.info( str ( self.FlightsTrainDataframe.shape ) )
                         
@@ -82,13 +113,14 @@ class FlightsDatabase(object):
                     
                     else:
                         self.FlightsTrainDataframe = pd.read_parquet(self.filePath)
+                        self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
+
                         logging.info( str ( self.FlightsTrainDataframe.head()))
                         logging.info( str ( self.FlightsTrainDataframe.shape ) )
                         
                         logging.info ( str(  list ( self.FlightsTrainDataframe )) )
                     return True
 
-    
         else:
             return False
                     

@@ -172,7 +172,7 @@ class FlightListDatabase(object):
         for index, row in self.TrainFlightListDataframe.iterrows():
             print(f"----- Index: {index} , Name: { row['flight_id'] } ----- ")
             flightName = row['flight_id']
-            if count < 1000:
+            if count < 100:
                 df_flight = flightsDatabase.readOneFile(flightName)
                 
                 df_join = pd.merge ( df_flight , self.TrainFlightListDataframe , on = 'flight_id' , how = "inner")

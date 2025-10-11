@@ -40,14 +40,18 @@ assert flightList.extendTrainFlightListWithAirportData()
 assert flightList.extendTrainFlightDataWithFlightListData() == True
 
 df_concat = flightList.getTrainFlightDataWithFlightListData()
+
 logging.info( str ( df_concat.shape ))
 logging.info ( str ( df_concat.isnull().sum() ))
 logging.info ( str ( df_concat.dtypes ))
 logging.info ( str ( df_concat.sample(10) ))
 
 logging.info (' -------------- aircraft type  -------------')
-
 logging.info( str ( df_concat['aircraft_type'].value_counts()))
+
+logging.info (' -------------- scale the values  -------------')
+
+
 
 logging.info (' -------------- fuel -------------')
 

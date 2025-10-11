@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import pandas as pd
 
-expectedHeaders =['idx', 'flight_id', 'start', 'end', 'fuel_kg']
+expectedHeaders =['idx', 'flight_id', 'start', 'end', 'fuel_kg', 'time_diff_seconds']
 
 class FuelDatabase(object):
     
@@ -44,6 +44,10 @@ class FuelDatabase(object):
     def getFuelRankDataframe(self):
         return self.FuelRankDataframe
     
+    def addTimeDiffSeconds(self , df):
+        df['time_diff_seconds'] = (df['end'] - df['start']).dt.total_seconds()
+        return df
+    
     def readFuelRank(self):
         logging.info(self.filePathFuelRank)
         
@@ -58,6 +62,9 @@ class FuelDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFuelRank))
             
             self.FuelRankDataframe = pd.read_parquet ( self.filePathFuelRank )
+            
+            ''' Calculate time difference in seconds '''
+            self.FuelRankDataframe = self.addTimeDiffSeconds(self.FuelRankDataframe)
             
             logging.info ( str(self.FuelRankDataframe.shape ) )
             logging.info ( str(  list ( self.FuelRankDataframe)) )
@@ -83,6 +90,9 @@ class FuelDatabase(object):
             
             self.FuelTrainDataframe = pd.read_parquet ( self.filePathFuelTrain )
             
+            ''' Calculate time difference in seconds '''
+            self.FuelTrainDataframe = self.addTimeDiffSeconds(self.FuelTrainDataframe)
+
             logging.info ( str(self.FuelTrainDataframe.shape ) )
             logging.info ( str(  list ( self.FuelTrainDataframe)) )
         
