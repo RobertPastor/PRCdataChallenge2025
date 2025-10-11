@@ -26,10 +26,10 @@ class FlightsDatabase(object):
         self.filesFolder = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data")
         
         assert Path(self.filesFolder).is_dir() == True
-        logging.info(self.filesFolder)
+        #logging.info(self.filesFolder)
         
         directory = Path(self.filesFolder)
-        logging.info(directory)
+        #logging.info(directory)
         
         assert directory.is_dir()
         
@@ -46,7 +46,7 @@ class FlightsDatabase(object):
         acars        8 '''
         
         print("---------show column values distribution ")
-        logging.info( str ( df[columnName].value_counts()))
+        #logging.info( str ( df[columnName].value_counts()))
 
         # Get one hot encoding of columns B
         one_hot = pd.get_dummies(df[columnName])
@@ -60,7 +60,7 @@ class FlightsDatabase(object):
         if str(fileName).endswith("parquet") == False:
             fileName = fileName + ".parquet"
         
-        logging.info(self.className + ": file name = " + fileName)
+        #logging.info(self.className + ": file name = " + fileName)
         filePath = os.path.join( self.filesFolder , fileName)
         file = Path(filePath)
         
@@ -72,15 +72,15 @@ class FlightsDatabase(object):
         assert (set(self.FlightsDataframe) == set(expectedHeaders))
         
         #logging.info( str ( self.FlightsDataframe.head()))
-        logging.info( str ( self.FlightsDataframe.shape ) )
-        logging.info ( str(  list ( self.FlightsDataframe )) )
+        #logging.info( str ( self.FlightsDataframe.shape ) )
+        #logging.info ( str(  list ( self.FlightsDataframe )) )
         
         ''' rename typecode into aircraft type code '''
         self.FlightsDataframe  = self.renameColumns(self.FlightsDataframe )
         ''' one hot encode the source column '''
         self.FlightsDataframe  = self.oneHotEncodeSource(self.FlightsDataframe, "source")
         
-        logging.info ( str(  list ( self.FlightsDataframe )) )
+        #logging.info ( str(  list ( self.FlightsDataframe )) )
         
         return self.FlightsDataframe
         
@@ -93,7 +93,7 @@ class FlightsDatabase(object):
         if directory.is_dir():
             
             for fileName in os.listdir(directory):
-                logging.info(self.className + ": file name = " + fileName)
+                #logging.info(self.className + ": file name = " + fileName)
                 
                 self.filePath = os.path.join(self.filesFolder , fileName)
                 

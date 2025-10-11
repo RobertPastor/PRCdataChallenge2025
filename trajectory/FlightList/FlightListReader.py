@@ -66,8 +66,6 @@ class FlightListDatabase(object):
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
             
             #logging.info (self.className + str( self.TrainFlightListDataframe.head(10) ) )
-            print(tabulate(self.TrainFlightListDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-
             return True
         else:
             logging.error(self.className + "it is a directory - {0}".format(self.filesFolder))
@@ -102,7 +100,9 @@ class FlightListDatabase(object):
     def collectUniqueAircraftTypes(self):
         pass
         df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
-        logging.info( df.head ())
+        
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #logging.info( df.head ())
     
     def collectUniqueAirports(self):
         
@@ -122,13 +122,14 @@ class FlightListDatabase(object):
 
         #logging.info ( self.className + ": columns = " + str(  list ( dfRank )) )
         #logging.info( dfRank.head (100 ))
-        logging.info ( str(dfRank.shape ) )
+        logging.info (self.className +": --- shape = " + str(dfRank.shape ) )
         
         dfConcat = pd.concat( [dfTrain , dfRank] )
         #logging.info( dfConcat )
         
         logging.info ( str(dfConcat.shape ) )
         dfConcat = dfConcat.unique ( )
+        
         logging.info (self.className + ": size of unique list of airports : " + str(dfConcat.shape ) )
         #logging.info( dfConcat.head(100))
         

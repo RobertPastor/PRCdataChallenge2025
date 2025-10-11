@@ -8,13 +8,29 @@ import logging
 import os
 from pathlib import Path
 import pandas as pd
+from datetime import datetime
+import pytz
+
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 
-expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec']
+expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec' , 
+                  'fuel_burn_relative_start','fuel_burn_relative_end']
 
 def compute_fuel_flow_kg_sec(row):
     return row['fuel_kg'] / (row['end'] - row['start']).total_seconds() if (row['end'] - row['start']).total_seconds() != 0 else 0
 
+def checkTimeZoneUTC(row):
+    if ( row['fuel_burn_start'].tzinfo is None ):
+        print("fuel burn start is TimeZone naive")
+        
+    if ( row['fuel_burn_end'].tzinfo is None ):
+        print("fuel burn end is TimeZone naive")
+        
+    if  row['takeoff'].tzinfo is None :
+        print("takeoff is TimeZone naive")
+        
+    else:
+        print("takeoff TimeZone = " + row['takeoff'].tzinfo)
 
 
 class FuelDatabase(object):
@@ -22,6 +38,8 @@ class FuelDatabase(object):
     className = ''
     
     def __init__(self):
+        logging.basicConfig(level=logging.INFO)
+
         self.className = self.__class__.__name__
         
         self.fileNameFuelTrain = "fuel_train.parquet"
@@ -50,8 +68,24 @@ class FuelDatabase(object):
     def getFuelRankDataframe(self):
         return self.FuelRankDataframe
     
+        ''' compute difference in seconds between end and start '''
     def addTimeDiffSeconds(self , df):
         df['time_diff_seconds'] = (df['end'] - df['start']).dt.total_seconds()
+        return df
+    
+        ''' convert absolute date time into relative delay in seconds from flight start '''
+    def computeRelativeStartEndFromFlightTakeOff(self, df):
+        #print(df.info)
+        #df.apply ( checkTimeZoneUTC , axis = 1)
+        
+        # Convert directly to UTC
+        df['fuel_burn_start'] = pd.to_datetime(df['fuel_burn_start']).dt.tz_localize(tz='Europe/Paris',ambiguous="infer").dt.tz_convert('UTC')
+        df['fuel_burn_end'] = pd.to_datetime(df['fuel_burn_end']).dt.tz_localize(tz='Europe/Paris',ambiguous ="infer").dt.tz_convert('UTC')
+        df['takeoff'] = pd.to_datetime(df['takeoff']).dt.tz_localize(tz='Europe/Paris',ambiguous="infer").dt.tz_convert('UTC')
+
+        df['fuel_burn_relative_start'] = ( df['fuel_burn_start'] - df['takeoff']).dt.total_seconds()
+        df['fuel_burn_relative_end'] = ( df['fuel_burn_end'] - df['takeoff']).dt.total_seconds()
+        #print(df.info)
         return df
     
     def computeFuelFlowKgSeconds(self , df ):
@@ -63,6 +97,7 @@ class FuelDatabase(object):
         return df
     
     def readFuelRank(self):
+        logging.basicConfig(level=logging.INFO)
         #logging.info(self.filePathFuelRank)
         
         directory = Path(self.filesFolder)
@@ -77,18 +112,20 @@ class FuelDatabase(object):
             self.FuelRankDataframe = self.computeFuelFlowKgSeconds(self.FuelRankDataframe)
             self.FuelRankDataframe = self.renameStartEndColumns(self.FuelRankDataframe)
             
-            assert self.extendFuelRankWithFlightTakeOff()
+            #assert self.extendFuelRankWithFlightTakeOff()
+            self.FuelRankDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelRankDataframe)
 
             return True
         else:
-            logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
-            logging.info (self.className + "it is a file - {0}".format(self.filePathFuelRank))
+            logging.error (self.className + "it is a directory - {0}".format(self.filesFolder))
+            logging.error (self.className + "it is a file - {0}".format(self.filePathFuelRank))
  
             self.FuelRankDataframe = None
             return False
         
     def readFuelTrain(self):
-        
+        logging.basicConfig(level=logging.INFO)
+
         #logging.info(self.filePathFuelTrain)
         directory = Path(self.filesFolder)
         #logging.info(directory)
@@ -106,7 +143,9 @@ class FuelDatabase(object):
             self.FuelTrainDataframe = self.computeFuelFlowKgSeconds(self.FuelTrainDataframe)
             self.FuelTrainDataframe = self.renameStartEndColumns(self.FuelTrainDataframe)
 
-            assert self.extendFuelTrainWithFlightTakeOff()
+            #assert self.extendFuelTrainWithFlightTakeOff()
+            self.FuelTrainDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelTrainDataframe)
+
             #logging.info ( str(self.FuelTrainDataframe.shape ) )
             #logging.info ( str(  list ( self.FuelTrainDataframe)) )
         
@@ -117,6 +156,8 @@ class FuelDatabase(object):
         
     def extendFuelRankWithFlightTakeOff(self):    
         
+        logging.basicConfig(level=logging.INFO)
+
         flightListDatabase = FlightListDatabase()
         assert flightListDatabase.readRankFlightList()
         

@@ -5,6 +5,7 @@ Created on 7 oct. 2025
 '''
 import logging
 import unittest
+from tabulate import tabulate
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 #============================================
@@ -13,7 +14,6 @@ class Test_Main(unittest.TestCase):
     def test_main_one(self):
         
         print("---------------- test_main_one  ----------------")
-
         logging.basicConfig(level=logging.DEBUG)
         
         logging.info("Read Flight List")
@@ -22,11 +22,13 @@ class Test_Main(unittest.TestCase):
         if flightList.readTrainFlightList():
             logging.info("train flight list read correctly")
             
+        df = flightList.getTrainFlightListDataframe()
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
             
     def test_main_two(self):
         
         print("---------------- test_main_two  ----------------")
-
         logging.basicConfig(level=logging.DEBUG)
         
         logging.info("Read Flight List")
@@ -35,6 +37,9 @@ class Test_Main(unittest.TestCase):
         if flightList.readRankFlightList():
             logging.info("rank flight list read correctly")
             
+        df = flightList.getRankFlightListDataframe()
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
     def test_main_three(self):
         
         logging.basicConfig(level=logging.DEBUG)
@@ -61,6 +66,7 @@ class Test_Main(unittest.TestCase):
         assert ( flightList.readTrainFlightList() == True )
         
         flightList.collectUniqueAirports()
+        
         
     def test_main_five(self):
         

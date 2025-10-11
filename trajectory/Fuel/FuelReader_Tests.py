@@ -49,7 +49,6 @@ class Test_Main(unittest.TestCase):
         ''' check that sum of all column sums are still null '''
         assert ( df.isnull().sum().sum() == 0 )
 
-
     def test_main_one(self):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- test_main_one  ----------------")
@@ -63,7 +62,6 @@ class Test_Main(unittest.TestCase):
         logging.info("---------------- test_main_two  ----------------")
         
         logging.info("Read Fuel Train")
-
         fuelDatabase = FuelDatabase()
         
         assert fuelDatabase.readFuelTrain() == True
@@ -75,7 +73,6 @@ class Test_Main(unittest.TestCase):
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
         logging.info ( str ( fuelDatabase.getFuelTrainDataframe().isnull().sum() ))
-
         logging.info ( str ( fuelDatabase.getFuelTrainDataframe().dtypes ))
         
     def test_main_three(self):
@@ -274,7 +271,7 @@ class Test_Main(unittest.TestCase):
         
         plt.show()
         
-    def test_fuel_extension_with_flight_start(self):
+    def test_train_fuel_extension_with_flight_start(self):
         
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyze fuel extended with flight start   ----------------")
@@ -287,8 +284,15 @@ class Test_Main(unittest.TestCase):
         
         df = fuelDatabase.getFuelTrainDataframe()
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
         
+    def test_rank_fuel_extension_with_flight_start(self):
+
+        
+        fuelDatabase = FuelDatabase()
         assert fuelDatabase.readFuelRank() == True
+        assert fuelDatabase.checkFuelRankHeaders() == True
+
         assert fuelDatabase.extendFuelRankFithFlightTakeOff()
         
         df = fuelDatabase.getFuelRankDataframe()
