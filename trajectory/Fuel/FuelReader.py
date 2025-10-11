@@ -8,8 +8,14 @@ import logging
 import os
 from pathlib import Path
 import pandas as pd
+from trajectory.FlightList.FlightListReader import FlightListDatabase
 
-expectedHeaders =['idx', 'flight_id', 'start', 'end', 'fuel_kg', 'time_diff_seconds']
+expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec']
+
+def compute_fuel_flow_kg_sec(row):
+    return row['fuel_kg'] / (row['end'] - row['start']).total_seconds() if (row['end'] - row['start']).total_seconds() != 0 else 0
+
+
 
 class FuelDatabase(object):
     
@@ -48,6 +54,14 @@ class FuelDatabase(object):
         df['time_diff_seconds'] = (df['end'] - df['start']).dt.total_seconds()
         return df
     
+    def computeFuelFlowKgSeconds(self , df ):
+        df['fuel_flow_kg_sec'] = df.apply( compute_fuel_flow_kg_sec, axis=1 )
+        return df
+    
+    def renameStartEndColumns(self , df ):
+        df = df.rename(columns= {'start':'fuel_burn_start','end':'fuel_burn_end'})
+        return df
+    
     def readFuelRank(self):
         #logging.info(self.filePathFuelRank)
         
@@ -60,6 +74,10 @@ class FuelDatabase(object):
             self.FuelRankDataframe = pd.read_parquet ( self.filePathFuelRank )
             ''' Calculate time difference in seconds '''
             self.FuelRankDataframe = self.addTimeDiffSeconds(self.FuelRankDataframe)
+            self.FuelRankDataframe = self.computeFuelFlowKgSeconds(self.FuelRankDataframe)
+            self.FuelRankDataframe = self.renameStartEndColumns(self.FuelRankDataframe)
+            
+            assert self.extendFuelRankWithFlightTakeOff()
 
             return True
         else:
@@ -72,10 +90,8 @@ class FuelDatabase(object):
     def readFuelTrain(self):
         
         #logging.info(self.filePathFuelTrain)
-        
         directory = Path(self.filesFolder)
         #logging.info(directory)
-        
         file = Path(self.filePathFuelTrain)
         
         if directory.is_dir() and file.is_file():
@@ -87,12 +103,59 @@ class FuelDatabase(object):
             
             ''' Calculate time difference in seconds '''
             self.FuelTrainDataframe = self.addTimeDiffSeconds(self.FuelTrainDataframe)
+            self.FuelTrainDataframe = self.computeFuelFlowKgSeconds(self.FuelTrainDataframe)
+            self.FuelTrainDataframe = self.renameStartEndColumns(self.FuelTrainDataframe)
 
-            logging.info ( str(self.FuelTrainDataframe.shape ) )
-            logging.info ( str(  list ( self.FuelTrainDataframe)) )
+            assert self.extendFuelTrainWithFlightTakeOff()
+            #logging.info ( str(self.FuelTrainDataframe.shape ) )
+            #logging.info ( str(  list ( self.FuelTrainDataframe)) )
         
             return True
         else:
             self.FuelTrainDataframe = None
             return False
+        
+    def extendFuelRankWithFlightTakeOff(self):    
+        
+        flightListDatabase = FlightListDatabase()
+        assert flightListDatabase.readRankFlightList()
+        
+        df_rankFlightList = flightListDatabase.getRankFlightListDataframe()
+        logging.info( self.className + ": ---- Rank flight list = " + str ( list (df_rankFlightList ) ) )
+ 
+        columnNameListToKeep = [ 'flight_id', 'takeoff']
+        for columnName in list(df_rankFlightList):
+            if not columnName in columnNameListToKeep:
+                df_rankFlightList = df_rankFlightList.drop(columnName, axis=1)
+        
+        logging.info( self.className + ": ---- train flight list = " + str ( list (df_rankFlightList ) ) )
+        
+        ''' extend in order to obtain flight start date time '''
+        df_FuelDataExtendedWithFlightTakeOff = pd.merge ( self.FuelRankDataframe , df_rankFlightList , left_on='flight_id', right_on='flight_id', how='inner' )
+        logging.info( str ( list ( df_FuelDataExtendedWithFlightTakeOff ) ) )
+        
+        self.FuelRankDataframe = df_FuelDataExtendedWithFlightTakeOff
+        return True
+        
+    def extendFuelTrainWithFlightTakeOff(self ):
+        
+        flightListDatabase = FlightListDatabase()
+        assert flightListDatabase.readTrainFlightList()
+        
+        df_trainFlightList = flightListDatabase.getTrainFlightListDataframe()
+        logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
+        
+        columnNameListToKeep = [ 'flight_id', 'takeoff']
+        for columnName in list(df_trainFlightList):
+            if not columnName in columnNameListToKeep:
+                df_trainFlightList = df_trainFlightList.drop(columnName, axis=1)
+        
+        logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
+
+        ''' extend in order to obtain flight start date time '''
+        df_FuelDataExtendedWithFlightTakeOff = pd.merge ( self.FuelTrainDataframe , df_trainFlightList , left_on='flight_id', right_on='flight_id', how='inner' )
+        logging.info( str ( list ( df_FuelDataExtendedWithFlightTakeOff ) ) )
+        
+        self.FuelTrainDataframe = df_FuelDataExtendedWithFlightTakeOff
+        return True
         

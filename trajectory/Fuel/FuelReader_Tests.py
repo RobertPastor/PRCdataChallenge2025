@@ -69,7 +69,11 @@ class Test_Main(unittest.TestCase):
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
         
-        logging.info( str ( fuelDatabase.getFuelTrainDataframe().sample(10) ))
+        #logging.info( str ( fuelDatabase.getFuelTrainDataframe().sample(10) ))
+        df = fuelDatabase.getFuelTrainDataframe()
+
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
         logging.info ( str ( fuelDatabase.getFuelTrainDataframe().isnull().sum() ))
 
         logging.info ( str ( fuelDatabase.getFuelTrainDataframe().dtypes ))
@@ -88,13 +92,14 @@ class Test_Main(unittest.TestCase):
         df = fuelDatabase.getFuelRankDataframe()
         
         print ( str ( df.shape ))
-        print ( str ( df.sample(10) ))
+        ''' fuel burnt is NULL every where in the Rank data '''
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         print ( str(  list ( df )) )
 
     def test_main_four(self):
         
         logging.basicConfig(level=logging.INFO)
-        logging.info("---------------- analyse fuel distribution  ----------------")
+        logging.info("---------------- analyse fuel flow distribution  ----------------")
         
         fuelDatabase = FuelDatabase()
         
@@ -102,9 +107,7 @@ class Test_Main(unittest.TestCase):
         assert fuelDatabase.checkFuelTrainHeaders() == True
         
         df = fuelDatabase.getFuelTrainDataframe()
-        
-        df = df[(df['fuel_kg'] < 2.0 * 1000.0)]
-
+        '''
         plt.hist( df['fuel_kg'] , bins = 100)
         plt.title("Histogram - Fuel Kg - Fuel Train")
         
@@ -124,7 +127,7 @@ class Test_Main(unittest.TestCase):
 
         # Calculate statistics
         #data = df.loc[(df['fuel_kg'] > 200000.0) & (df['time_diff_seconds'] > 3.0 * 3600.0 )]
-        '''
+        
         data = df['fuel_kg']
         
         data_min = np.min(data)
@@ -184,7 +187,7 @@ class Test_Main(unittest.TestCase):
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
     def test_rank_distribution_time_differences(self):
-        
+        '''
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyze fuel distribution  ----------------")
         
@@ -214,7 +217,7 @@ class Test_Main(unittest.TestCase):
         plt.ylabel('occurrences')
 
         plt.show()
-    
+        '''
         
     def test_stats(self):
         
@@ -227,44 +230,69 @@ class Test_Main(unittest.TestCase):
         
         df = fuelDatabase.getFuelTrainDataframe()
         ''' filter fuel_burnt kg lower to 2 tons '''
-        df = df[(df['fuel_kg'] < 2.0 * 1000.0)]
-        
+        #df = df[(df['fuel_flow_kg_sec'] < 2.0 * 1000.0)]
                 # Find min and max of column 'A'
-        min_value = df['fuel_kg'].min()
-        max_value = df['fuel_kg'].max()
+        min_value = df['fuel_flow_kg_sec'].min()
+        max_value = df['fuel_flow_kg_sec'].max()
         
-        print(f"Minimum value in column 'fuel_kg': {min_value}")
-        print(f"Maximum value in column 'fuel_kg': {max_value}")
+        print(f"Minimum value in column 'fuel_flow_kg_sec': {min_value}")
+        print(f"Maximum value in column 'fuel_flow_kg_sec': {max_value}")
 
         print ( str ( df.shape ))
         print ( str ( list ( df.shape )))
 
-        df['fuel_burnt_kg_z'] = np.abs( stats.zscore ( df['fuel_kg'] ) )
+        df['fuel_flow_kg_sec_z'] = np.abs( stats.zscore ( df['fuel_flow_kg_sec'] ) )
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         # Find min and max of column 'A'
-        min_value = df['fuel_burnt_kg_z'].min()
-        max_value = df['fuel_burnt_kg_z'].max()
+        min_value = df['fuel_flow_kg_sec_z'].min()
+        max_value = df['fuel_flow_kg_sec_z'].max()
         
         print(f"Minimum value in column 'fuel_burnt_kg_z': {min_value}")
         print(f"Maximum value in column 'fuel_burnt_kg_z': {max_value}")
         
         print ( str ( df.shape ))
         print ( str ( list ( df )))
-
-        df = df[df['fuel_burnt_kg_z'] <= 3.0 ]
+        
+        ''' filter outliers '''
+        df = df[df['fuel_flow_kg_sec_z'] <= 3.0 ]
+        
+        ''' commercial airliner 2500 kg / hour '''
+        #max_fuel_flow_kg_sec  = 2500.0 / ( 60. * 60. )
+        max_fuel_flow_kg_sec  = 10000.0 / ( 60. * 60. )
+        print ("max fuel flow kg per seconds = {0}".format (max_fuel_flow_kg_sec))
+        df = df[df['fuel_flow_kg_sec'] <= max_fuel_flow_kg_sec ]
+        
         print ( str ( df.shape ))
         print ( str ( list ( df )))
-
         
-        plt.hist( df['fuel_kg'] , bins = 100)
-        plt.title("Histogram - Fuel Kg - Fuel Train")
+        plt.hist( df['fuel_flow_kg_sec'] , bins = 100)
+        plt.title("Histogram - Fuel flow Kg per seconds - Fuel Train")
         
         plt.ylabel('count of occurrences')
-        plt.xlabel('Fuel burnt Kg')
+        plt.xlabel('Fuel flow Kg per seconds')
         
         plt.show()
-
+        
+    def test_fuel_extension_with_flight_start(self):
+        
+        logging.basicConfig(level=logging.INFO)
+        logging.info("---------------- analyze fuel extended with flight start   ----------------")
+        
+        fuelDatabase = FuelDatabase()
+        assert fuelDatabase.readFuelTrain() == True
+        assert fuelDatabase.checkFuelTrainHeaders() == True
+        
+        assert fuelDatabase.extendFuelTrainWithFlightTakeOff()
+        
+        df = fuelDatabase.getFuelTrainDataframe()
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        assert fuelDatabase.readFuelRank() == True
+        assert fuelDatabase.extendFuelRankFithFlightTakeOff()
+        
+        df = fuelDatabase.getFuelRankDataframe()
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
 
         

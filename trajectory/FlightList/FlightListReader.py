@@ -8,6 +8,7 @@ import logging
 import os
 import pandas as pd
 from pathlib import Path
+from tabulate import tabulate
 
 from trajectory.Environment.AirportsDataChallenge.AirportsDataChallengeDatabaseFile import AirportsDataChallengeDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
@@ -21,24 +22,30 @@ class FlightListDatabase(object):
         self.className = self.__class__.__name__
         
         self.fileNameFlightListTrain = "flightlist_train.parquet"
-        logging.info(self.fileNameFlightListTrain)
+        #logging.info(self.fileNameFlightListTrain)
         
         self.fileNameFlightListRank =  "flight_list_rank.parquet"
-        logging.info(self.fileNameFlightListRank)
+        #logging.info(self.fileNameFlightListRank)
         
         self.filesFolder = os.path.dirname(__file__)
         
         self.filePathFlightListTrain = os.path.join(self.filesFolder , self.fileNameFlightListTrain)
-        logging.info(self.filePathFlightListTrain)
+        #logging.info(self.filePathFlightListTrain)
         
         self.filePathFlightListRank = os.path.join(self.filesFolder , self.fileNameFlightListRank)
-        logging.info(self.filePathFlightListRank)
+        #logging.info(self.filePathFlightListRank)
         
     def checkTrainFlightListHeaders(self):
         return (set(self.TrainFlightListDataframe) == set(expectedHeaders))
         
     def checkRankFligthListHeaders(self):
         return (set(self.RankFlightListDataframe) == set(expectedHeaders))
+    
+    def getTrainFlightListDataframe(self):
+        return self.TrainFlightListDataframe
+    
+    def getRankFlightListDataframe(self):
+        return self.RankFlightListDataframe
         
     def readTrainFlightList(self ):
         logging.info(self.filePathFlightListTrain)
@@ -54,12 +61,18 @@ class FlightListDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListTrain))
             
             self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
+            
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
             
-            logging.info (self.className + str( self.TrainFlightListDataframe.head(10) ) )
+            #logging.info (self.className + str( self.TrainFlightListDataframe.head(10) ) )
+            print(tabulate(self.TrainFlightListDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
             return True
         else:
+            logging.error(self.className + "it is a directory - {0}".format(self.filesFolder))
+            logging.error (self.className + "it is a file - {0}".format(self.filePathFlightListTrain))
+
             return False
 
     def readRankFlightList(self ):
@@ -76,6 +89,7 @@ class FlightListDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListRank))
             
             self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
+            
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
             
@@ -148,7 +162,7 @@ class FlightListDatabase(object):
         df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
         ''' rename extended columns '''
         df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'destination_latitude','longitude':'destination_longitude','elevation':'destination_elevation'})
-        logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+        #logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
         
         self.extendedTrainFlightListDataframe = df_flightListExtendedWithAirportData
         self.TrainFlightListDataframe = df_flightListExtendedWithAirportData

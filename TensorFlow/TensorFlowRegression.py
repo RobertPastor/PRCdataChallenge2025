@@ -18,7 +18,6 @@ import tensorflow as tf
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.Fuel.FuelReader import FuelDatabase
 
-
 import logging
 logging.basicConfig(level=logging.INFO)
 
