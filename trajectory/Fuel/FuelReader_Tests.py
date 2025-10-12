@@ -280,8 +280,6 @@ class Test_Main(unittest.TestCase):
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
         
-        assert fuelDatabase.extendFuelTrainWithFlightTakeOff()
-        
         df = fuelDatabase.getFuelTrainDataframe()
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
@@ -292,13 +290,10 @@ class Test_Main(unittest.TestCase):
         fuelDatabase = FuelDatabase()
         assert fuelDatabase.readFuelRank() == True
         assert fuelDatabase.checkFuelRankHeaders() == True
-
-        assert fuelDatabase.extendFuelRankFithFlightTakeOff()
         
         df = fuelDatabase.getFuelRankDataframe()
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-
-
+        
         
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

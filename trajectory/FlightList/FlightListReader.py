@@ -62,6 +62,10 @@ class FlightListDatabase(object):
             
             self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
             
+            ''' convert to datetime UTC '''
+            self.TrainFlightListDataframe["takeoff"] = pd.to_datetime(self.TrainFlightListDataframe["takeoff"], utc=True)
+            self.TrainFlightListDataframe["landed"] = pd.to_datetime(self.TrainFlightListDataframe["landed"], utc=True)
+
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
             
@@ -87,7 +91,9 @@ class FlightListDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListRank))
             
             self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
-            
+            self.RankFlightListDataframe["takeoff"] = pd.to_datetime(self.RankFlightListDataframe["takeoff"], utc=True)
+            self.RankFlightListDataframe["landed"] = pd.to_datetime(self.RankFlightListDataframe["landed"], utc=True)
+
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
             
