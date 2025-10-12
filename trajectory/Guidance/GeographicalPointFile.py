@@ -118,7 +118,6 @@ class GeographicalPoint(object):
         
         return  latitudeDegrees, longitudeDegrees   
 
-
     def computeDistanceMetersTo(self, nextGeoPoint):
         assert ( not(nextGeoPoint is None) and isinstance(nextGeoPoint, GeographicalPoint))
         return points2distanceMeters([self.LatitudeDegrees,self.LongitudeDegrees], [nextGeoPoint.LatitudeDegrees, nextGeoPoint.LongitudeDegrees])

@@ -12,9 +12,27 @@ from tabulate import tabulate
 
 from trajectory.Environment.AirportsDataChallenge.AirportsDataChallengeDatabaseFile import AirportsDataChallengeDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
+from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
+from trajectory.Environment.Constants import Meter2NauticalMiles
 
 expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id',
-                   'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation']
+                   'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation',
+                   'flight_distance_Nm' , 'flight_duration_sec']
+
+''' compute distance between departure and arrival airport using great circle '''
+def computeFlightDistanceNauticalMiles( row ):
+    departureAirportGeoPoint = GeographicalPoint ( LatitudeDegrees            = row['origin_latitude'], 
+                                                   LongitudeDegrees           = row['origin_longitude'],
+                                                   AltitudeMeanSeaLevelMeters = row['origin_elevation'])
+    
+    arrivalAirportGeoPoint = GeographicalPoint ( LatitudeDegrees              = row['destination_latitude'], 
+                                                   LongitudeDegrees           = row['destination_longitude'],
+                                                   AltitudeMeanSeaLevelMeters = row['destination_elevation'])
+    return departureAirportGeoPoint.computeDistanceMetersTo(arrivalAirportGeoPoint) * Meter2NauticalMiles
+
+''' compute flight duration in seconds '''
+def computeFlightDurationSeconds( row ):
+    return (row['landed'] - row['takeoff']).total_seconds() 
 
 class FlightListDatabase(object):
     className = ''
@@ -68,6 +86,11 @@ class FlightListDatabase(object):
             self.TrainFlightListDataframe["landed"] = pd.to_datetime(self.TrainFlightListDataframe["landed"], utc=True)
             
             assert self.extendTrainFlightListWithAirportData()
+            
+            ''' compute distance nautical miles between departure airport and arrival airport '''
+            self.TrainFlightListDataframe["flight_distance_Nm"] = self.TrainFlightListDataframe.apply ( computeFlightDistanceNauticalMiles , axis = 1)
+            ''' compute flight duration between departure airport and arrival airport '''
+            self.TrainFlightListDataframe["flight_duration_sec"] = self.TrainFlightListDataframe.apply ( computeFlightDurationSeconds , axis = 1)
 
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
@@ -99,6 +122,11 @@ class FlightListDatabase(object):
             self.RankFlightListDataframe["landed"] = pd.to_datetime(self.RankFlightListDataframe["landed"], utc=True)
             
             assert self.extendRankFlightListWithAirportData()
+            
+            ''' compute distance nautical miles between departure airport and arrival airport '''
+            self.RankFlightListDataframe["flight_distance_Nm"] = self.RankFlightListDataframe.apply ( computeFlightDistanceNauticalMiles , axis = 1)
+            ''' compute flight duration between departure airport and arrival airport '''
+            self.RankFlightListDataframe["flight_duration_sec"] = self.RankFlightListDataframe.apply ( computeFlightDurationSeconds , axis = 1)
 
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
@@ -180,7 +208,7 @@ class FlightListDatabase(object):
         
         self.extendedTrainFlightListDataframe = df_flightListExtendedWithAirportData
         self.RankFlightListDataframe = df_flightListExtendedWithAirportData
-
+        
         return True
         
     def extendTrainFlightListWithAirportData(self):
@@ -238,7 +266,7 @@ class FlightListDatabase(object):
             print(f"----- Index: {index} , Name: { row['flight_id'] } ----- ")
             flightName = row['flight_id']
             if count < 100:
-                df_flight = flightsDatabase.readOneFile(flightName)
+                df_flight = flightsDatabase.readOneTrainFile(flightName)
                 
                 df_join = pd.merge ( df_flight , self.TrainFlightListDataframe , on = 'flight_id' , how = "inner")
                 #logging.info("df_shape columns = " + str ( list ( df_join ) ) )
