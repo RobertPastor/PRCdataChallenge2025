@@ -22,10 +22,28 @@ from tabulate import tabulate
 import tensorflow as tf
 
 from trajectory.Fuel.FuelReader import FuelDatabase
-from trajectory.Flights import FlightsReader
+from trajectory.Flights.FlightsReader import FlightsDatabase
 
 import logging
 import unittest
+
+''' load static flight database '''
+flightsDatabase = FlightsDatabase()
+
+def extendFuelTrainWithFlightsData(row):
+    print(''' ------------- row by row loop ------------------''')
+    print ( row['flight_id'])
+    df_flightData = flightsDatabase.readOneTrainFile(row['flight_id'])
+    #print( str( df_flightData['timestamp'] ))
+    df_filtered = df_flightData[ (df_flightData['timestamp'] >= row['fuel_burn_start']) & (df_flightData['timestamp'] <= row['fuel_burn_end'])]
+    # keep first row only
+    df_filtered = df_filtered.head(1)
+    
+    print(str ( df_filtered.shape ))
+    print(str ( list ( df_filtered ) ) )
+    
+    return  pd.Series( df_filtered['timestamp'] ).reset_index(drop=True)
+    #return  df_filtered
 
 
 #============================================
@@ -41,16 +59,24 @@ class Test_Main(unittest.TestCase):
                 
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
+        
         df = fuelDatabase.getFuelTrainDataframe()
         
-        print("train fuel datafram shape = " + str( df.shape ))
+        print("train fuel dataframe shape = " + str( df.shape ))
         
         # Pretty print the DataFrame
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
-        flightsReader = FlightsReader()
+#       for index, row in df.iterrows():
+#            print(f"Index: {index}, flight id: {row['flight_id']} ")
+        print ("final shape = " +  str (  df .shape ) ) 
         
-
+        #df['timestamp'] = df.apply( extendFuelTrainWithFlightsData , axis = 1)
+        df['timestamp'] = df.apply( extendFuelTrainWithFlightsData , axis = 1)
+        
+        print ( str ( list ( df )))
+        print ("final shape = " +  str (  df .shape ) ) 
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
 
 if __name__ == '__main__':

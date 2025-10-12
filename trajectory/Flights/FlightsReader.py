@@ -43,16 +43,12 @@ class FlightsDatabase(object):
         adsb     25453
         acars        8 '''
         
-        print("---------show column values distribution ")
-        #logging.info( str ( df[columnName].value_counts()))
-
         # Get one hot encoding of columns B
         one_hot = pd.get_dummies(df[columnName])
         # Drop column B as it is now encoded
         df = df.drop(columnName ,axis = 1)
         # Join the encoded df
         return df.join(one_hot)
-    
     
     def readOneTrainFile(self, fileName):
         
@@ -68,13 +64,17 @@ class FlightsDatabase(object):
         self.FlightsTrainDataframe = pd.read_parquet(filePath)
         self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
         
+        ''' convert datetime to UTC '''
+        self.FlightsTrainDataframe['timestamp'] = pd.to_datetime(self.FlightsTrainDataframe['timestamp'], utc=True)
+        
         assert self.checkFlightsTrainHeaders()
         
         ''' rename typecode into aircraft type code '''
         self.FlightsTrainDataframe  = self.renameColumns(self.FlightsTrainDataframe )
         
         ''' one hot encode the source column '''
-        self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
+        ''' do not hot encode on a per file basis as some file may have only one value in the source '''
+        #self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
         
         return self.FlightsTrainDataframe
         

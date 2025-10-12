@@ -43,11 +43,11 @@ class Test_Main(unittest.TestCase):
         print("show aircraft type code distribution ")
         
         fileName = "prc770822360.parquet"
+        fileName = "prc770867379.parquet"
         flightsDatabase = FlightsDatabase()
         df = flightsDatabase.readOneTrainFile(fileName)
         
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-
 
         print("---------show aircraft type code distribution ")
         logging.info( str ( df['aircraft_type_code'].value_counts()))

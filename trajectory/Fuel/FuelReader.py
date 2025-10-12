@@ -158,6 +158,9 @@ class FuelDatabase(object):
 
             assert self.extendFuelTrainWithFlightTakeOff()
             self.FuelTrainDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelTrainDataframe)
+            
+            ''' test mode - keep only first 10 rows '''
+            self.FuelTrainDataframe = self.FuelTrainDataframe.head(10)
 
             #logging.info ( str(self.FuelTrainDataframe.shape ) )
             #logging.info ( str(  list ( self.FuelTrainDataframe)) )
