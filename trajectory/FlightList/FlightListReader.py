@@ -13,7 +13,8 @@ from tabulate import tabulate
 from trajectory.Environment.AirportsDataChallenge.AirportsDataChallengeDatabaseFile import AirportsDataChallengeDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
 
-expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id']
+expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id',
+                   'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation']
 
 class FlightListDatabase(object):
     className = ''
@@ -65,6 +66,8 @@ class FlightListDatabase(object):
             ''' convert to datetime UTC '''
             self.TrainFlightListDataframe["takeoff"] = pd.to_datetime(self.TrainFlightListDataframe["takeoff"], utc=True)
             self.TrainFlightListDataframe["landed"] = pd.to_datetime(self.TrainFlightListDataframe["landed"], utc=True)
+            
+            assert self.extendTrainFlightListWithAirportData()
 
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
@@ -91,8 +94,11 @@ class FlightListDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListRank))
             
             self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
+            ''' convert to datetime UTC '''
             self.RankFlightListDataframe["takeoff"] = pd.to_datetime(self.RankFlightListDataframe["takeoff"], utc=True)
             self.RankFlightListDataframe["landed"] = pd.to_datetime(self.RankFlightListDataframe["landed"], utc=True)
+            
+            assert self.extendRankFlightListWithAirportData()
 
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
@@ -138,6 +144,44 @@ class FlightListDatabase(object):
         
         logging.info (self.className + ": size of unique list of airports : " + str(dfConcat.shape ) )
         #logging.info( dfConcat.head(100))
+        
+    def extendRankFlightListWithAirportData(self):
+        
+        logging.info(self.className + ": ---------- extend Flight List With Airport Data ---- ")
+        
+        airportsDb = AirportsDataChallengeDatabase()
+        assert airportsDb.read() == True
+        assert airportsDb.checkHeaders() == True
+        
+        airportsDataframe = airportsDb.getAirportsDataframe()
+        
+        logging.info( str ( list ( airportsDataframe ) ) )
+        logging.info( str ( list ( self.RankFlightListDataframe ) ) )
+        
+        ''' extend origin icao '''
+        df_flightListExtendedWithAirportData = pd.merge ( self.RankFlightListDataframe , airportsDataframe , left_on='origin_icao', right_on='icao', how='inner' )
+        logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+
+        ''' suppress icao '''
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        ''' rename extended columns '''
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'origin_latitude','longitude':'origin_longitude','elevation':'origin_elevation'})
+        logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+        
+        ''' extend destination icao '''
+        df_flightListExtendedWithAirportData = pd.merge ( df_flightListExtendedWithAirportData , airportsDataframe , left_on='destination_icao', right_on='icao', how='inner' )
+        
+        ''' suppress icao '''
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        
+        ''' rename extended columns '''
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'destination_latitude','longitude':'destination_longitude','elevation':'destination_elevation'})
+        #logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+        
+        self.extendedTrainFlightListDataframe = df_flightListExtendedWithAirportData
+        self.RankFlightListDataframe = df_flightListExtendedWithAirportData
+
+        return True
         
     def extendTrainFlightListWithAirportData(self):
         

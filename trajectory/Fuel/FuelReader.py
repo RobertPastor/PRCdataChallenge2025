@@ -8,15 +8,15 @@ import logging
 import os
 from pathlib import Path
 import pandas as pd
-from datetime import datetime
-import pytz
+
 from pandas.api.types import is_datetime64_any_dtype
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
-from seaborn._core.typing import ColumnName
+from trajectory.utils import keepOnlyColumns
 
 expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec' , 
-                  'fuel_burn_relative_start','fuel_burn_relative_end']
+                  'fuel_burn_relative_start','fuel_burn_relative_end' ,
+                  'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation']
 
 def compute_fuel_flow_kg_sec(row):
     return row['fuel_kg'] / (row['end'] - row['start']).total_seconds() if (row['end'] - row['start']).total_seconds() != 0 else 0
@@ -148,6 +148,7 @@ class FuelDatabase(object):
             #logging.info (self.className + "it is a file - {0}".format(self.filePathFuelTrain))
             
             self.FuelTrainDataframe = pd.read_parquet ( self.filePathFuelTrain )
+            print("----- origin fuel train dataframe shape = " + str ( self.FuelTrainDataframe.shape ))
             self.FuelTrainDataframe = self.convertDatetimeToUTC(self.FuelTrainDataframe)
 
             ''' Calculate time difference in seconds '''
@@ -174,13 +175,10 @@ class FuelDatabase(object):
         assert flightListDatabase.readRankFlightList()
         
         df_rankFlightList = flightListDatabase.getRankFlightListDataframe()
-        
         logging.info( self.className + ": ---- Rank flight list = " + str ( list (df_rankFlightList ) ) )
- 
-        columnNameListToKeep = [ 'flight_id', 'takeoff']
-        for columnName in list(df_rankFlightList):
-            if not columnName in columnNameListToKeep:
-                df_rankFlightList = df_rankFlightList.drop(columnName, axis=1)
+        
+        columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation']
+        df_rankFlightList = keepOnlyColumns( df_rankFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- rank flight list = " + str ( list (df_rankFlightList ) ) )
         logging.info( self.className + ": ---- fuel rank  = " + str ( list (self.FuelRankDataframe ) ) )
@@ -199,10 +197,8 @@ class FuelDatabase(object):
         df_trainFlightList = flightListDatabase.getTrainFlightListDataframe()
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
         
-        columnNameListToKeep = [ 'flight_id', 'takeoff']
-        for columnName in list(df_trainFlightList):
-            if not columnName in columnNameListToKeep:
-                df_trainFlightList = df_trainFlightList.drop(columnName, axis=1)
+        columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation']
+        df_trainFlightList = keepOnlyColumns( df_trainFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
         logging.info( self.className + ": ---- fuel train  = " + str ( list (self.FuelTrainDataframe ) ) )

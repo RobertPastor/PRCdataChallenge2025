@@ -8,8 +8,9 @@ import logging
 import os
 from pathlib import Path
 import pandas as pd
+from tabulate import tabulate
 
-from datetime import date
+
 ''' type_code renamed as aircraft_type_code '''
 expectedHeaders = ['timestamp', 'flight_id', 'aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 
@@ -21,17 +22,14 @@ class FlightsDatabase(object):
     def __init__(self):
         self.className = self.__class__.__name__
         
-        self.filesFolder = "C:\\Users\\rober\\git\\PRCdataChallenge2025\\Data-Download-OpenSkyNetwork\\competition-train-data"
+        #self.filesFolder = "C:\\Users\\rober\\git\\PRCdataChallenge2025\\Data-Download-OpenSkyNetwork\\competition-train-data"
         self.filesFolder = os.path.dirname(__file__)
-        self.filesFolder = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data")
+        self.filesFolderTrain = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data")
+        self.filesFolderRank = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data")
         
-        assert Path(self.filesFolder).is_dir() == True
+        assert Path(self.filesFolderTrain).is_dir() == True
+        assert Path(self.filesFolderRank).is_dir() == True
         #logging.info(self.filesFolder)
-        
-        directory = Path(self.filesFolder)
-        #logging.info(directory)
-        
-        assert directory.is_dir()
         
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
@@ -53,49 +51,45 @@ class FlightsDatabase(object):
         # Drop column B as it is now encoded
         df = df.drop(columnName ,axis = 1)
         # Join the encoded df
-        return df.join(one_hot) 
+        return df.join(one_hot)
     
-    def readOneFile(self, fileName):
+    
+    def readOneTrainFile(self, fileName):
         
         if str(fileName).endswith("parquet") == False:
             fileName = fileName + ".parquet"
         
         #logging.info(self.className + ": file name = " + fileName)
-        filePath = os.path.join( self.filesFolder , fileName)
+        filePath = os.path.join( self.filesFolderTrain , fileName)
         file = Path(filePath)
         
         assert file.is_file() == True
         
-        self.FlightsDataframe = pd.read_parquet(filePath)
-        self.FlightsDataframe = self.renameColumns(self.FlightsDataframe)
+        self.FlightsTrainDataframe = pd.read_parquet(filePath)
+        self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
         
-        assert (set(self.FlightsDataframe) == set(expectedHeaders))
-        
-        #logging.info( str ( self.FlightsDataframe.head()))
-        #logging.info( str ( self.FlightsDataframe.shape ) )
-        #logging.info ( str(  list ( self.FlightsDataframe )) )
+        assert self.checkFlightsTrainHeaders()
         
         ''' rename typecode into aircraft type code '''
-        self.FlightsDataframe  = self.renameColumns(self.FlightsDataframe )
+        self.FlightsTrainDataframe  = self.renameColumns(self.FlightsTrainDataframe )
+        
         ''' one hot encode the source column '''
-        self.FlightsDataframe  = self.oneHotEncodeSource(self.FlightsDataframe, "source")
+        self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
         
-        #logging.info ( str(  list ( self.FlightsDataframe )) )
+        return self.FlightsTrainDataframe
         
-        return self.FlightsDataframe
-        
-    def readSomeFiles(self, testMode = False):
+    def readSomeTrainFiles(self, testMode = False):
         file_count = 0
         if testMode == True:
             file_count = 0
             
-        directory = Path(self.filesFolder)
+        directory = Path(self.filesFolderTrain)
         if directory.is_dir():
             
             for fileName in os.listdir(directory):
                 #logging.info(self.className + ": file name = " + fileName)
                 
-                self.filePath = os.path.join(self.filesFolder , fileName)
+                self.filePath = os.path.join(self.filesFolderTrain , fileName)
                 
                 file = Path(self.filePath)
                 if file.is_file() and fileName.endswith("parquet"):
@@ -105,6 +99,9 @@ class FlightsDatabase(object):
                         self.FlightsTrainDataframe = pd.read_parquet(self.filePath)
                         self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
                         
+                        print(tabulate(self.FlightsTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
+
                         logging.info( str ( self.FlightsTrainDataframe.head()))
                         logging.info( str ( self.FlightsTrainDataframe.shape ) )
                         

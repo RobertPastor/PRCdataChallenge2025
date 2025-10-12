@@ -10,6 +10,8 @@ import unittest
 import pandas as pd
 import os
 from trajectory.Flights.FlightsReader import FlightsDatabase
+from tabulate import tabulate
+
 
 #============================================
 class Test_Main(unittest.TestCase):
@@ -21,8 +23,7 @@ class Test_Main(unittest.TestCase):
         
         logging.info("Read Flight data")
         flightsDatabase = FlightsDatabase()
-        assert flightsDatabase.readSomeFiles(testMode = True) == True
-        
+        assert flightsDatabase.readSomeTrainFiles(testMode = True) == True
         
     def test_main_two(self):
         logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,7 @@ class Test_Main(unittest.TestCase):
         
         logging.info("Read Flight data")
         flightsDatabase = FlightsDatabase()
-        assert flightsDatabase.readSomeFiles(testMode = True) == True
+        assert flightsDatabase.readSomeTrainFiles(testMode = True) == True
         
         assert flightsDatabase.checkFlightsTrainHeaders()
         
@@ -43,7 +44,10 @@ class Test_Main(unittest.TestCase):
         
         fileName = "prc770822360.parquet"
         flightsDatabase = FlightsDatabase()
-        df = flightsDatabase.readOneFile(fileName)
+        df = flightsDatabase.readOneTrainFile(fileName)
+        
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
 
         print("---------show aircraft type code distribution ")
         logging.info( str ( df['aircraft_type_code'].value_counts()))
