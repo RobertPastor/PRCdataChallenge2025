@@ -9,6 +9,7 @@ https://www.youtube.com/watch?v=XJFSXH8E6CA
 '''
 
 import pandas as pd
+from tensorflow.python.ops import inplace_ops
 # Set the option to display all columns
 pd.options.display.max_columns = None
 
@@ -30,20 +31,29 @@ import unittest
 ''' load static flight database '''
 flightsDatabase = FlightsDatabase()
 
-def extendFuelTrainWithFlightsData(row):
+def extendFuelTrainWithFlightsData( row ):
+    
     print(''' ------------- row by row loop ------------------''')
-    print ( row['flight_id'])
-    df_flightData = flightsDatabase.readOneTrainFile(row['flight_id'])
+    print ( row['flight_id'] )
+    df_flightData = flightsDatabase.readOneTrainFile( row['flight_id'] )
     #print( str( df_flightData['timestamp'] ))
     df_filtered = df_flightData[ (df_flightData['timestamp'] >= row['fuel_burn_start']) & (df_flightData['timestamp'] <= row['fuel_burn_end'])]
     # keep first row only
     df_filtered = df_filtered.head(1)
+    df_filtered = df_filtered.drop ( "flight_id" , axis = 1)
     
     print(str ( df_filtered.shape ))
     print(str ( list ( df_filtered ) ) )
     
-    return  pd.Series( df_filtered['timestamp'] ).reset_index(drop=True)
-    #return  df_filtered
+    #return  pd.Series( df_filtered['timestamp'] ).reset_index(drop=True)
+    #return  pd.Series(df_filtered['timestamp']).reset_index(drop=True)
+
+    #return pd.concat( [ pd.Series(df_filtered['timestamp']) , pd.Series(df_filtered['aircraft_type_code']) ] , axis = 1).reset_index(drop=True, inplace=True)
+    #return df_filtered[ ['timestamp','aircraft_type_code'] ].reset_index( drop = False , inplace = True)
+    #return pd.Series( { 'timestamp' : df_filtered['timestamp'] , 'aircraft_type_code' : df_filtered['aircraft_type_code'] } ).reset_index(drop=True,inplace=True)
+    series = pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) } )
+    
+    return series
 
 
 #============================================
@@ -72,9 +82,19 @@ class Test_Main(unittest.TestCase):
         print ("final shape = " +  str (  df .shape ) ) 
         
         #df['timestamp'] = df.apply( extendFuelTrainWithFlightsData , axis = 1)
-        df['timestamp'] = df.apply( extendFuelTrainWithFlightsData , axis = 1)
+        listOfColumns = ['timestamp','aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
+        #df[listOfColumns] = df.apply( extendFuelTrainWithFlightsData , axis = 1, result_type='expand')
         
-        print ( str ( list ( df )))
+        df[['timestamp','aircraft_type_code']] = df.apply( extendFuelTrainWithFlightsData , axis = 1 )
+        print ( "after apply = " +  str ( df.shape ) )
+        #df[ ['timestamp','aircraft_type_code'] ] = 
+        #applied_df = df.apply( extendFuelTrainWithFlightsData , axis = 1 , result_type='expand')
+        
+        print (  str ( df.shape ) )
+        print ( str ( list  (  df )))
+        
+        
+        print ("final list = " +  str ( list ( df )))
         print ("final shape = " +  str (  df .shape ) ) 
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 

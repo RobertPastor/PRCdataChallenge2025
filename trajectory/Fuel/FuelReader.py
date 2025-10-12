@@ -46,15 +46,11 @@ class FuelDatabase(object):
         
         self.fileNameFuelTrain = "fuel_train.parquet"
         #logging.info(self.fileNameFuelTrain)
-        
         self.fileNameFuelRank =  "fuel_rank_submission.parquet"
         #logging.info(self.fileNameFuelRank)
-        
         self.filesFolder = os.path.dirname(__file__)
-        
         self.filePathFuelTrain = os.path.join(self.filesFolder , self.fileNameFuelTrain)
         #logging.info(self.filePathFuelTrain)
-        
         self.filePathFuelRank = os.path.join(self.filesFolder , self.fileNameFuelRank)
         #logging.info(self.filePathFuelRank)
         
