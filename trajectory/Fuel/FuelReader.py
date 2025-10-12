@@ -14,9 +14,12 @@ from pandas.api.types import is_datetime64_any_dtype
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.utils import keepOnlyColumns
 
+Count_of_FlightsFiles = 1000
+
 expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec' , 
                   'fuel_burn_relative_start','fuel_burn_relative_end' ,
-                  'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation']
+                  'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation',
+                  'flight_distance_Nm' , 'flight_duration_sec']
 
 def compute_fuel_flow_kg_sec(row):
     return row['fuel_kg'] / (row['end'] - row['start']).total_seconds() if (row['end'] - row['start']).total_seconds() != 0 else 0
@@ -74,13 +77,7 @@ class FuelDatabase(object):
         ''' convert absolute date time into relative delay in seconds from flight start '''
     def computeRelativeStartEndFromFlightTakeOff(self, df):
         #print(df.info)
-        #df.apply ( checkTimeZoneUTC , axis = 1)
         
-        # Convert directly to UTC
-        #df['fuel_burn_start'] = pd.to_datetime(df['fuel_burn_start']).dt.tz_localize(tz='Europe/Paris',ambiguous="infer").dt.tz_convert('UTC')
-        #df['fuel_burn_end'] = pd.to_datetime(df['fuel_burn_end']).dt.tz_localize(tz='Europe/Paris',ambiguous ="infer").dt.tz_convert('UTC')
-        #df['takeoff'] = pd.to_datetime(df['takeoff']).dt.tz_localize(tz='Europe/Paris',ambiguous="infer").dt.tz_convert('UTC')
-
         df['fuel_burn_relative_start'] = ( df['fuel_burn_start'] - df['takeoff']).dt.total_seconds()
         df['fuel_burn_relative_end'] = ( df['fuel_burn_end'] - df['takeoff']).dt.total_seconds()
         #print(df.info)
@@ -121,6 +118,8 @@ class FuelDatabase(object):
             
             assert self.extendFuelRankWithFlightTakeOff()
             self.FuelRankDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelRankDataframe)
+            
+            self.FuelRankDataframe = self.FuelRankDataframe.head(Count_of_FlightsFiles)
 
             return True
         else:
@@ -156,7 +155,7 @@ class FuelDatabase(object):
             self.FuelTrainDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelTrainDataframe)
             
             ''' test mode - keep only first 10 rows '''
-            self.FuelTrainDataframe = self.FuelTrainDataframe.head(10)
+            self.FuelTrainDataframe = self.FuelTrainDataframe.head(Count_of_FlightsFiles)
 
             #logging.info ( str(self.FuelTrainDataframe.shape ) )
             #logging.info ( str(  list ( self.FuelTrainDataframe)) )
@@ -196,7 +195,9 @@ class FuelDatabase(object):
         df_trainFlightList = flightListDatabase.getTrainFlightListDataframe()
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
         
-        columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation']
+        columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 
+                                'destination_longitude', 'destination_latitude', 'destination_elevation',
+                                'flight_distance_Nm' , 'flight_duration_sec']
         df_trainFlightList = keepOnlyColumns( df_trainFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )

@@ -37,19 +37,6 @@ class FlightsDatabase(object):
     def renameColumns(self, df):
         return df.rename(columns= {'typecode':'aircraft_type_code'})
     
-    def oneHotEncodeSource(self , df , columnName):
-        ''' source columns contains only two values
-        INFO:root:source
-        adsb     25453
-        acars        8 '''
-        
-        # Get one hot encoding of columns B
-        one_hot = pd.get_dummies(df[columnName])
-        # Drop column B as it is now encoded
-        df = df.drop(columnName ,axis = 1)
-        # Join the encoded df
-        return df.join(one_hot)
-    
     def readOneTrainFile(self, fileName):
         
         if str(fileName).endswith("parquet") == False:
@@ -74,6 +61,7 @@ class FlightsDatabase(object):
         
         ''' one hot encode the source column '''
         ''' do not hot encode on a per file basis as some file may have only one value in the source '''
+        ''' hot encoding is done after all 13.000 thousands Flight Data files are concated '''
         #self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
         
         return self.FlightsTrainDataframe
@@ -101,11 +89,10 @@ class FlightsDatabase(object):
                         
                         print(tabulate(self.FlightsTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
-
-                        logging.info( str ( self.FlightsTrainDataframe.head()))
-                        logging.info( str ( self.FlightsTrainDataframe.shape ) )
+                        #logging.info( str ( self.FlightsTrainDataframe.head()))
+                        #logging.info( str ( self.FlightsTrainDataframe.shape ) )
                         
-                        logging.info ( str(  list ( self.FlightsTrainDataframe )) )
+                        #logging.info ( str(  list ( self.FlightsTrainDataframe )) )
                         file_count = file_count + 1
                     
                     else:
