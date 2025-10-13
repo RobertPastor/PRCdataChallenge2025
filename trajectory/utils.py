@@ -4,8 +4,19 @@ Created on 12 oct. 2025
 @author: robert
 '''
 import pandas as pd
+from datetime import datetime
+
 from sklearn.preprocessing import OneHotEncoder
 oneHotEncoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+
+def getCurrentDateTimeAsStr( ):
+    # Create a datetime object
+    current_date = datetime.now()
+
+    # Convert to string with a specific format
+    date_string = current_date.strftime("%Y-%m-%d-%H-%M-%S")
+    print("Formatted Date String:", date_string)
+    return date_string
 
 def keepOnlyColumns( df , listOfColumnNamesToKeep):
     #listOfColumnNamesToKeep = [ 'flight_id', 'takeoff']

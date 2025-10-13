@@ -22,7 +22,7 @@ import numpy as np
 np.set_printoptions(precision=3, suppress=True)
 
 from tabulate import tabulate
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn
+from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 import tensorflow as tf
@@ -139,6 +139,77 @@ def prepare_Rank(Count_of_FlightsFiles_to_read):
     print ("final list = " +  str ( list ( df )))
     print ("final shape = " +  str (  df .shape ) ) 
     
+    ''' drop columns with absolute date time instant '''
+    df = dropUnusedColumns( df , ['fuel_burn_start','fuel_burn_end'])
+
+    ''' convert flight data time stamp relative to flight start '''
+    df['timestamp_relative_start'] = ( df['timestamp'] - df['takeoff']).dt.total_seconds()
+    
+    ''' drop absolute date time stamp '''
+    df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
+
+    #print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+    
+    #df = df.dropna(axis = 'index' , how = 'any')
+    print ("final shape = " +  str (  df .shape ) ) 
+    
+    ''' decision to the use the fuel flow as Y '''
+    Y_columnName = 'fuel_flow_kg_sec'
+    listOfColumnsToDrop = ['idx'] + [Y_columnName]
+    
+    print( listOfColumnsToDrop )
+    ''' do not put Y value in the train data set '''
+    X_test = dropUnusedColumns ( df , listOfColumnsToDrop)
+
+    ''' check unique names of aircraft type code '''
+    aircraft_code_list = X_test['aircraft_type_code'].unique().tolist()
+    print(aircraft_code_list)
+
+    ''' one hot encoder for aircraft_type_code  and source '''
+    columnListToEncode = ['aircraft_type_code' , 'source']
+    
+    for columnName in columnListToEncode:
+        X_test = oneHotEncoderSklearn ( X_test , columnName)
+        
+    print(list ( X_test ))
+  
+    X_test = dropUnusedColumns ( X_test , ['source_0.0' ,'aircraft_type_code'] )
+    #X_train = tf.one_hot( X_train, depth=3 )
+    
+    ''' fill not a number with zeros '''
+    X_test = X_test.fillna(0)
+    
+    print(" ---- after one hot encoder ------")
+    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    
+    ''' check if there are null values '''
+    print( str ( X_test.isnull().sum() ))
+
+    '''  Specify columns to rescale '''
+    ''' do not rescale fuel_flow_kg_sec as it is the Y currently '''
+    
+    print(list(X_test))
+    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
+    ''' suppress column with name 0.0 '''
+    
+    '''  Apply MinMaxScaler '''
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    X_test = scaler.fit_transform(X_test)
+    
+    print ( str ( X_test.shape ))
+    #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
+    
+    print("----- after scaling ----- ")
+    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    
+    ''' convert True False to float '''
+    X_test = np.asarray(X_test).astype(np.float32)
+    
+    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    
+    return X_test 
+                
                 
 def prepare_Train(Count_of_FlightsFiles_to_read):
     
@@ -206,7 +277,7 @@ def prepare_Train(Count_of_FlightsFiles_to_read):
     print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
     
     ''' check if there are null values '''
-    print( str ( df.isnull().sum() ))
+    print( str ( X_train.isnull().sum() ))
 
     '''  Specify columns to rescale '''
     ''' do not rescale fuel_flow_kg_sec as it is the Y currently '''
@@ -221,7 +292,7 @@ def prepare_Train(Count_of_FlightsFiles_to_read):
     X_train = scaler.fit_transform(X_train)
     
     print ( str ( X_train.shape ))
-    assert X_train.shape[0] == Count_of_FlightsFiles_to_read
+    #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
     
     print("----- after scaling ----- ")
     print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
@@ -243,7 +314,7 @@ class Test_Main(unittest.TestCase):
         logging.info (' -------------- Train Fuel database -------------')
                 
         ''' if None then read all train files -> 11.085 files '''
-        Count_of_FlightsFiles_to_read = 1000
+        Count_of_FlightsFiles_to_read = None
         X_train , y_train = prepare_Train(Count_of_FlightsFiles_to_read)
 
         end_time = time.time()  # Record the end time
@@ -260,9 +331,13 @@ class Test_Main(unittest.TestCase):
         model.compile(loss = rmse , optimizer = 'adam' , metrics = [rmse])
         history = model.fit( x = X_train , y = y_train , epochs = 400 , validation_split=0.2 , verbose=1)
         
-        plot_loss(history = history , y_limit = 100)
+        # Save the entire model to a file
+        modelFileName = "model_name_" + getCurrentDateTimeAsStr() + ".h5"
+        model.save(modelFileName)  # HDF5 format
         
-    '''
+        plot_loss(history = history , y_limit = 20)
+        
+
     def test_Rank(self):
         
         logging.basicConfig(level=logging.INFO)
@@ -270,12 +345,14 @@ class Test_Main(unittest.TestCase):
         logging.info (' -------------- Rank Fuel database -------------')
                 
         Count_of_FlightsFiles_to_read = 1000
-        X_test , y_test = prepare_Rank(Count_of_FlightsFiles_to_read)
+        X_test  = prepare_Rank(Count_of_FlightsFiles_to_read)
+        
+        print( str ( X_test.shape ))
 
         end_time = time.time()  # Record the end time
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
-    '''
+    
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

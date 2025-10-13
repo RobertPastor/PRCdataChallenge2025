@@ -88,6 +88,9 @@ ipython_config.py
 #do not push parquet files
 *.parquet
 
+# do not push models 
+*.h5
+
 #do not push files from the data folder
 Data-Download-OpenSkyNetwork/
 
