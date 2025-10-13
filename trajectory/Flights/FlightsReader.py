@@ -10,10 +10,8 @@ from pathlib import Path
 import pandas as pd
 from tabulate import tabulate
 
-
 ''' type_code renamed as aircraft_type_code '''
 expectedHeaders = ['timestamp', 'flight_id', 'aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
-
 
 class FlightsDatabase(object):
     
@@ -34,8 +32,44 @@ class FlightsDatabase(object):
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
     
+    def checkFlightsRankHeaders(self):
+        return (set(self.FlightsRankDataframe) == set(expectedHeaders))
+    
     def renameColumns(self, df):
         return df.rename(columns= {'typecode':'aircraft_type_code'})
+    
+    def readOneRankFile(self , fileName):
+        
+        if str(fileName).endswith("parquet") == False:
+            fileName = fileName + ".parquet"
+        
+        #logging.info(self.className + ": file name = " + fileName)
+        filePath = os.path.join( self.filesFolderRank , fileName)
+        file = Path(filePath)
+        
+        assert file.is_file() == True
+        
+        self.FlightsRankDataframe = pd.read_parquet(filePath)
+        self.FlightsRankDataframe = self.renameColumns(self.FlightsRankDataframe)
+        
+        ''' convert datetime to UTC '''
+        self.FlightsRankDataframe['timestamp'] = pd.to_datetime(self.FlightsRankDataframe['timestamp'], utc=True)
+        
+        assert self.checkFlightsRankHeaders()
+        
+        ''' rename typecode into aircraft type code '''
+        self.FlightsRankDataframe  = self.renameColumns(self.FlightsRankDataframe )
+        
+        ''' correct erroneous values in source column '''
+        self.FlightsRankDataframe['source'] = self.FlightsRankDataframe['source'].apply(lambda x: str('unknown_source') if not isinstance(x, str) else str(x)  )
+        
+        ''' one hot encode the source column '''
+        ''' do not hot encode on a per file basis as some file may have only one value in the source '''
+        ''' hot encoding is done after all 13.000 thousands Flight Data files are concated '''
+        #self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
+        
+        return self.FlightsRankDataframe
+        
     
     def readOneTrainFile(self, fileName):
         
@@ -58,6 +92,9 @@ class FlightsDatabase(object):
         
         ''' rename typecode into aircraft type code '''
         self.FlightsTrainDataframe  = self.renameColumns(self.FlightsTrainDataframe )
+        
+        ''' correct erroneous values in source column '''
+        self.FlightsTrainDataframe['source'] = self.FlightsTrainDataframe['source'].apply(lambda x: str('unknown_source') if not isinstance(x, str) else str(x)  )
         
         ''' one hot encode the source column '''
         ''' do not hot encode on a per file basis as some file may have only one value in the source '''

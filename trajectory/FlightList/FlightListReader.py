@@ -17,7 +17,7 @@ from trajectory.Environment.Constants import Meter2NauticalMiles
 
 expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id',
                    'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation',
-                   'flight_distance_Nm' , 'flight_duration_sec']
+                   'flight_distance_Nm' , 'flight_duration_sec' , 'year' , 'month' , 'day_of_year']
 
 ''' compute distance between departure and arrival airport using great circle '''
 def computeFlightDistanceNauticalMiles( row ):
@@ -76,9 +76,6 @@ class FlightListDatabase(object):
         
         if directory.is_dir() and file.is_file():
             
-            logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
-            logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListTrain))
-            
             self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
             
             ''' convert to datetime UTC '''
@@ -91,6 +88,13 @@ class FlightListDatabase(object):
             self.TrainFlightListDataframe["flight_distance_Nm"] = self.TrainFlightListDataframe.apply ( computeFlightDistanceNauticalMiles , axis = 1)
             ''' compute flight duration between departure airport and arrival airport '''
             self.TrainFlightListDataframe["flight_duration_sec"] = self.TrainFlightListDataframe.apply ( computeFlightDurationSeconds , axis = 1)
+            
+            # Extract year
+            self.TrainFlightListDataframe['year'] = self.TrainFlightListDataframe['takeoff'].dt.year
+            self.TrainFlightListDataframe['month'] = self.TrainFlightListDataframe['takeoff'].dt.month
+            
+            ''' extract the day number of the year '''
+            self.TrainFlightListDataframe['day_of_year'] = self.TrainFlightListDataframe['takeoff'].dt.dayofyear
 
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
@@ -98,8 +102,8 @@ class FlightListDatabase(object):
             #logging.info (self.className + str( self.TrainFlightListDataframe.head(10) ) )
             return True
         else:
-            logging.error(self.className + "it is a directory - {0}".format(self.filesFolder))
-            logging.error (self.className + "it is a file - {0}".format(self.filePathFlightListTrain))
+            logging.error(self.className + " : it is a directory - {0}".format(self.filesFolder))
+            logging.error (self.className + " : it is a file - {0}".format(self.filePathFlightListTrain))
 
             return False
 
@@ -127,6 +131,13 @@ class FlightListDatabase(object):
             self.RankFlightListDataframe["flight_distance_Nm"] = self.RankFlightListDataframe.apply ( computeFlightDistanceNauticalMiles , axis = 1)
             ''' compute flight duration between departure airport and arrival airport '''
             self.RankFlightListDataframe["flight_duration_sec"] = self.RankFlightListDataframe.apply ( computeFlightDurationSeconds , axis = 1)
+            
+            self.RankFlightListDataframe['year'] = self.RankFlightListDataframe['takeoff'].dt.year
+            self.RankFlightListDataframe['month'] = self.RankFlightListDataframe['takeoff'].dt.month
+            
+            ''' extract the day number of the year '''
+            self.RankFlightListDataframe['day_of_year'] = self.RankFlightListDataframe['takeoff'].dt.dayofyear
+
 
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
@@ -206,7 +217,7 @@ class FlightListDatabase(object):
         df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'destination_latitude','longitude':'destination_longitude','elevation':'destination_elevation'})
         #logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
         
-        self.extendedTrainFlightListDataframe = df_flightListExtendedWithAirportData
+        self.extendedRankFlightListDataframe = df_flightListExtendedWithAirportData
         self.RankFlightListDataframe = df_flightListExtendedWithAirportData
         
         return True

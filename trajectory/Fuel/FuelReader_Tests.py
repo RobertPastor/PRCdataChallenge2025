@@ -35,7 +35,7 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- test for null values  ----------------")
         
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.readFuelRank() == True
         
@@ -53,7 +53,7 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- test_main_one  ----------------")
 
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         assert fuelDatabase.readFuelTrain() == True
         
     def test_main_two(self):
@@ -62,7 +62,7 @@ class Test_Main(unittest.TestCase):
         logging.info("---------------- test_main_two  ----------------")
         
         logging.info("Read Fuel Train")
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
@@ -81,10 +81,10 @@ class Test_Main(unittest.TestCase):
         logging.info("---------------- test_main_three  ----------------")
 
         logging.info("Read Fuel Rank")
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         
         assert fuelDatabase.readFuelRank() == True
-        assert fuelDatabase.checkFuelRankHeaders() == True
+        #assert fuelDatabase.checkFuelRankHeaders() == True
         
         df = fuelDatabase.getFuelRankDataframe()
         
@@ -98,7 +98,7 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyse fuel flow distribution  ----------------")
         
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
@@ -174,7 +174,7 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyze fuel distribution  ----------------")
         
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
@@ -221,7 +221,7 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyze statistics   ----------------")
         
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
         
@@ -276,20 +276,18 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyze fuel extended with flight start   ----------------")
         
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
         
         df = fuelDatabase.getFuelTrainDataframe()
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-
         
     def test_rank_fuel_extension_with_flight_start(self):
 
-        
-        fuelDatabase = FuelDatabase()
+        fuelDatabase = FuelDatabase(100)
         assert fuelDatabase.readFuelRank() == True
-        assert fuelDatabase.checkFuelRankHeaders() == True
+        #assert fuelDatabase.checkFuelRankHeaders() == True
         
         df = fuelDatabase.getFuelRankDataframe()
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))

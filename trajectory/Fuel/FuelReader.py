@@ -14,8 +14,6 @@ from pandas.api.types import is_datetime64_any_dtype
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.utils import keepOnlyColumns
 
-Count_of_FlightsFiles = 1000
-
 expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec' , 
                   'fuel_burn_relative_start','fuel_burn_relative_end' ,
                   'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation',
@@ -42,10 +40,12 @@ class FuelDatabase(object):
     
     className = ''
     
-    def __init__(self):
+    def __init__(self , count_of_files_to_read):
         logging.basicConfig(level=logging.INFO)
 
         self.className = self.__class__.__name__
+        
+        self.count_of_files_to_read = count_of_files_to_read
         
         self.fileNameFuelTrain = "fuel_train.parquet"
         #logging.info(self.fileNameFuelTrain)
@@ -58,10 +58,14 @@ class FuelDatabase(object):
         #logging.info(self.filePathFuelRank)
         
     def checkFuelTrainHeaders(self):
-        return (set(self.FuelTrainDataframe) == set(expectedHeaders))
+        #print(str(set(list(self.FuelTrainDataframe).sort())))
+        #print(str(set(expectedHeaders).sort()))
+        return set(self.FuelTrainDataframe) == set(expectedHeaders)
     
     def checkFuelRankHeaders(self):
-        return (set(self.FuelRankDataframe) == set(expectedHeaders))
+        #print(str(set(list(self.FuelRankDataframe).sort())))
+        #print(str(set(expectedHeaders).sort()))
+        return set(self.FuelRankDataframe) == set(expectedHeaders)
 
     def getFuelTrainDataframe(self):
         return self.FuelTrainDataframe
@@ -77,7 +81,6 @@ class FuelDatabase(object):
         ''' convert absolute date time into relative delay in seconds from flight start '''
     def computeRelativeStartEndFromFlightTakeOff(self, df):
         #print(df.info)
-        
         df['fuel_burn_relative_start'] = ( df['fuel_burn_start'] - df['takeoff']).dt.total_seconds()
         df['fuel_burn_relative_end'] = ( df['fuel_burn_end'] - df['takeoff']).dt.total_seconds()
         #print(df.info)
@@ -119,12 +122,14 @@ class FuelDatabase(object):
             assert self.extendFuelRankWithFlightTakeOff()
             self.FuelRankDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelRankDataframe)
             
-            self.FuelRankDataframe = self.FuelRankDataframe.head(Count_of_FlightsFiles)
+            ''' specify count of files to read ''' 
+            if self.count_of_files_to_read and self.count_of_files_to_read > 0:
+                self.FuelRankDataframe = self.FuelRankDataframe.head(self.count_of_files_to_read )
 
             return True
         else:
-            logging.error (self.className + "it is a directory - {0}".format(self.filesFolder))
-            logging.error (self.className + "it is a file - {0}".format(self.filePathFuelRank))
+            logging.error (self.className + " : it is a directory - {0}".format(self.filesFolder))
+            logging.error (self.className + " : it is a file - {0}".format(self.filePathFuelRank))
  
             self.FuelRankDataframe = None
             return False
@@ -155,7 +160,8 @@ class FuelDatabase(object):
             self.FuelTrainDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelTrainDataframe)
             
             ''' test mode - keep only first 10 rows '''
-            self.FuelTrainDataframe = self.FuelTrainDataframe.head(Count_of_FlightsFiles)
+            if self.count_of_files_to_read and self.count_of_files_to_read > 0:
+                self.FuelTrainDataframe = self.FuelTrainDataframe.head(self.count_of_files_to_read)
 
             #logging.info ( str(self.FuelTrainDataframe.shape ) )
             #logging.info ( str(  list ( self.FuelTrainDataframe)) )
