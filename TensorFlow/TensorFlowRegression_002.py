@@ -304,6 +304,25 @@ def prepare_Train(Count_of_FlightsFiles_to_read):
     
     return X_train , y_train
 
+def tf_model_fit( X_train, y_train):
+    
+    ''' declare the model '''
+    #tf.random.set_seed ( 42 )
+    model = Sequential ( [ Dense( 256 , activation = 'relu' ),
+                              Dense( 256 , activation = 'relu' ),
+                              Dense( 128 , activation = 'relu' ),
+                              Dense(1)])
+    
+    model.compile(loss = rmse , optimizer = 'adam' , metrics = [rmse])
+    history = model.fit( x = X_train , y = y_train , epochs = 400 , validation_split=0.2 , verbose=1)
+    
+    # Save the entire model to a file
+    modelFileName = "model_name_" + getCurrentDateTimeAsStr() + ".h5"
+    model.save(modelFileName)  # HDF5 format
+        
+    plot_loss(history = history , y_limit = 20)
+        
+
 #============================================
 class Test_Main(unittest.TestCase):
 
@@ -315,28 +334,17 @@ class Test_Main(unittest.TestCase):
                 
         ''' if None then read all train files -> 11.085 files '''
         Count_of_FlightsFiles_to_read = None
+        Count_of_FlightsFiles_to_read = 100
         X_train , y_train = prepare_Train(Count_of_FlightsFiles_to_read)
 
         end_time = time.time()  # Record the end time
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
        
-        ''' declare the model '''
-        #tf.random.set_seed ( 42 )
-        model = Sequential ( [ Dense( 256 , activation = 'relu' ),
-                              Dense( 256 , activation = 'relu' ),
-                              Dense( 128 , activation = 'relu' ),
-                              Dense(1)])
+        print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
-        model.compile(loss = rmse , optimizer = 'adam' , metrics = [rmse])
-        history = model.fit( x = X_train , y = y_train , epochs = 400 , validation_split=0.2 , verbose=1)
-        
-        # Save the entire model to a file
-        modelFileName = "model_name_" + getCurrentDateTimeAsStr() + ".h5"
-        model.save(modelFileName)  # HDF5 format
-        
-        plot_loss(history = history , y_limit = 20)
-        
+        #tf_model_fit( X_train, y_train)
+ 
 
     def test_Rank(self):
         
@@ -344,10 +352,11 @@ class Test_Main(unittest.TestCase):
         start_time = time.time()
         logging.info (' -------------- Rank Fuel database -------------')
                 
-        Count_of_FlightsFiles_to_read = 1000
+        Count_of_FlightsFiles_to_read = 100
         X_test  = prepare_Rank(Count_of_FlightsFiles_to_read)
         
         print( str ( X_test.shape ))
+        print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
 
         end_time = time.time()  # Record the end time
         elapsed_time = end_time - start_time
