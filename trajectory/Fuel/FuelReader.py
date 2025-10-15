@@ -13,6 +13,13 @@ from pandas.api.types import is_datetime64_any_dtype
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.utils import keepOnlyColumns
+from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
+from trajectory.Flights.FlightsReader import FlightsDatabase
+from tabulate import tabulate
+
+
+''' load static flight database '''
+flightsDatabase = FlightsDatabase()
 
 expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec' , 
                   'fuel_burn_relative_start','fuel_burn_relative_end' ,
@@ -34,6 +41,62 @@ def checkTimeZoneUTC(row):
         
     else:
         print("takeoff TimeZone = " + row['takeoff'].tzinfo)
+        
+        
+def extendFuelTrainWithFlightsData( row ):
+    #print(''' ------------- row by row loop ------------------''')
+    print (  f"Index: {row.name} , Train Flight id: {row['flight_id']} " )
+    df_flightData = flightsDatabase.readOneTrainFile( row['flight_id'] )
+    #print( str( df_flightData['timestamp'] ))
+    df_filtered = df_flightData[ (df_flightData['timestamp'] >= row['fuel_burn_start']) & (df_flightData['timestamp'] <= row['fuel_burn_end'])]
+    # keep first row only
+    df_filtered = df_filtered.head(1)
+    df_filtered = df_filtered.drop ( "flight_id" , axis = 1)
+    
+    #print(str ( df_filtered.shape ))
+    if df_filtered.shape[0] == 0:
+        
+        return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
+                         'latitude' : (0.0) , 'longitude' : (0.0) ,
+                         'altitude' : (0.0) , 'groundspeed' : (0.0) , 
+                         'track' : (0.0) , 'vertical_rate' : (0.0) ,
+                         'mach' : (0.0) , 'TAS' : (0.0) , 
+                         'CAS' : (0.0) , 'source' : (0.0)} )
+    else:
+        return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
+                         'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
+                         'altitude' : (df_filtered['altitude'].iloc[0]) , 'groundspeed' : (df_filtered['groundspeed'].iloc[0]) , 
+                         'track' : (df_filtered['track'].iloc[0]) , 'vertical_rate' : (df_filtered['vertical_rate'].iloc[0]) ,
+                         'mach' : (df_filtered['mach'].iloc[0]) , 'TAS' : (df_filtered['TAS'].iloc[0]) , 
+                         'CAS' : (df_filtered['CAS'].iloc[0]) , 'source' : (df_filtered['source'].iloc[0])} )
+
+
+def extendFuelRankWithFlightsData( row ):
+    #print(''' ------------- row by row loop ------------------''')
+    print (  f"Index: {row.name} , Rank Flight id: {row['flight_id']} " )
+    df_flightData = flightsDatabase.readOneRankFile( row['flight_id'] )
+    #print( str( df_flightData['timestamp'] ))
+    df_filtered = df_flightData[ (df_flightData['timestamp'] >= row['fuel_burn_start']) & (df_flightData['timestamp'] <= row['fuel_burn_end'])]
+    # keep first row only
+    df_filtered = df_filtered.head(1)
+    df_filtered = df_filtered.drop ( "flight_id" , axis = 1)
+    
+    #print(str ( df_filtered.shape ))
+    if df_filtered.shape[0] == 0:
+        
+        return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
+                         'latitude' : (0.0) , 'longitude' : (0.0) ,
+                         'altitude' : (0.0) , 'groundspeed' : (0.0) , 
+                         'track' : (0.0) , 'vertical_rate' : (0.0) ,
+                         'mach' : (0.0) , 'TAS' : (0.0) , 
+                         'CAS' : (0.0) , 'source' : (0.0)} )
+    else:
+        return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
+                         'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
+                         'altitude' : (df_filtered['altitude'].iloc[0]) , 'groundspeed' : (df_filtered['groundspeed'].iloc[0]) , 
+                         'track' : (df_filtered['track'].iloc[0]) , 'vertical_rate' : (df_filtered['vertical_rate'].iloc[0]) ,
+                         'mach' : (df_filtered['mach'].iloc[0]) , 'TAS' : (df_filtered['TAS'].iloc[0]) , 
+                         'CAS' : (df_filtered['CAS'].iloc[0]) , 'source' : (df_filtered['source'].iloc[0])} )
 
 
 class FuelDatabase(object):
@@ -121,7 +184,7 @@ class FuelDatabase(object):
             
             assert self.extendFuelRankWithFlightTakeOff()
             self.FuelRankDataframe = self.computeRelativeStartEndFromFlightTakeOff(self.FuelRankDataframe)
-            
+
             ''' specify count of files to read ''' 
             if self.count_of_files_to_read and self.count_of_files_to_read > 0:
                 self.FuelRankDataframe = self.FuelRankDataframe.head(self.count_of_files_to_read )
@@ -143,9 +206,6 @@ class FuelDatabase(object):
         file = Path(self.filePathFuelTrain)
         
         if directory.is_dir() and file.is_file():
-            
-            #logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
-            #logging.info (self.className + "it is a file - {0}".format(self.filePathFuelTrain))
             
             self.FuelTrainDataframe = pd.read_parquet ( self.filePathFuelTrain )
             print("----- origin fuel train dataframe shape = " + str ( self.FuelTrainDataframe.shape ))
@@ -171,6 +231,7 @@ class FuelDatabase(object):
             self.FuelTrainDataframe = None
             return False
         
+        
     def extendFuelRankWithFlightTakeOff(self):    
         
         logging.basicConfig(level=logging.INFO)
@@ -181,7 +242,9 @@ class FuelDatabase(object):
         df_rankFlightList = flightListDatabase.getRankFlightListDataframe()
         logging.info( self.className + ": ---- Rank flight list = " + str ( list (df_rankFlightList ) ) )
         
-        columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation']
+        columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 
+                                'destination_longitude', 'destination_latitude', 'destination_elevation',
+                                'flight_distance_Nm' , 'flight_duration_sec']
         df_rankFlightList = keepOnlyColumns( df_rankFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- rank flight list = " + str ( list (df_rankFlightList ) ) )
@@ -214,4 +277,63 @@ class FuelDatabase(object):
         logging.info( str ( list ( self.FuelTrainDataframe ) ) )
         
         return True
+    
+    def extendFuelTrainWithFlightData (self):
+        pass
+        df = self.getFuelTrainDataframe()
+        print("train fuel dataframe shape = " + str( df.shape ))
+        
+        listOfFlightListColumns = ['timestamp','aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 
+                                    'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
+        
+        df[listOfFlightListColumns] = df.apply( extendFuelTrainWithFlightsData , axis = 1 )
+        
+        print ("shape after apply = " +  str ( df.shape ) )
+        print ("final list = " +  str ( list ( df )))
+        print ("final shape = " +  str (  df .shape ) ) 
+        
+        ''' drop columns with absolute date time instant '''
+        df = dropUnusedColumns( df , ['fuel_burn_start','fuel_burn_end'])
+        #print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        ''' convert flight data time stamp relative to flight start '''
+        df['timestamp_relative_start'] = ( df['timestamp'] - df['takeoff']).dt.total_seconds()
+        
+        ''' drop absolute date time stamp '''
+        df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
+        
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        #df = df.dropna(axis = 'index' , how = 'any')
+        print ("final shape = " +  str (  df .shape ) ) 
+        self.FuelTrainDataframe = df
+        return True
+        
+        
+    def extendFuelRankWithFlightData(self):
+        
+        df = self.getFuelRankDataframe()
+        print("Rank / Test fuel dataframe shape = " + str( df.shape ))
+        
+        listOfFlightListColumns = ['timestamp','aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 
+                               'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
+        
+        df[listOfFlightListColumns] = df.apply( extendFuelRankWithFlightsData , axis = 1 )
+        
+        print ("shape after apply = " +  str ( df.shape ) )
+        print ("final list = " +  str ( list ( df )))
+        print ("final shape = " +  str (  df .shape ) ) 
+        
+        ''' drop columns with absolute date time instant '''
+        df = dropUnusedColumns( df , ['fuel_burn_start','fuel_burn_end'])
+        
+        ''' convert flight data time stamp relative to flight start '''
+        df['timestamp_relative_start'] = ( df['timestamp'] - df['takeoff']).dt.total_seconds()
+        
+        ''' drop absolute date time stamp '''
+        df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
+
+        self.FuelRankDataframe = df
+        return True
+
         

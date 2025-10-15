@@ -42,15 +42,12 @@ class FlightListDatabase(object):
         
         self.fileNameFlightListTrain = "flightlist_train.parquet"
         #logging.info(self.fileNameFlightListTrain)
-        
         self.fileNameFlightListRank =  "flight_list_rank.parquet"
         #logging.info(self.fileNameFlightListRank)
-        
         self.filesFolder = os.path.dirname(__file__)
         
         self.filePathFlightListTrain = os.path.join(self.filesFolder , self.fileNameFlightListTrain)
         #logging.info(self.filePathFlightListTrain)
-        
         self.filePathFlightListRank = os.path.join(self.filesFolder , self.fileNameFlightListRank)
         #logging.info(self.filePathFlightListRank)
         
@@ -138,12 +135,10 @@ class FlightListDatabase(object):
             ''' extract the day number of the year '''
             self.RankFlightListDataframe['day_of_year'] = self.RankFlightListDataframe['takeoff'].dt.dayofyear
 
-
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
             
             #logging.info ( self.RankFlightListDataframe.head(10) )
-        
             return True
         else:
             return False
