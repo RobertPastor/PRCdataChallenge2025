@@ -37,6 +37,7 @@ from trajectory.Fuel.FuelReader import FuelDatabase
 import logging
 import unittest
 from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import CustomObjectScope
 
 ''' Root mean square between prediction and actual values '''
 def rmse(y_true, y_pred):
@@ -70,10 +71,26 @@ def prepare_X_test(Count_of_FlightsFiles_to_read):
     print("----- after scaling ----- ")
     print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
 
-    ''' convert True False to float '''
-    X_test = np.asarray(X_test).astype(np.float32)
-    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
     return X_test 
+
+def oneHotEncodeXTrainTest(df):
+    
+    ''' one hot encoder for aircraft_type_code  and source '''
+    columnListToEncode = ['aircraft_type_code' , 'source']
+    
+    for columnName in columnListToEncode:
+        df = oneHotEncoderSklearn ( df , columnName)
+        
+    ''' suppress column with name source_0.0 '''
+    df = dropUnusedColumns ( df , ['source_0.0' ,'aircraft_type_code'] )
+    #X_train = tf.one_hot( X_train, depth=3 )
+    ''' fill not a number with zeros '''
+    df = df.fillna(0)
+    
+    ''' check if there are null values '''
+    print( str ( df.isnull().sum() ))
+    return df
 
 #============================================
 class Test_Main(unittest.TestCase):
@@ -89,14 +106,24 @@ class Test_Main(unittest.TestCase):
         model_file_name = "model_full_2025-10-15-01-20-32.h5"
         filesFolder = os.path.dirname(__file__)
         filePathModel = os.path.join(filesFolder , model_file_name)
-
-        model = load_model(filePathModel)
+        
+        # Save and load a model with the custom activation
+        with CustomObjectScope({'rmse': rmse}):
+            model = load_model(filePathModel)
         
         Count_of_FlightsFiles_to_read = 100
         X_test = prepare_X_test(Count_of_FlightsFiles_to_read)
 
         print ( str ( X_test.shape ))
         print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        ''' do not encode train_or_test column '''
+        X_test = oneHotEncodeXTrainTest(X_test)
+        
+        ''' convert True False to float '''
+        X_test = np.asarray(X_test).astype(np.float32)
+        print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
 
         #loss, accuracy = model.evaluate(X_test, y_test, batch_size=32)
         #print(f"Test Loss: {loss:.4f}")
