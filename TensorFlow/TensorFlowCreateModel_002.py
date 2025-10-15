@@ -58,7 +58,7 @@ def plot_loss(history , y_limit):
     plt.grid(True)
     plt.show()
 
-def prepare_Rank(Count_of_FlightsFiles_to_read):
+def prepare_X_tesst(Count_of_FlightsFiles_to_read):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
     assert fuelDatabase.readFuelRank() == True
@@ -83,54 +83,14 @@ def prepare_Rank(Count_of_FlightsFiles_to_read):
     aircraft_code_list = X_test['aircraft_type_code'].unique().tolist()
     print(aircraft_code_list)
 
-    ''' one hot encoder for aircraft_type_code  and source '''
-    '''
-    columnListToEncode = ['aircraft_type_code' , 'source']
-    
-    for columnName in columnListToEncode:
-        X_test = oneHotEncoderSklearn ( X_test , columnName)
-        
-    print(list ( X_test ))
-  
-    X_test = dropUnusedColumns ( X_test , ['source_0.0' ,'aircraft_type_code'] )
-    #X_train = tf.one_hot( X_train, depth=3 )
-    '''
-    ''' fill not a number with zeros '''
-    '''
-    X_test = X_test.fillna(0)
-    
-    print(" ---- after one hot encoder ------")
-    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-    '''
-    ''' check if there are null values '''
-    '''
-    print( str ( X_test.isnull().sum() ))
-    '''
-    '''  Specify columns to rescale '''
-    ''' do not rescale fuel_flow_kg_sec as it is the Y currently '''
-    '''
-    print(list(X_test))
-    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-    '''
-    ''' suppress column with name 0.0 '''
-    
-    '''  Apply MinMaxScaler '''
-    '''
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    X_test = scaler.fit_transform(X_test)
-    
     print ( str ( X_test.shape ))
     #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
-    
     print("----- after scaling ----- ")
     print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-    '''
+
     ''' convert True False to float '''
-    '''
     X_test = np.asarray(X_test).astype(np.float32)
-    
     print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-    '''
     return X_test 
     
 def prepare_Train(Count_of_FlightsFiles_to_read ):
@@ -244,7 +204,7 @@ class Test_Main(unittest.TestCase):
         Count_of_FlightsFiles_to_read = 100
         Count_of_FlightsFiles_to_read = 1000
         Count_of_FlightsFiles_to_read = None
-        epochs = 200
+        epochs = 300
         
         X_train , y_train  = prepare_Train(Count_of_FlightsFiles_to_read )
         

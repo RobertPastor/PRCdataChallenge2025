@@ -2,6 +2,8 @@
 
 https://s3-console.opensky-network.org/login 
 
+https://s3-console.opensky-network.org/browser/prc-2025-datasets
+
 ## set the current dir into AnsPRCDataChallenge\trajectory\AdsBtrajectories\AnsPerformanceChallenge
 
 open command lines window -> not a power shell -> only a cmd

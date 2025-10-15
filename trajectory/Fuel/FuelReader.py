@@ -168,7 +168,6 @@ class FuelDatabase(object):
     def readFuelRank(self):
         logging.basicConfig(level=logging.INFO)
         #logging.info(self.filePathFuelRank)
-        
         directory = Path(self.filesFolder)
         #logging.info(directory)
         file = Path(self.filePathFuelRank)
