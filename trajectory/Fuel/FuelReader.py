@@ -247,6 +247,9 @@ class FuelDatabase(object):
         columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 
                                 'destination_longitude', 'destination_latitude', 'destination_elevation',
                                 'flight_distance_Nm' , 'flight_duration_sec']
+        
+        if flightListDatabase.isExtendedWithAircraftData():
+            columnNameListToKeep = columnNameListToKeep + flightListDatabase.getAircraftExtendedListOfCharacteristics()
         df_rankFlightList = keepOnlyColumns( df_rankFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- rank flight list = " + str ( list (df_rankFlightList ) ) )
@@ -261,6 +264,7 @@ class FuelDatabase(object):
     def extendFuelTrainWithFlightTakeOff(self ):
         
         flightListDatabase = FlightListDatabase()
+        ''' reading the Flight list -> add aircraft data '''
         assert flightListDatabase.readTrainFlightList()
         
         df_trainFlightList = flightListDatabase.getTrainFlightListDataframe()
@@ -269,6 +273,10 @@ class FuelDatabase(object):
         columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 
                                 'destination_longitude', 'destination_latitude', 'destination_elevation',
                                 'flight_distance_Nm' , 'flight_duration_sec']
+        
+        if flightListDatabase.isExtendedWithAircraftData():
+            columnNameListToKeep = columnNameListToKeep + flightListDatabase.getAircraftExtendedListOfCharacteristics()
+            
         df_trainFlightList = keepOnlyColumns( df_trainFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
@@ -304,10 +312,13 @@ class FuelDatabase(object):
         ''' drop absolute date time stamp '''
         df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
         
+        df = dropUnusedColumns( df , ['aircraft_type_code','source'])
+        
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         print(tabulate(df[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         
-        df = df.dropna()
+        #df = df.dropna()
+        df.fillna(df.mean(), inplace=True) # Fill NaNs with column mean
         
         print (self.className + ": final shape = " +  str (  df .shape ) ) 
         self.FuelTrainDataframe = df
@@ -335,6 +346,11 @@ class FuelDatabase(object):
         
         ''' drop absolute date time stamp '''
         df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
+        
+        df = dropUnusedColumns( df , ['aircraft_type_code','source'])
+
+        ''' replace nan with mean value '''
+        df.fillna(df.mean(), inplace=True) # Fill NaNs with column mean
         #df = df.dropna()
         self.FuelRankDataframe = df
         return True

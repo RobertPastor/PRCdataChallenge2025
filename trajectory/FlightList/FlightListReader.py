@@ -15,6 +15,9 @@ from trajectory.Flights.FlightsReader import FlightsDatabase
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 from trajectory.Environment.Constants import Meter2NauticalMiles
 
+from trajectory.Environment.Aircrafts.FAAaircraftDatabaseFile import FaaAircraftDatabase
+
+
 expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id',
                    'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation',
                    'flight_distance_Nm' , 'flight_duration_sec' , 'year' , 'month' , 'day_of_year']
@@ -34,6 +37,10 @@ def computeFlightDistanceNauticalMiles( row ):
 def computeFlightDurationSeconds( row ):
     return (row['landed'] - row['takeoff']).total_seconds() 
 
+def extendAircraftCharacteristics( row , characteristicName , aircraftDatabase ):
+    characteristicValue = aircraftDatabase.getGenericCaracteristic ( row['aircraft_type'] , characteristicName )
+    return characteristicValue
+
 class FlightListDatabase(object):
     className = ''
     
@@ -50,6 +57,7 @@ class FlightListDatabase(object):
         #logging.info(self.filePathFlightListTrain)
         self.filePathFlightListRank = os.path.join(self.filesFolder , self.fileNameFlightListRank)
         #logging.info(self.filePathFlightListRank)
+        self.flightListExtendedWithAircraftData = False
         
     def checkTrainFlightListHeaders(self):
         return (set(self.TrainFlightListDataframe) == set(expectedHeaders))
@@ -93,9 +101,11 @@ class FlightListDatabase(object):
             ''' extract the day number of the year '''
             self.TrainFlightListDataframe['day_of_year'] = self.TrainFlightListDataframe['takeoff'].dt.dayofyear
 
+            assert self.extendTrainFlightListWithAircraftData()
+
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
             logging.info ( self.className +  str(  list ( self.TrainFlightListDataframe)) )
-            
+                        
             #logging.info (self.className + str( self.TrainFlightListDataframe.head(10) ) )
             return True
         else:
@@ -134,6 +144,8 @@ class FlightListDatabase(object):
             
             ''' extract the day number of the year '''
             self.RankFlightListDataframe['day_of_year'] = self.RankFlightListDataframe['takeoff'].dt.dayofyear
+            
+            assert self.extendTrainFlightListWithAircraftData()
 
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
@@ -143,12 +155,19 @@ class FlightListDatabase(object):
         else:
             return False
     
-    def collectUniqueAircraftTypes(self):
-        pass
-        df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+    def collectUniqueAircraftTypesFromTrainFlightList(self):
         
-        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        assert self.extendTrainFlightListWithAircraftData() == True
+        
+        df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+        aircraft_codes_list = df['aircraft_type'].unique().tolist()
+        
+        for aircraft_icao_code in aircraft_codes_list:
+            print("aircraft ICAO code = " , str(aircraft_icao_code) )
+            if ( self.faaAircraftDatabase.isICAOcodeExisting(aircraft_icao_code)):
+                print (" ----> aircraft = " , str(aircraft_icao_code) , " is in Aircraft Database")
         #logging.info( df.head ())
+        return True
     
     def collectUniqueAirports(self):
         
@@ -289,4 +308,40 @@ class FlightListDatabase(object):
             
         self.TrainFlightDataWithFlightListData = df_concat
         df_concat.sample(5)
+        return True
+    
+    def isExtendedWithAircraftData(self):
+        return self.flightListExtendedWithAircraftData
+    
+    def getAircraftExtendedListOfCharacteristics(self):
+        if (self.flightListExtendedWithAircraftData == True):
+            return self.faaAircraftDatabase.getListOfExtendedCharacteristics()
+        else:
+            return []
+    
+    def extendTrainFlightListWithAircraftData(self):
+        self.flightListExtendedWithAircraftData = False
+        self.faaAircraftDatabase = FaaAircraftDatabase()
+        assert self.faaAircraftDatabase.exists()
+        
+        if ( self.faaAircraftDatabase.read()):
+            
+            for extendedCharacteristic in self.faaAircraftDatabase.getListOfExtendedCharacteristics():
+                self.TrainFlightListDataframe[extendedCharacteristic] = self.TrainFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , self.faaAircraftDatabase ))
+        
+        self.flightListExtendedWithAircraftData = True
+        print ( str ( list ( self.TrainFlightListDataframe )))
+        return True
+    
+    def extendRankFlightListWithAircraftData(self):
+        self.flightListExtendedWithAircraftData = False
+        faaAircraftDatabase = FaaAircraftDatabase()
+        assert faaAircraftDatabase.exists()
+        
+        if ( faaAircraftDatabase.read()):
+            
+            for extendedCharacteristic in faaAircraftDatabase.getListOfExtendedCharacteristics():
+                self.RankFlightListDataframe[extendedCharacteristic] = self.RankFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , faaAircraftDatabase ))
+            
+        self.flightListExtendedWithAircraftData = True
         return True

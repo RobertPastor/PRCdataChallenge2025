@@ -13,7 +13,7 @@ class Test_Main(unittest.TestCase):
 
     def test_main_one(self):
         
-        print("---------------- test_main_one  ----------------")
+        print("---------------- Read Train flight list  ----------------")
         logging.basicConfig(level=logging.DEBUG)
         
         logging.info("Read Flight List")
@@ -28,7 +28,7 @@ class Test_Main(unittest.TestCase):
             
     def test_main_two(self):
         
-        print("---------------- test_main_two  ----------------")
+        print("---------------- Read Rank Flight list  ----------------")
         logging.basicConfig(level=logging.DEBUG)
         
         logging.info("Read Flight List")
@@ -44,7 +44,7 @@ class Test_Main(unittest.TestCase):
         
         logging.basicConfig(level=logging.DEBUG)
 
-        print("---------------- test_main_three  ----------------")
+        print("---------------- check headers  ----------------")
 
         flightList = FlightListDatabase()
         if flightList.readRankFlightList():
@@ -59,7 +59,7 @@ class Test_Main(unittest.TestCase):
         
         logging.basicConfig(level=logging.DEBUG)
 
-        print("---------------- test main four ----------------")
+        print("---------------- collect unique airports ICAO codes  ----------------")
         
         flightList = FlightListDatabase()
         assert ( flightList.readRankFlightList() == True )
@@ -72,7 +72,7 @@ class Test_Main(unittest.TestCase):
         
         logging.basicConfig(level=logging.DEBUG)
 
-        print("---------------- test main five ----------------")
+        print("---------------- extend flight list with airport data ----------------")
         
         flightList = FlightListDatabase()
         assert ( flightList.readTrainFlightList() == True )
@@ -88,12 +88,27 @@ class Test_Main(unittest.TestCase):
             
         logging.basicConfig(level=logging.INFO)
 
-        print("---------------- test main six ----------------")
+        print("---------------- extend flight data with flight list data ??? ----------------")
         
         flightList = FlightListDatabase()
         assert ( flightList.readTrainFlightList() == True )
         
         flightList.extendTrainFlightDataWithFlightListData()
+        
+    def test_main_seven(self):
+
+        logging.basicConfig(level=logging.INFO)
+
+        print("---------------- extend flight list with aircraft data----------------")
+        
+        flightList = FlightListDatabase()
+        assert ( flightList.readTrainFlightList() == True )
+        
+        #assert flightList.checkTrainFlightListHeaders()
+        
+        print(tabulate(flightList.getTrainFlightListDataframe()[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        assert flightList.collectUniqueAircraftTypesFromTrainFlightList() == True
 
         
 if __name__ == '__main__':

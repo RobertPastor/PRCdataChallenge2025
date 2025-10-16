@@ -10,6 +10,8 @@ import logging
 import unittest
 
 import pandas as pd
+from tabulate import tabulate
+
 
 #============================================
 class Test_Main(unittest.TestCase):
@@ -48,6 +50,19 @@ class Test_Main(unittest.TestCase):
                 print(aircraft , " massMTOW = {0}".format ( massMTOW_lb ))
                 massMLAW_lb = faaAircraftDatabase.getMALW_lb(aircraft)
                 print(aircraft , " massMTOW = {0}".format ( massMLAW_lb ))
+                
+                
+    def test_main_three(self):
+        
+        faaAircraftDatabase = FaaAircraftDatabase()
+        assert faaAircraftDatabase.exists()
+        
+        if ( faaAircraftDatabase.read()):
+            
+            for aircraft in ['A320' , 'A20N']:
+                df = faaAircraftDatabase.createCaracteristicsDataframe(ICAOcode=aircraft)
+                print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
 
 if __name__ == '__main__':
     

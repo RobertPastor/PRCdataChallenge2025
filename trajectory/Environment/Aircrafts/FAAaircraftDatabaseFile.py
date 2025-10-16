@@ -41,16 +41,50 @@ class FaaAircraftDatabase(object):
             self.df_aircrafts = pd.read_excel( self.aircraftFilePath )
             print ( self.df_aircrafts.shape )
             print ( list ( self.df_aircrafts ) )
-            print ( self.df_aircrafts.head() )
+            #print ( self.df_aircrafts.head() )
             
             return True
         return False
+    
+    def getListOfExtendedCharacteristics(self):
+        return ["MTOW_lb" , "MALW_lb" , "Num_Engines", "Approach_Speed_knot" , "Wingspan_ft_without_winglets_sharklets" , "Length_ft", "Parking_Area_ft2"]
+    
+    def createCaracteristicsDataframe(self , ICAOcode = ""):
+        assert self.isICAOcodeExisting(ICAOcode) == True
+        for aircraft_type in self.df_aircrafts['ICAO_Code']:
+            if ( str(aircraft_type) == ICAOcode ):
+                aircraftRecord  = self.df_aircrafts.loc[self.df_aircrafts['ICAO_Code'] == ICAOcode]
+
+                data = { "aircraft_type" : ICAOcode ,
+                        "MTOW_lb" : aircraftRecord.iloc[0]["MTOW_lb"],
+                        "MALW_lb" : aircraftRecord.iloc[0]["MALW_lb"],
+                        "Num_Engines" : aircraftRecord.iloc[0]["Num_Engines"],
+                        "Approach_Speed_knot" : aircraftRecord.iloc[0]["Approach_Speed_knot"],
+                        "Wingspan_ft_without_winglets_sharklets" : aircraftRecord.iloc[0]["Wingspan_ft_without_winglets_sharklets"],
+                        "Length_ft" : aircraftRecord.iloc[0]["Length_ft"],
+                        "Parking_Area_ft2" : aircraftRecord.iloc[0]["Parking_Area_ft2"],
+                        }
+                return pd.DataFrame(data , index=range(1))
+        return None
     
     def isICAOcodeExisting(self, ICAOcode = ""):
         for aircraft_type in self.df_aircrafts['ICAO_Code']:
             if ( str(aircraft_type) == ICAOcode ):
                 return True
         return False
+    
+    def getGenericCaracteristic(self , ICAOcode = "" , ColumnName = ""):
+        
+        for aircraft_type in self.df_aircrafts['ICAO_Code']:
+            if ( str(aircraft_type) == ICAOcode ):
+                
+                record  = self.df_aircrafts.loc[self.df_aircrafts['ICAO_Code'] == ICAOcode]
+                #print ( df_MTOW_lb['MTOW_lb'] )
+                recordValue = record.iloc[0][ColumnName] 
+                #print ( mass )
+                return recordValue
+        return 0.0 
+        
 
     def getMTOW_lb(self, ICAOcode = ""):
         for aircraft_type in self.df_aircrafts['ICAO_Code']:
@@ -107,6 +141,36 @@ class FaaAircraftDatabase(object):
                 return approachSpeedKnots
         return 0.0
  
+    def getWingSpanFt(self, ICAOcode = ""):
+        for aircraft_type in self.df_aircrafts['ICAO_Code']:
+            if ( str(aircraft_type) == ICAOcode ):
+                
+                WingSpanFt  = self.df_aircrafts.loc[self.df_aircrafts['ICAO_Code'] == ICAOcode]
+                #print ( df_MALW_lb['MALW_lb'] )
+                WingSpanFt = WingSpanFt.iloc[0]['Wingspan_ft_without_winglets_sharklets']
+                #print ( mass )
+                return WingSpanFt
+        return 0.0
  
- 
-        
+    def getLengthFt(self, ICAOcode = ""):
+        for aircraft_type in self.df_aircrafts['ICAO_Code']:
+            if ( str(aircraft_type) == ICAOcode ):
+                
+                LengthFt  = self.df_aircrafts.loc[self.df_aircrafts['ICAO_Code'] == ICAOcode]
+                #print ( df_MALW_lb['MALW_lb'] )
+                LengthFt = LengthFt.iloc[0]['Length_ft']
+                #print ( mass )
+                return LengthFt
+        return 0.0
+    
+    def getParkingAreaM2 (self, ICAOcode =""):
+        # Parking_Area_ft2
+        for aircraft_type in self.df_aircrafts['ICAO_Code']:
+            if ( str(aircraft_type) == ICAOcode ):
+                
+                ParkingAreaM2  = self.df_aircrafts.loc[self.df_aircrafts['ICAO_Code'] == ICAOcode]
+                #print ( df_MALW_lb['MALW_lb'] )
+                ParkingAreaM2 = ParkingAreaM2.iloc[0]['Parking_Area_ft2']
+                #print ( mass )
+                return ParkingAreaM2
+        return 0.0

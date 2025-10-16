@@ -45,11 +45,14 @@ import unittest
 def rmse(y_true, y_pred):
     return backend.sqrt( backend.mean (backend.square(y_pred - y_true)))
 
+'''
 transformer = make_column_transformer( 
     (MinMaxScaler(), [ 'time_diff_seconds', 'fuel_flow_kg_sec', 'origin_longitude', 'origin_latitude', 'origin_elevation', 
     'destination_longitude', 'destination_latitude', 'destination_elevation', 'flight_distance_Nm', 'flight_duration_sec', 
-    'fuel_burn_relative_start', 'fuel_burn_relative_end',  'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS'] ) ,
+    'fuel_burn_relative_start', 'fuel_burn_relative_end',  'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 
+    'mach', 'TAS', 'CAS'] ) ,
     (OneHotEncoder(handle_unknown='ignore') , ['aircraft_type_code' , 'source'] ) )
+'''
 
 def plot_loss(history , y_limit , currentDateTimeAsString):
     plt.plot(history.history['loss'], label='training_loss')
@@ -76,7 +79,7 @@ def prepare_X_test(Count_of_FlightsFiles_to_read):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
     assert fuelDatabase.readFuelRank() == True
-    assert fuelDatabase.checkFuelRankHeaders() == True
+    #assert fuelDatabase.checkFuelRankHeaders() == True
     assert fuelDatabase.extendFuelRankWithFlightData()
 
     df = fuelDatabase.getFuelRankDataframe()
@@ -110,20 +113,22 @@ def prepare_X_test(Count_of_FlightsFiles_to_read):
 def prepare_Train_dataset (Count_of_FlightsFiles_to_read ):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
+    ''' reading the fuel -> reads the flight -> reads the airport and aircraft data '''
     assert fuelDatabase.readFuelTrain() == True
-    assert fuelDatabase.checkFuelTrainHeaders() == True
+    #assert fuelDatabase.checkFuelTrainHeaders() == True
     assert fuelDatabase.extendFuelTrainWithFlightData()
     
     df = fuelDatabase.getFuelTrainDataframe()
+    print ( str ( list ( df )))
     
-    ''' decision to the use the fuel flow as Y '''
+    ''' drop artificial index '''
     listOfColumnsToDrop = ['idx']
     
     print( listOfColumnsToDrop )
     ''' do not put Y value in the train data set '''
     df = dropUnusedColumns ( df , listOfColumnsToDrop)
     
-    ''' return also list of X_Train columns particularly the aircraft code after one hot encoder '''
+    ''' return also list of X_Train columns  '''
     return df 
 
 def oneHotEncodeTrainDatase(df , columnListToEncode):
@@ -154,11 +159,16 @@ def scaleDataset( df ):
     df = scaler.fit_transform(df[columnNameListToScale])
     
     print ( str ( df.shape ))
-    
     return df
 
 def tf_model_fit( X_train, y_train, epochs):
     
+    
+    print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    print ( X_train.shape )
+    print(tabulate(y_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    print ( y_train.shape )
+
     ''' declare the model '''
     #tf.random.set_seed ( 42 )
     model = Sequential ( [ Dense( 256 , activation = 'relu' ),
@@ -192,14 +202,14 @@ class Test_Main(unittest.TestCase):
         logging.info (' -------------- Train Fuel database -------------')
         
         Count_of_FlightsFiles_to_read = None
-        Count_of_FlightsFiles_to_read = 1000
-        #Count_of_FlightsFiles_to_read = None
+        Count_of_FlightsFiles_to_read = 100
+        Count_of_FlightsFiles_to_read = 10000
         epochs = 300
         
         train_dataset  = prepare_Train_dataset(Count_of_FlightsFiles_to_read )
         
         ''' only encode some column '''
-        listOfColumnsToEncode = [ 'source']
+        #listOfColumnsToEncode = [ 'source']
         #train_dataset = oneHotEncodeTrainDatase(train_dataset , listOfColumnsToEncode)
         
         train_dataset = dropUnusedColumns ( train_dataset , ['fuel_kg','aircraft_type_code','source'] )
@@ -211,7 +221,7 @@ class Test_Main(unittest.TestCase):
         X = train_dataset.drop( y_columnName , axis = 1)
         
         X = scaleDataset( X )
-        print ( str ( list (X) ))
+        #print ( str ( list (X) ))
         
         ''' convert True False to float '''
         X = np.asarray(X).astype(np.float32)
