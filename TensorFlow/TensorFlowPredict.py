@@ -43,7 +43,7 @@ from tensorflow.keras.utils import CustomObjectScope
 def rmse(y_true, y_pred):
     return backend.sqrt( backend.mean (backend.square(y_pred - y_true)))
 
-def prepare_X_test(Count_of_FlightsFiles_to_read):
+def prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
     assert fuelDatabase.readFuelRank() == True
@@ -60,19 +60,17 @@ def prepare_X_test(Count_of_FlightsFiles_to_read):
     
     print( listOfColumnsToDrop )
     ''' do not put Y value in the train data set '''
-    X_test = dropUnusedColumns ( df , listOfColumnsToDrop)
+    X_rank = dropUnusedColumns ( df , listOfColumnsToDrop)
 
     ''' check unique names of aircraft type code '''
-    aircraft_code_list = X_test['aircraft_type_code'].unique().tolist()
+    aircraft_code_list = X_rank['aircraft_type_code'].unique().tolist()
     print(aircraft_code_list)
 
-    print ( str ( X_test.shape ))
+    print ( str ( X_rank.shape ))
     #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
-    print("----- after scaling ----- ")
-    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-
-
-    return X_test 
+    print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    
+    return X_rank 
 
 def oneHotEncodeXTrainTest(df):
     
@@ -100,7 +98,7 @@ class Test_Main(unittest.TestCase):
 
         print(tf.__version__)
         
-        logging.info (' -------------- Train Flight list -------------')
+        logging.info (' -------------- Rank Fuel -------------')
         
         # Load the model
         model_file_name = "model_full_2025-10-15-01-20-32.h5"
@@ -111,23 +109,29 @@ class Test_Main(unittest.TestCase):
         with CustomObjectScope({'rmse': rmse}):
             model = load_model(filePathModel)
         
+        Count_of_FlightsFiles_to_read = None # get the whole ranking fuel database
         Count_of_FlightsFiles_to_read = 100
-        X_test = prepare_X_test(Count_of_FlightsFiles_to_read)
+        Count_of_FlightsFiles_to_read = 1000
+        X_rank = prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read)
 
-        print ( str ( X_test.shape ))
-        print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        print ( str ( X_rank.shape ))
+        print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
         ''' do not encode train_or_test column '''
-        X_test = oneHotEncodeXTrainTest(X_test)
+        X_rank = oneHotEncodeXTrainTest(X_rank)
         
         ''' convert True False to float '''
-        X_test = np.asarray(X_test).astype(np.float32)
-        print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-
-
-        #loss, accuracy = model.evaluate(X_test, y_test, batch_size=32)
-        #print(f"Test Loss: {loss:.4f}")
-        #print(f"Test Accuracy: {accuracy:.4f}")
+        X_rank = np.asarray(X_rank).astype(np.float32)
+        print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        ''' generate predictions '''
+        predictions = model.predict(X_rank)
+        # Convert predictions to a Pandas DataFrame
+        y_columnName = 'fuel_flow_kg_sec'
+        df_predictions = pd.DataFrame(predictions, columns=[y_columnName])
+        
+        # Write DataFrame to a CSV file
+        df_predictions.to_csv('fuel_rank_submission.csv', index=False)  # index=False prevents writing row indices
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 import pandas as pd
 import time
+import os
 from sklearn.preprocessing import OneHotEncoder
 # Set the option to display all columns
 pd.options.display.max_columns = None
@@ -31,8 +32,11 @@ from tensorflow.keras import backend
 
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.model_selection import train_test_split
 from trajectory.Fuel.FuelReader import FuelDatabase
+
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import CustomObjectScope
 
 import logging
 import unittest
@@ -58,7 +62,7 @@ def plot_loss(history , y_limit):
     plt.grid(True)
     plt.show()
 
-def prepare_X_tesst(Count_of_FlightsFiles_to_read):
+def prepare_X_test(Count_of_FlightsFiles_to_read):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
     assert fuelDatabase.readFuelRank() == True
@@ -93,7 +97,7 @@ def prepare_X_tesst(Count_of_FlightsFiles_to_read):
     print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
     return X_test 
     
-def prepare_Train(Count_of_FlightsFiles_to_read ):
+def prepare_Train_dataset (Count_of_FlightsFiles_to_read ):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
     assert fuelDatabase.readFuelTrain() == True
@@ -103,44 +107,18 @@ def prepare_Train(Count_of_FlightsFiles_to_read ):
     df = fuelDatabase.getFuelTrainDataframe()
     
     ''' decision to the use the fuel flow as Y '''
-    Y_columnName = 'fuel_flow_kg_sec'
-    listOfColumnsToDrop = ['idx'] + [Y_columnName]
+    listOfColumnsToDrop = ['idx']
     
     print( listOfColumnsToDrop )
     ''' do not put Y value in the train data set '''
-    X_train = dropUnusedColumns ( df , listOfColumnsToDrop)
+    df = dropUnusedColumns ( df , listOfColumnsToDrop)
     
-    print ( list ( X_train ) )
-    
-    ''' You do not need to scale the Y of train data '''
-    y_train = df[Y_columnName]
-    
-    ''' check unique names of aircraft type code '''
-    #aircraft_code_list = X_train['aircraft_type_code'].unique().tolist()
-    #print(aircraft_code_list)
-    
-    print(list ( X_train ))
-    
-    '''  Specify columns to rescale '''
-    ''' do not rescale fuel_flow_kg_sec as it is the Y currently '''
-    '''
-    print( list(X_train) )
-    print( tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-    '''
-    ''' to return and to be used in preparation of the X_test with category columns of aircraft type code '''
-    '''
-    list_of_columns_X_Train = list(X_train)
-    
-    
-    #print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-    '''
     ''' return also list of X_Train columns particularly the aircraft code after one hot encoder '''
-    return X_train , y_train 
+    return df 
 
-def oneHotEncodeXTrainTest(df):
+def oneHotEncodeTrainDatase(df , columnListToEncode):
     
     ''' one hot encoder for aircraft_type_code  and source '''
-    columnListToEncode = ['aircraft_type_code' , 'source']
     
     for columnName in columnListToEncode:
         df = oneHotEncoderSklearn ( df , columnName)
@@ -155,21 +133,18 @@ def oneHotEncodeXTrainTest(df):
     print( str ( df.isnull().sum() ))
     return df
 
-def scaleXTrainXTest( df , columnNameNotToScale ):
+def scaleDataset( df ):
     
     '''  Apply MinMaxScaler '''
     columnNameListToScale = []
     for columnName in list ( df ):
-        if str(columnName).strip() != str(columnNameNotToScale).strip():
-            columnNameListToScale.append(columnName)
+        columnNameListToScale.append(columnName)
     
     scaler = MinMaxScaler(feature_range=(0, 1))
     df = scaler.fit_transform(df[columnNameListToScale])
     
     print ( str ( df.shape ))
     
-    ''' convert True False to float '''
-    df = np.asarray(df).astype(np.float32)
     return df
 
 def tf_model_fit( X_train, y_train, epochs):
@@ -186,9 +161,13 @@ def tf_model_fit( X_train, y_train, epochs):
     
     # Save the entire model to a file
     modelFileName = "model_name_" + getCurrentDateTimeAsStr() + ".h5"
-    model.save(modelFileName)  # HDF5 format
+
+    filesFolder = os.path.dirname(__file__)
+    modelFilePath = os.path.join(filesFolder , modelFileName)
+    model.save(modelFilePath)  # HDF5 format
     
     plot_loss(history = history , y_limit = 20)
+    return modelFilePath
     
 
 #============================================
@@ -201,67 +180,65 @@ class Test_Main(unittest.TestCase):
         start_time = time.time()
         logging.info (' -------------- Train Fuel database -------------')
         
-        Count_of_FlightsFiles_to_read = 100
-        Count_of_FlightsFiles_to_read = 1000
         Count_of_FlightsFiles_to_read = None
+        #Count_of_FlightsFiles_to_read = 1000
+        #Count_of_FlightsFiles_to_read = None
         epochs = 300
         
-        X_train , y_train  = prepare_Train(Count_of_FlightsFiles_to_read )
-        
-        X_test = prepare_Rank(Count_of_FlightsFiles_to_read)
-        
-        list_columns_X_train = list ( X_train )
-        list_columns_X_train.sort()
-        list_columns_X_test  = list ( X_test )
-        list_columns_X_test.sort()
-        print ("X train columns = " , str(list_columns_X_train) )
-        print ("X test columns = " ,  str(list_columns_X_test) )
-        
-        print ( X_train.shape )
-        print ( X_test.shape )
-        
-        ''' add column to split again on train or test '''
-        columnName_train_test = 'train_or_test'
-        X_train[columnName_train_test] = True
-        X_test[columnName_train_test] = False
-        ''' concat on columns ie vertically '''
-        X_result = pd.concat ( [X_train , X_test ], axis=0, ignore_index=True )
-        
-        print ( X_result.shape )
-        list_columns_result = list ( X_result )
-        list_columns_result.sort()
-        print("result columns = ", str ( list_columns_result))
-        
-        print(tabulate(X_result[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-        print(tabulate(X_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        train_dataset  = prepare_Train_dataset(Count_of_FlightsFiles_to_read )
         
         ''' do not encode train_or_test column '''
-        X_result = oneHotEncodeXTrainTest(X_result)
+        listOfColumnsToEncode = ['aircraft_type_code' , 'source']
+        train_dataset = oneHotEncodeTrainDatase(train_dataset , listOfColumnsToEncode)
         
-        print(tabulate(X_result[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-        print(tabulate(X_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-
-        ''' split again to keep only a X_Train '''
-        X_train = X_result[ X_result[columnName_train_test].isin([True])]
-        print( X_train.shape )
+        print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
-        X_train = X_train.drop ( columnName_train_test, axis=1)
-        print( X_train.shape )
+        y_columnName = 'fuel_flow_kg_sec'
+        X = train_dataset.drop( y_columnName , axis = 1)
         
-        X_train = scaleXTrainXTest(X_train , columnName_train_test )
+        X = scaleDataset( X )
+        print ( str ( list (X) ))
         
-        print(tabulate(X_train[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-        print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        ''' convert True False to float '''
+        X = np.asarray(X).astype(np.float32)
+        
+        print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        y = train_dataset[[y_columnName]]
+        print ( str ( list (y) ))
+        
+        ''' convert True False to float '''
+        #Neural Networks and Complex Models: For models like neural networks, 
+        #scaling the target variable is often necessary to ensure that the loss function operates within a manageable range.
+        y = np.asarray(y).astype(np.float32)
 
         end_time = time.time()  # Record the end time
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
-       
-        #print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
-        tf_model_fit( X_train, y_train , epochs)
+        # Split the data (80% train, 20% test)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
+        ''' split data set in 0% train and 20% test '''
+        model_file_path = tf_model_fit( X_train, y_train , epochs )
+        print ( model_file_path )
         
+        with CustomObjectScope({'rmse': rmse}):
+            model = load_model(model_file_path)
+            
+        ''' evaluate the model '''
+        loss, accuracy = model.evaluate(X_test, y_test)
+        #The loss function quantifies the difference between the predicted outputs and the actual target values.
+        #It is a continuous value that the model tries to minimize during training.
+        # Common loss functions in CNNs include Cross-Entropy Loss for classification tasks and Mean Squared Error (MSE) for regression tasks.
+        print(f"Test Loss: {loss}")
+        #Accuracy measures the percentage of correct predictions made by the model out of all predictions. It is a discrete metric
+        # and is often used to evaluate the model's performance after training. 
+        #For example, if a CNN classifies 95 out of 100 test samples correctly, its accuracy is 95%
+        print(f"Test Accuracy: {accuracy}") 
+ 
     '''
     def test_b_Rank(self):
         
