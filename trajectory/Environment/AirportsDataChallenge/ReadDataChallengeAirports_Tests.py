@@ -5,8 +5,6 @@ Created on 7 oct. 2025
 '''
 
 
-
-
 import logging
 import unittest
 
