@@ -72,10 +72,7 @@ def prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read):
     
     return X_rank 
 
-def oneHotEncodeXTrainTest(df):
-    
-    ''' one hot encoder for aircraft_type_code  and source '''
-    columnListToEncode = ['aircraft_type_code' , 'source']
+def oneHotEncodeXTrainTest(df , columnListToEncode):
     
     for columnName in columnListToEncode:
         df = oneHotEncoderSklearn ( df , columnName)
@@ -84,7 +81,7 @@ def oneHotEncodeXTrainTest(df):
     df = dropUnusedColumns ( df , ['source_0.0' ,'aircraft_type_code'] )
     #X_train = tf.one_hot( X_train, depth=3 )
     ''' fill not a number with zeros '''
-    df = df.fillna(0)
+    #df = df.fillna(0)
     
     ''' check if there are null values '''
     print( str ( df.isnull().sum() ))
@@ -101,7 +98,8 @@ class Test_Main(unittest.TestCase):
         logging.info (' -------------- Rank Fuel -------------')
         
         # Load the model
-        model_file_name = "model_full_2025-10-15-01-20-32.h5"
+        model_file_name = "model_full_2025-10-16-02-55-27.h5"
+        model_file_name = "results_model_2025-10-16-06-46-23.h5"
         filesFolder = os.path.dirname(__file__)
         filePathModel = os.path.join(filesFolder , model_file_name)
         
@@ -115,23 +113,34 @@ class Test_Main(unittest.TestCase):
         X_rank = prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read)
 
         print ( str ( X_rank.shape ))
+        
+        ''' do not encode only column '''
+        ''' one hot encoder for aircraft_type_code  and source '''
+        columnListToEncode = [ 'source']
+        #X_rank = oneHotEncodeXTrainTest(X_rank , columnListToEncode)
+        
+        X_rank = dropUnusedColumns ( X_rank , ['fuel_kg','aircraft_type_code','source'] )
+        print( str ( X_rank.shape ))
         print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-        
-        ''' do not encode train_or_test column '''
-        X_rank = oneHotEncodeXTrainTest(X_rank)
-        
+
         ''' convert True False to float '''
         X_rank = np.asarray(X_rank).astype(np.float32)
-        print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        #print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
         ''' generate predictions '''
+        #predictions = model.predict(X_rank[np.newaxis, ...])
         predictions = model.predict(X_rank)
+        print ( predictions )
         # Convert predictions to a Pandas DataFrame
         y_columnName = 'fuel_flow_kg_sec'
         df_predictions = pd.DataFrame(predictions, columns=[y_columnName])
-        
+        print(tabulate(df_predictions[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
         # Write DataFrame to a CSV file
-        df_predictions.to_csv('fuel_rank_submission.csv', index=False)  # index=False prevents writing row indices
+        filesFolder = os.path.dirname(__file__)
+        rankSubmissionfileName = 'fuel_rank_submission.csv'
+        rankSubmissionFilePath = os.path.join(filesFolder , rankSubmissionfileName)
+        df_predictions.to_csv(rankSubmissionFilePath, na_rep='N/A', sep=';',  index=True)  # index=False prevents writing row indices
 
 
 if __name__ == '__main__':

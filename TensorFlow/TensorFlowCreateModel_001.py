@@ -51,7 +51,7 @@ transformer = make_column_transformer(
     'fuel_burn_relative_start', 'fuel_burn_relative_end',  'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS'] ) ,
     (OneHotEncoder(handle_unknown='ignore') , ['aircraft_type_code' , 'source'] ) )
 
-def plot_loss(history , y_limit):
+def plot_loss(history , y_limit , currentDateTimeAsString):
     plt.plot(history.history['loss'], label='training_loss')
     plt.plot(history.history['val_loss'], label='validation_loss')
     plt.title("convergence versus epochs")
@@ -60,7 +60,17 @@ def plot_loss(history , y_limit):
     plt.ylabel('Error (fuel_burn_kg / seconds)')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    
+    # Save the plot to a file
+    plotFileName = 'results_training_loss_vs_validation_loss' + '_'+ currentDateTimeAsString + '.png'
+    filesFolder = os.path.dirname(__file__)
+    plotFilePath = os.path.join(filesFolder , plotFileName)
+ 
+    plt.savefig(plotFilePath)  # Save as PNG
+    
+    # Close the plot to free memory
+    plt.close()
+    #plt.show()
 
 def prepare_X_test(Count_of_FlightsFiles_to_read):
     
@@ -94,7 +104,7 @@ def prepare_X_test(Count_of_FlightsFiles_to_read):
 
     ''' convert True False to float '''
     X_test = np.asarray(X_test).astype(np.float32)
-    print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+    #print(tabulate(X_test[:10], headers='keys', tablefmt='grid' , showindex=True , ))
     return X_test 
     
 def prepare_Train_dataset (Count_of_FlightsFiles_to_read ):
@@ -157,17 +167,18 @@ def tf_model_fit( X_train, y_train, epochs):
                               Dense(1)])
     
     model.compile(loss = rmse , optimizer = 'adam' , metrics = [rmse])
-    history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2 , verbose=1)
+    history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2 , verbose=0)
     
     # Save the entire model to a file
-    modelFileName = "model_name_" + getCurrentDateTimeAsStr() + ".h5"
+    currentDateTimeAsString = getCurrentDateTimeAsStr()
+    modelFileName = "results_model_" +  currentDateTimeAsString + ".h5"
 
     filesFolder = os.path.dirname(__file__)
     modelFilePath = os.path.join(filesFolder , modelFileName)
     model.save(modelFilePath)  # HDF5 format
     
-    plot_loss(history = history , y_limit = 20)
-    return modelFilePath
+    plot_loss(history = history , y_limit = 20 , currentDateTimeAsString=currentDateTimeAsString)
+    return modelFilePath , currentDateTimeAsString
     
 
 #============================================
@@ -181,15 +192,17 @@ class Test_Main(unittest.TestCase):
         logging.info (' -------------- Train Fuel database -------------')
         
         Count_of_FlightsFiles_to_read = None
-        #Count_of_FlightsFiles_to_read = 1000
+        Count_of_FlightsFiles_to_read = 1000
         #Count_of_FlightsFiles_to_read = None
         epochs = 300
         
         train_dataset  = prepare_Train_dataset(Count_of_FlightsFiles_to_read )
         
-        ''' do not encode train_or_test column '''
-        listOfColumnsToEncode = ['aircraft_type_code' , 'source']
-        train_dataset = oneHotEncodeTrainDatase(train_dataset , listOfColumnsToEncode)
+        ''' only encode some column '''
+        listOfColumnsToEncode = [ 'source']
+        #train_dataset = oneHotEncodeTrainDatase(train_dataset , listOfColumnsToEncode)
+        
+        train_dataset = dropUnusedColumns ( train_dataset , ['fuel_kg','aircraft_type_code','source'] )
         
         print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
         print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
@@ -203,8 +216,8 @@ class Test_Main(unittest.TestCase):
         ''' convert True False to float '''
         X = np.asarray(X).astype(np.float32)
         
-        print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-        print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        #print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        #print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
         y = train_dataset[[y_columnName]]
         print ( str ( list (y) ))
@@ -222,7 +235,7 @@ class Test_Main(unittest.TestCase):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
         ''' split data set in 0% train and 20% test '''
-        model_file_path = tf_model_fit( X_train, y_train , epochs )
+        model_file_path , currentDateTimeAsString = tf_model_fit( X_train, y_train , epochs )
         print ( model_file_path )
         
         with CustomObjectScope({'rmse': rmse}):
@@ -237,7 +250,16 @@ class Test_Main(unittest.TestCase):
         #Accuracy measures the percentage of correct predictions made by the model out of all predictions. It is a discrete metric
         # and is often used to evaluate the model's performance after training. 
         #For example, if a CNN classifies 95 out of 100 test samples correctly, its accuracy is 95%
-        print(f"Test Accuracy: {accuracy}") 
+        print(f"Test Accuracy: {accuracy}")
+        
+        # Using a context manager to create and write to a file
+        accuracyfileName = "results_accuracy_results" + "_" + currentDateTimeAsString + ".txt"
+        filesFolder = os.path.dirname(__file__)
+        accuracyFilePath = os.path.join(filesFolder , accuracyfileName)
+ 
+        with open(accuracyFilePath, "w") as file:
+            file.write(f"Test Loss: {loss}\n")
+            file.write(f"Test Accuracy: {accuracy}")
  
     '''
     def test_b_Rank(self):

@@ -90,6 +90,10 @@ ipython_config.py
 
 # do not push models 
 *.h5
+# do not push results
+*.txt
+*.png
+*.csv
 
 #do not push files from the data folder
 Data-Download-OpenSkyNetwork/

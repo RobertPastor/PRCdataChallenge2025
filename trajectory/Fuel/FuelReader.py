@@ -8,6 +8,7 @@ import logging
 import os
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 from pandas.api.types import is_datetime64_any_dtype
 
@@ -55,13 +56,14 @@ def extendFuelTrainWithFlightsData( row ):
     
     #print(str ( df_filtered.shape ))
     if df_filtered.shape[0] == 0:
-        
-        return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
-                         'latitude' : (0.0) , 'longitude' : (0.0) ,
-                         'altitude' : (0.0) , 'groundspeed' : (0.0) , 
-                         'track' : (0.0) , 'vertical_rate' : (0.0) ,
-                         'mach' : (0.0) , 'TAS' : (0.0) , 
-                         'CAS' : (0.0) , 'source' : (0.0)} )
+        constantValue = np.nan
+        constantValue = 0.0
+        return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown_aircraft_type_code') ,
+                         'latitude' : (constantValue) , 'longitude' : (constantValue) ,
+                         'altitude' : (constantValue) , 'groundspeed' : (constantValue) , 
+                         'track' : (constantValue) , 'vertical_rate' : (constantValue) ,
+                         'mach' : (constantValue) , 'TAS' : (constantValue) , 
+                         'CAS' : (constantValue) , 'source' : (str('unknown_source'))} )
     else:
         return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
                          'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
@@ -83,13 +85,14 @@ def extendFuelRankWithFlightsData( row ):
     
     #print(str ( df_filtered.shape ))
     if df_filtered.shape[0] == 0:
-        
+        constantValue = np.nan
+        constantValue = 0.0
         return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
                          'latitude' : (0.0) , 'longitude' : (0.0) ,
                          'altitude' : (0.0) , 'groundspeed' : (0.0) , 
                          'track' : (0.0) , 'vertical_rate' : (0.0) ,
                          'mach' : (0.0) , 'TAS' : (0.0) , 
-                         'CAS' : (0.0) , 'source' : (0.0)} )
+                         'CAS' : (0.0) , 'source' : ('unknown')} )
     else:
         return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
                          'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
@@ -302,12 +305,13 @@ class FuelDatabase(object):
         df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
         
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(df[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         
-        #df = df.dropna(axis = 'index' , how = 'any')
-        print ("final shape = " +  str (  df .shape ) ) 
+        df = df.dropna()
+        
+        print (self.className + ": final shape = " +  str (  df .shape ) ) 
         self.FuelTrainDataframe = df
         return True
-        
         
     def extendFuelRankWithFlightData(self):
         
@@ -331,7 +335,7 @@ class FuelDatabase(object):
         
         ''' drop absolute date time stamp '''
         df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
-
+        #df = df.dropna()
         self.FuelRankDataframe = df
         return True
 
