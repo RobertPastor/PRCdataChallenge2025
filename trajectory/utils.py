@@ -12,7 +12,6 @@ oneHotEncoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
 def getCurrentDateTimeAsStr( ):
     # Create a datetime object
     current_date = datetime.now()
-
     # Convert to string with a specific format
     date_string = current_date.strftime("%Y-%m-%d-%H-%M-%S")
     print("Formatted Date String:", date_string)

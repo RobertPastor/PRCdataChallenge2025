@@ -71,7 +71,10 @@ class Test_Main(unittest.TestCase):
         
         ''' keep only columns as defined in th PRC Challenge web site '''
         # Lecture d'un fichier CSV
-        df_predictions = pd.read_csv("fuel_rank_submission.csv", sep=';')
+        submissionCsvFile = "fuel_rank_submission_2025-10-17-10-25-04.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-17-14-56-37.csv"
+        print("input CSV file = " , submissionCsvFile)
+        df_predictions = pd.read_csv(submissionCsvFile , sep=';')
 
         # Affichage des 5 premières lignes
         print(df_predictions.head())
@@ -92,7 +95,7 @@ class Test_Main(unittest.TestCase):
         df_result = df_result.drop ( ['start', 'end'  ], axis = 1)
         df_result = df_result.rename( columns= {'start_no_utc':'start','end_no_utc':'end' } )
         
-        # Rearrange columns
+        # Rearrange columns order 
         new_order = ['idx', 'flight_id', 'start', 'end','fuel_kg']
         df_result = df_result[new_order]
 
@@ -100,7 +103,11 @@ class Test_Main(unittest.TestCase):
         print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         ''' write to parquet '''
-        df_result.to_parquet('understated-zucchini_v1.parquet')
+        #df_result.to_parquet('understated-zucchini_v1.parquet')
+        #df_result.to_parquet('understated-zucchini_v2.parquet')
+        targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
+        print("final surmission parquet file = " + targetTeamParquetFileName)
+        df_result.to_parquet(targetTeamParquetFileName)
 
 
 

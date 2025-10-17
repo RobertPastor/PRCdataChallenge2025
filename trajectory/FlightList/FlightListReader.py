@@ -17,6 +17,7 @@ from trajectory.Environment.Constants import Meter2NauticalMiles
 
 from trajectory.Environment.Aircrafts.FAAaircraftDatabaseFile import FaaAircraftDatabase
 
+initialHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id']
 
 expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id',
                    'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation',
@@ -49,7 +50,7 @@ class FlightListDatabase(object):
         
         self.fileNameFlightListTrain = "flightlist_train.parquet"
         #logging.info(self.fileNameFlightListTrain)
-        self.fileNameFlightListRank =  "flight_list_rank.parquet"
+        self.fileNameFlightListRank =  "flightlist_rank.parquet"
         #logging.info(self.fileNameFlightListRank)
         self.filesFolder = os.path.dirname(__file__)
         
@@ -82,6 +83,8 @@ class FlightListDatabase(object):
         if directory.is_dir() and file.is_file():
             
             self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
+            
+            assert list(self.TrainFlightListDataframe) == initialHeaders
             
             ''' convert to datetime UTC '''
             self.TrainFlightListDataframe["takeoff"] = pd.to_datetime(self.TrainFlightListDataframe["takeoff"], utc=True)
@@ -128,6 +131,9 @@ class FlightListDatabase(object):
             logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListRank))
             
             self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
+            
+            assert list(self.RankFlightListDataframe) == initialHeaders
+
             ''' convert to datetime UTC '''
             self.RankFlightListDataframe["takeoff"] = pd.to_datetime(self.RankFlightListDataframe["takeoff"], utc=True)
             self.RankFlightListDataframe["landed"] = pd.to_datetime(self.RankFlightListDataframe["landed"], utc=True)

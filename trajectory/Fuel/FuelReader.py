@@ -22,12 +22,17 @@ from tabulate import tabulate
 ''' load static flight database '''
 flightsDatabase = FlightsDatabase()
 
+initialHeaders = ['idx', 'flight_id', 'start', 'end', 'fuel_kg']
+
 expectedHeaders =['idx', 'flight_id', 'takeoff', 'fuel_burn_start', 'fuel_burn_end', 'fuel_kg', 'time_diff_seconds' , 'fuel_flow_kg_sec' , 
                   'fuel_burn_relative_start','fuel_burn_relative_end' ,
                   'origin_longitude', 'origin_latitude', 'origin_elevation', 'destination_longitude', 'destination_latitude', 'destination_elevation',
                   'flight_distance_Nm' , 'flight_duration_sec']
 
 def compute_fuel_flow_kg_sec(row):
+    #print ("fuel kg = " , row['fuel_kg'])
+    #print ("start fuel = " , row['start'])
+    #print ("end fuel = " , row['end'])
     return row['fuel_kg'] / (row['end'] - row['start']).total_seconds() if (row['end'] - row['start']).total_seconds() != 0 else 0
 
 def checkTimeZoneUTC(row):
@@ -122,6 +127,10 @@ class FuelDatabase(object):
         #logging.info(self.filePathFuelTrain)
         self.filePathFuelRank = os.path.join(self.filesFolder , self.fileNameFuelRank)
         #logging.info(self.filePathFuelRank)
+        self.FuelRankDataframeNbRows = 0
+        
+    def getFuelRankDataframeNbRows(self):
+        return self.FuelRankDataframeNbRows
         
     def checkFuelTrainHeaders(self):
         #print(str(set(list(self.FuelTrainDataframe).sort())))
@@ -178,10 +187,23 @@ class FuelDatabase(object):
         if directory.is_dir() and file.is_file():
             
             self.FuelRankDataframe = pd.read_parquet ( self.filePathFuelRank )
+            print(self.FuelRankDataframe.shape)
+            print(list (self.FuelRankDataframe))
+            
+            assert list (self.FuelRankDataframe) == initialHeaders
+
+            ''' check if there are null values '''
+            print( str ( self.FuelRankDataframe.isnull().sum() ))
+ 
+            self.FuelRankDataframeNbRows = self.FuelRankDataframe.shape[0]
             self.FuelRankDataframe = self.convertDatetimeToUTC(self.FuelRankDataframe)
+            
             ''' Calculate time difference in seconds '''
+            
             self.FuelRankDataframe = self.addTimeDiffSeconds(self.FuelRankDataframe)
-            self.FuelRankDataframe = self.computeFuelFlowKgSeconds(self.FuelRankDataframe)
+            ''' in the rank fuel parquet file , the fuel_kg is None '''
+            #self.FuelRankDataframe = self.computeFuelFlowKgSeconds(self.FuelRankDataframe)
+            
             self.FuelRankDataframe = self.renameStartEndColumns(self.FuelRankDataframe)
             
             assert self.extendFuelRankWithFlightTakeOff()
@@ -191,6 +213,7 @@ class FuelDatabase(object):
             if self.count_of_files_to_read and self.count_of_files_to_read > 0:
                 self.FuelRankDataframe = self.FuelRankDataframe.head(self.count_of_files_to_read )
 
+            print(self.FuelRankDataframe.shape)
             return True
         else:
             logging.error (self.className + " : it is a directory - {0}".format(self.filesFolder))
@@ -210,7 +233,10 @@ class FuelDatabase(object):
         if directory.is_dir() and file.is_file():
             
             self.FuelTrainDataframe = pd.read_parquet ( self.filePathFuelTrain )
-            print("----- origin fuel train dataframe shape = " + str ( self.FuelTrainDataframe.shape ))
+            print("---> fuel train dataframe shape = " + str ( self.FuelTrainDataframe.shape ))
+            print("---> fuel train initial headers = " + str ( list (self.FuelTrainDataframe)))
+            
+            assert list (self.FuelTrainDataframe) == initialHeaders
             self.FuelTrainDataframe = self.convertDatetimeToUTC(self.FuelTrainDataframe)
 
             ''' Calculate time difference in seconds '''
@@ -232,7 +258,6 @@ class FuelDatabase(object):
         else:
             self.FuelTrainDataframe = None
             return False
-        
         
     def extendFuelRankWithFlightTakeOff(self):    
         
@@ -256,7 +281,7 @@ class FuelDatabase(object):
         logging.info( self.className + ": ---- fuel rank  = " + str ( list (self.FuelRankDataframe ) ) )
 
         ''' extend in order to obtain flight start date time '''
-        self.FuelRankDataframe = pd.merge ( self.FuelRankDataframe , df_rankFlightList , left_on='flight_id', right_on='flight_id', how='inner' )
+        self.FuelRankDataframe = pd.merge ( self.FuelRankDataframe , df_rankFlightList , left_on='flight_id', right_on='flight_id', how='left' )
         logging.info( str ( list ( self.FuelRankDataframe ) ) )
         
         return True

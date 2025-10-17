@@ -187,7 +187,7 @@ def tf_model_fit( X_train, y_train, epochs):
     modelFilePath = os.path.join(filesFolder , modelFileName)
     model.save(modelFilePath)  # HDF5 format
     
-    plot_loss(history = history , y_limit = 20 , currentDateTimeAsString=currentDateTimeAsString)
+    plot_loss(history = history , y_limit = 5 , currentDateTimeAsString=currentDateTimeAsString)
     return modelFilePath , currentDateTimeAsString
     
 
