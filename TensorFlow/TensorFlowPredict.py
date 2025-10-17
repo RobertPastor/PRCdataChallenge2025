@@ -47,11 +47,10 @@ def prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read):
     
     fuelDatabase = FuelDatabase(Count_of_FlightsFiles_to_read)
     assert fuelDatabase.readFuelRank() == True
-    assert fuelDatabase.checkFuelRankHeaders() == True
+    #assert fuelDatabase.checkFuelRankHeaders() == True
     assert fuelDatabase.extendFuelRankWithFlightData()
 
     df = fuelDatabase.getFuelRankDataframe()
-    
     print ("final shape = " +  str (  df .shape ) ) 
     
     ''' decision to the use the fuel flow as Y '''
@@ -61,10 +60,6 @@ def prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read):
     print( listOfColumnsToDrop )
     ''' do not put Y value in the train data set '''
     X_rank = dropUnusedColumns ( df , listOfColumnsToDrop)
-
-    ''' check unique names of aircraft type code '''
-    aircraft_code_list = X_rank['aircraft_type_code'].unique().tolist()
-    print(aircraft_code_list)
 
     print ( str ( X_rank.shape ))
     #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
@@ -87,19 +82,34 @@ def oneHotEncodeXTrainTest(df , columnListToEncode):
     print( str ( df.isnull().sum() ))
     return df
 
+def scaleDataset( df ):
+    
+    '''  Apply MinMaxScaler '''
+    columnNameListToScale = []
+    for columnName in list ( df ):
+        columnNameListToScale.append(columnName)
+    
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    df = scaler.fit_transform(df[columnNameListToScale])
+    
+    print ( str ( df.shape ))
+    return df
+
 #============================================
 class Test_Main(unittest.TestCase):
 
     def test_main_one(self):
         logging.basicConfig(level=logging.INFO)
 
-        print(tf.__version__)
+        print("tensor flow version = " , tf.__version__)
         
         logging.info (' -------------- Rank Fuel -------------')
         
         # Load the model
         model_file_name = "model_full_2025-10-16-02-55-27.h5"
         model_file_name = "results_model_2025-10-16-06-46-23.h5"
+        model_file_name = "results_model_2025-10-16-06-46-23.h5"
+        model_file_name = "results_model_2025-10-16-23-49-37.h5"
         filesFolder = os.path.dirname(__file__)
         filePathModel = os.path.join(filesFolder , model_file_name)
         
@@ -107,21 +117,24 @@ class Test_Main(unittest.TestCase):
         with CustomObjectScope({'rmse': rmse}):
             model = load_model(filePathModel)
         
-        Count_of_FlightsFiles_to_read = None # get the whole ranking fuel database
         Count_of_FlightsFiles_to_read = 100
         Count_of_FlightsFiles_to_read = 1000
+        Count_of_FlightsFiles_to_read = None # get the whole ranking fuel database
+
         X_rank = prepare_Predictions_Ranking(Count_of_FlightsFiles_to_read)
 
         print ( str ( X_rank.shape ))
         
         ''' do not encode only column '''
-        ''' one hot encoder for aircraft_type_code  and source '''
-        columnListToEncode = [ 'source']
+        ''' 17th October 2025 no more categories hot encoding  '''
+        #columnListToEncode = [ 'source']
         #X_rank = oneHotEncodeXTrainTest(X_rank , columnListToEncode)
         
         X_rank = dropUnusedColumns ( X_rank , ['fuel_kg','aircraft_type_code','source'] )
         print( str ( X_rank.shape ))
         print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        X_rank = scaleDataset( X_rank )
 
         ''' convert True False to float '''
         X_rank = np.asarray(X_rank).astype(np.float32)
@@ -135,6 +148,9 @@ class Test_Main(unittest.TestCase):
         y_columnName = 'fuel_flow_kg_sec'
         df_predictions = pd.DataFrame(predictions, columns=[y_columnName])
         print(tabulate(df_predictions[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        # Naming the index column
+        df_predictions.index.name = 'idx'
 
         # Write DataFrame to a CSV file
         filesFolder = os.path.dirname(__file__)

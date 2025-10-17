@@ -145,7 +145,7 @@ class FlightListDatabase(object):
             ''' extract the day number of the year '''
             self.RankFlightListDataframe['day_of_year'] = self.RankFlightListDataframe['takeoff'].dt.dayofyear
             
-            assert self.extendTrainFlightListWithAircraftData()
+            assert self.extendRankFlightListWithAircraftData()
 
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
@@ -330,18 +330,19 @@ class FlightListDatabase(object):
                 self.TrainFlightListDataframe[extendedCharacteristic] = self.TrainFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , self.faaAircraftDatabase ))
         
         self.flightListExtendedWithAircraftData = True
-        print ( str ( list ( self.TrainFlightListDataframe )))
+        print (self.className + ": ---- train flight list data frame = " , str ( list ( self.TrainFlightListDataframe )))
         return True
     
     def extendRankFlightListWithAircraftData(self):
         self.flightListExtendedWithAircraftData = False
-        faaAircraftDatabase = FaaAircraftDatabase()
-        assert faaAircraftDatabase.exists()
+        self.faaAircraftDatabase = FaaAircraftDatabase()
+        assert self.faaAircraftDatabase.exists()
         
-        if ( faaAircraftDatabase.read()):
+        if ( self.faaAircraftDatabase.read()):
             
-            for extendedCharacteristic in faaAircraftDatabase.getListOfExtendedCharacteristics():
-                self.RankFlightListDataframe[extendedCharacteristic] = self.RankFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , faaAircraftDatabase ))
+            for extendedCharacteristic in self.faaAircraftDatabase.getListOfExtendedCharacteristics():
+                self.RankFlightListDataframe[extendedCharacteristic] = self.RankFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , self.faaAircraftDatabase ))
             
         self.flightListExtendedWithAircraftData = True
+        print (self.className + ": ---- rank flight list data frame = " ,  str ( list ( self.RankFlightListDataframe )))
         return True

@@ -204,6 +204,8 @@ class Test_Main(unittest.TestCase):
         Count_of_FlightsFiles_to_read = None
         Count_of_FlightsFiles_to_read = 100
         Count_of_FlightsFiles_to_read = 10000
+        Count_of_FlightsFiles_to_read = None
+
         epochs = 300
         
         train_dataset  = prepare_Train_dataset(Count_of_FlightsFiles_to_read )
@@ -217,6 +219,7 @@ class Test_Main(unittest.TestCase):
         print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
         print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
+        ''' do not scale the independent variable Y '''
         y_columnName = 'fuel_flow_kg_sec'
         X = train_dataset.drop( y_columnName , axis = 1)
         
