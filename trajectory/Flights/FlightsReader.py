@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 from tabulate import tabulate
 
+initialHeaders = ['timestamp', 'flight_id','typecode','latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 ''' type_code renamed as aircraft_type_code '''
 expectedHeaders = ['timestamp', 'flight_id', 'aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 
@@ -50,15 +51,15 @@ class FlightsDatabase(object):
         assert file.is_file() == True
         
         self.FlightsRankDataframe = pd.read_parquet(filePath)
+        assert list(self.FlightsRankDataframe) == initialHeaders
+        
+        ''' column typecode renamed as aircraft type code '''
         self.FlightsRankDataframe = self.renameColumns(self.FlightsRankDataframe)
         
         ''' convert datetime to UTC '''
         self.FlightsRankDataframe['timestamp'] = pd.to_datetime(self.FlightsRankDataframe['timestamp'], utc=True)
         
         assert self.checkFlightsRankHeaders()
-        
-        ''' rename typecode into aircraft type code '''
-        self.FlightsRankDataframe  = self.renameColumns(self.FlightsRankDataframe )
         
         ''' correct erroneous values in source column '''
         self.FlightsRankDataframe['source'] = self.FlightsRankDataframe['source'].apply(lambda x: str('unknown_source') if not isinstance(x, str) else str(x)  )
@@ -70,7 +71,6 @@ class FlightsDatabase(object):
         
         return self.FlightsRankDataframe
         
-    
     def readOneTrainFile(self, fileName):
         
         if str(fileName).endswith("parquet") == False:
@@ -83,15 +83,15 @@ class FlightsDatabase(object):
         assert file.is_file() == True
         
         self.FlightsTrainDataframe = pd.read_parquet(filePath)
+        assert list(self.FlightsRankDataframe) == initialHeaders
+
+        ''' column typecode renamed as aircraft type code '''
         self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
         
         ''' convert datetime to UTC '''
         self.FlightsTrainDataframe['timestamp'] = pd.to_datetime(self.FlightsTrainDataframe['timestamp'], utc=True)
         
         assert self.checkFlightsTrainHeaders()
-        
-        ''' rename typecode into aircraft type code '''
-        self.FlightsTrainDataframe  = self.renameColumns(self.FlightsTrainDataframe )
         
         ''' correct erroneous values in source column '''
         self.FlightsTrainDataframe['source'] = self.FlightsTrainDataframe['source'].apply(lambda x: str('unknown_source') if not isinstance(x, str) else str(x)  )
@@ -145,3 +145,16 @@ class FlightsDatabase(object):
         else:
             return False
                     
+    def readRankFileForPlot(self, fileName):
+        
+        if str(fileName).endswith("parquet") == False:
+            fileName = fileName + ".parquet"
+        
+        #logging.info(self.className + ": file name = " + fileName)
+        filePath = os.path.join( self.filesFolderTrain , fileName)
+        file = Path(filePath)
+        
+        assert file.is_file() == True
+        
+        self.FlightsTrainDataframe = pd.read_parquet(filePath)
+        

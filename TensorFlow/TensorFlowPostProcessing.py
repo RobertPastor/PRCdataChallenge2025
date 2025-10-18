@@ -73,6 +73,7 @@ class Test_Main(unittest.TestCase):
         # Lecture d'un fichier CSV
         submissionCsvFile = "fuel_rank_submission_2025-10-17-10-25-04.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-17-14-56-37.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-18-06-37-21.csv"
         print("input CSV file = " , submissionCsvFile)
         df_predictions = pd.read_csv(submissionCsvFile , sep=';')
 
@@ -105,7 +106,8 @@ class Test_Main(unittest.TestCase):
         ''' write to parquet '''
         #df_result.to_parquet('understated-zucchini_v1.parquet')
         #df_result.to_parquet('understated-zucchini_v2.parquet')
-        targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
+        #targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v4.parquet'
         print("final surmission parquet file = " + targetTeamParquetFileName)
         df_result.to_parquet(targetTeamParquetFileName)
 

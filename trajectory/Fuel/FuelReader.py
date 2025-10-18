@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import pandas as pd
 import numpy as np
-
+from datetime import timedelta
 from pandas.api.types import is_datetime64_any_dtype
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
@@ -61,14 +61,34 @@ def extendFuelTrainWithFlightsData( row ):
     
     #print(str ( df_filtered.shape ))
     if df_filtered.shape[0] == 0:
-        constantValue = np.nan
-        constantValue = 0.0
-        return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown_aircraft_type_code') ,
-                         'latitude' : (constantValue) , 'longitude' : (constantValue) ,
-                         'altitude' : (constantValue) , 'groundspeed' : (constantValue) , 
-                         'track' : (constantValue) , 'vertical_rate' : (constantValue) ,
-                         'mach' : (constantValue) , 'TAS' : (constantValue) , 
-                         'CAS' : (constantValue) , 'source' : (str('unknown_source'))} )
+        ''' extend search to a minus 3 plus 3 window '''
+        fuel_burnt_start_minus_3_minutes = row['fuel_burn_start'] - timedelta(hours=0, minutes=3)
+        fuel_burnt_end_plus_3_minutes = row['fuel_burn_end'] + timedelta(hours=0, minutes=3)
+        
+        df_filtered = df_flightData[ (df_flightData['timestamp'] >= fuel_burnt_start_minus_3_minutes ) & (df_flightData['timestamp'] <= fuel_burnt_end_plus_3_minutes)]
+
+        df_filtered = df_filtered.head(1)
+        df_filtered = df_filtered.drop ( "flight_id" , axis = 1)
+            
+        #print(str ( df_filtered.shape ))
+        if df_filtered.shape[0] == 0:
+            print ( f"---> minus 3 plus 3 window still insufficient ---Index: {row.name} , Rank Flight id: {row['flight_id']} " )
+            
+            constantValue = 0.0
+            return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
+                                 'latitude' : (constantValue) , 'longitude' : (constantValue) ,
+                                 'altitude' : (constantValue) , 'groundspeed' : (constantValue) , 
+                                 'track' : (constantValue) , 'vertical_rate' : (constantValue) ,
+                                 'mach' : (constantValue) , 'TAS' : (constantValue) , 
+                                 'CAS' : (constantValue) , 'source' : ('unknown')} )
+        else:
+            return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
+                         'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
+                         'altitude' : (df_filtered['altitude'].iloc[0]) , 'groundspeed' : (df_filtered['groundspeed'].iloc[0]) , 
+                         'track' : (df_filtered['track'].iloc[0]) , 'vertical_rate' : (df_filtered['vertical_rate'].iloc[0]) ,
+                         'mach' : (df_filtered['mach'].iloc[0]) , 'TAS' : (df_filtered['TAS'].iloc[0]) , 
+                         'CAS' : (df_filtered['CAS'].iloc[0]) , 'source' : (df_filtered['source'].iloc[0])} )
+        
     else:
         return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
                          'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
@@ -80,7 +100,7 @@ def extendFuelTrainWithFlightsData( row ):
 
 def extendFuelRankWithFlightsData( row ):
     #print(''' ------------- row by row loop ------------------''')
-    print (  f"Index: {row.name} , Rank Flight id: {row['flight_id']} " )
+    
     df_flightData = flightsDatabase.readOneRankFile( row['flight_id'] )
     #print( str( df_flightData['timestamp'] ))
     df_filtered = df_flightData[ (df_flightData['timestamp'] >= row['fuel_burn_start']) & (df_flightData['timestamp'] <= row['fuel_burn_end'])]
@@ -90,14 +110,36 @@ def extendFuelRankWithFlightsData( row ):
     
     #print(str ( df_filtered.shape ))
     if df_filtered.shape[0] == 0:
-        constantValue = np.nan
-        constantValue = 0.0
-        return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
-                         'latitude' : (0.0) , 'longitude' : (0.0) ,
-                         'altitude' : (0.0) , 'groundspeed' : (0.0) , 
-                         'track' : (0.0) , 'vertical_rate' : (0.0) ,
-                         'mach' : (0.0) , 'TAS' : (0.0) , 
-                         'CAS' : (0.0) , 'source' : ('unknown')} )
+        #print (  f"---> extend window --> Index: {row.name} , Rank Flight id: {row['flight_id']} " )
+        ''' extend the search window to minus 3 +3 minutes '''
+        fuel_burnt_start_minus_3_minutes = row['fuel_burn_start'] - timedelta(hours=0, minutes=3)
+        fuel_burnt_end_plus_3_minutes = row['fuel_burn_end'] + timedelta(hours=0, minutes=3)
+        
+        df_filtered = df_flightData[ (df_flightData['timestamp'] >= fuel_burnt_start_minus_3_minutes ) & (df_flightData['timestamp'] <= fuel_burnt_end_plus_3_minutes)]
+
+        df_filtered = df_filtered.head(1)
+        df_filtered = df_filtered.drop ( "flight_id" , axis = 1)
+            
+        #print(str ( df_filtered.shape ))
+        if df_filtered.shape[0] == 0:
+            print (  f" --> minus 3 plus 3 window insufficient --> Index: {row.name} , Rank Flight id: {row['flight_id']} " )
+            
+            constantValue = 0.0
+            return pd.Series( { 'timestamp' : (row['fuel_burn_start']) , 'aircraft_type_code' : str('unknown') ,
+                                 'latitude' : (constantValue) , 'longitude' : (constantValue) ,
+                                 'altitude' : (constantValue) , 'groundspeed' : (constantValue) , 
+                                 'track' : (constantValue) , 'vertical_rate' : (constantValue) ,
+                                 'mach' : (constantValue) , 'TAS' : (constantValue) , 
+                                 'CAS' : (constantValue) , 'source' : ('unknown')} )
+        else:
+            return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
+                         'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
+                         'altitude' : (df_filtered['altitude'].iloc[0]) , 'groundspeed' : (df_filtered['groundspeed'].iloc[0]) , 
+                         'track' : (df_filtered['track'].iloc[0]) , 'vertical_rate' : (df_filtered['vertical_rate'].iloc[0]) ,
+                         'mach' : (df_filtered['mach'].iloc[0]) , 'TAS' : (df_filtered['TAS'].iloc[0]) , 
+                         'CAS' : (df_filtered['CAS'].iloc[0]) , 'source' : (df_filtered['source'].iloc[0])} )
+        #constantValue = np.nan
+    
     else:
         return pd.Series( { 'timestamp' : (df_filtered['timestamp'].iloc[0]) , 'aircraft_type_code' : str(df_filtered['aircraft_type_code'].iloc[0]) ,
                          'latitude' : (df_filtered['latitude'].iloc[0]) , 'longitude' : (df_filtered['longitude'].iloc[0]) ,
