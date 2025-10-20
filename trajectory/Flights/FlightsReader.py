@@ -9,11 +9,20 @@ import os
 from pathlib import Path
 import pandas as pd
 from tabulate import tabulate
+from datetime import datetime, timedelta
+from trajectory.utils import dropUnusedColumns
 
 initialHeaders = ['timestamp', 'flight_id','typecode','latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 ''' type_code renamed as aircraft_type_code '''
 expectedHeaders = ['timestamp', 'flight_id', 'aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 
+
+def datetime_range(start, end, delta):
+    current = start
+    while current < end:
+        yield current
+        current += delta
+        
 class FlightsDatabase(object):
     
     className = ''
@@ -28,7 +37,12 @@ class FlightsDatabase(object):
         
         assert Path(self.filesFolderTrain).is_dir() == True
         assert Path(self.filesFolderRank).is_dir() == True
-        #logging.info(self.filesFolder)
+        
+    def getTrainFlightsFolderPathStr(self):
+        return self.filesFolderTrain
+    
+    def getRankFlightsFolderPathStr(self):
+        return self.filesFolderRank
         
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
@@ -38,6 +52,85 @@ class FlightsDatabase(object):
     
     def renameColumns(self, df):
         return df.rename(columns= {'typecode':'aircraft_type_code'})
+    
+    def getFlightId(self):
+        return self.flightId
+    
+    def interpolateTimeSeries(self , df_flight ):
+        
+        print( df_flight.shape )
+        print( list ( df_flight ) )
+        
+        # Example time and data
+        min_time_value = df_flight['timestamp'].min()
+        max_time_value = df_flight['timestamp'].max()
+        
+        df_flight['start'] = df_flight['timestamp'].min()
+        df_flight['end'] = df_flight['timestamp'].max()
+        #print("flight shape = " , df_flight.shape)
+        
+        #time_intervals = pd.interval_range(start=min_time_value, end=max_time_value , freq=3 , )
+        dt_time_intervals = [ dt for dt in datetime_range(min_time_value, max_time_value, timedelta(minutes=1))]
+        df_time_intervals = pd.DataFrame( dt_time_intervals , columns=['timestamp'])
+        #print ("time intervals shape = " ,df_time_intervals.shape)
+        #print(tabulate(df_time_intervals[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        df_flight['time_diff_seconds'] = (df_flight['timestamp'] - df_flight['start']).dt.total_seconds()
+        #print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        #df_merge = pd.merge ( df_time_intervals , df_flight,  on='timestamp', how='left')
+        ''' outer means keep rows from both dataframes '''
+        df = pd.merge_ordered ( df_flight , df_time_intervals , on='timestamp' , how='outer')
+        print("merge shape = " ,df.shape)
+
+        df['start'] = df['timestamp'].min()
+        df['end'] = df['timestamp'].max()
+        df['time_diff_seconds'] = (df['timestamp'] - df['start']).dt.total_seconds()
+
+        #print(tabulate(df_merge[:100], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        for columnName in ['flight_id', 'aircraft_type_code','source']:
+            ''' first non Nan value ni column '''
+            df[columnName] = df.loc[df[columnName].first_valid_index(), columnName]
+            
+        # Interpolate the DataFrame
+        interpolatedColumnList = ['latitude', 'longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']
+        df[interpolatedColumnList] = df[interpolatedColumnList].interpolate(method='linear',axis=0, Direction='both')
+        
+        print("count of nulls in vertical rate = " , str ( df['vertical_rate'].isnull().count() ))
+        if df.shape[0] == df['vertical_rate'].isnull().count():
+            print("--> the column vertical rate contains only nulls !!! ")
+            ''' altitude are given in feet from PRC web site -> altitude: altitude [ft] '''
+            #df.apply(lambda row: print ( str(df['timestamp'].iloc[row.name]) , str(row.name) , str(row.name-1) ) 
+            #         if ( row.name-1 > 0 and row.name +1< len(df) ) else None , axis=1)
+            ''' vertical rate -> feet per minutes '''
+            df['vertical_rate'] = df.apply(lambda row: (df['altitude'].iloc[row.name] -  df['altitude'].iloc[row.name-1]) / (abs( df['time_diff_seconds'].iloc[row.name] - df['time_diff_seconds'].iloc[row.name-1]) / 60.0 ) 
+                                           if ( (row.name > 0 )and (row.name < len(df))  and (df['time_diff_seconds'].iloc[row.name] - df['time_diff_seconds'].iloc[row.name-1]) > 0.0 ) else 0.0 , axis=1)
+            ''' Drop rows where any value is outside the threshold'''
+            
+        #print("show dataframe after extending empty vertical rates")
+        #print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        verticalRateMean = df['vertical_rate'].mean()
+        verticalRateStd = df['vertical_rate'].std()
+        maxVerticalRateFeetMinutes = 2000.0
+        ''' suppress vertical rates outside 3 standard deviation '''
+        df['vertical_rate'] = df['vertical_rate'].mask( ( df['vertical_rate'] < verticalRateMean - (3*verticalRateStd)) | ( df['vertical_rate'] > (verticalRateMean + 3*verticalRateStd ) ) )
+        #print ( df.isnull().sum() )
+        #print("shape before dropping outliers on vertical rate = " , str(df.shape))
+        #df = df[~((df['vertical_rate'] < verticalRateMean - maxVerticalRateFeetMinutes) | (df['vertical_rate'] > verticalRateMean + maxVerticalRateFeetMinutes)).any(axis=1)]
+        #print("shape after dropping outliers on vertical rate = " , str(df.shape))
+        
+        df = df.fillna(0.0)
+        #print(tabulate(df.describe().transpose(), headers='keys', tablefmt='grid' , showindex=True ,))
+        
+        ''' drop added columns '''
+        df = dropUnusedColumns( df , ['start','end','time_diff_seconds'] ) 
+        #print ( list ( df ))
+        
+        return df
+        
     
     def readOneRankFile(self , fileName):
         
@@ -52,6 +145,8 @@ class FlightsDatabase(object):
         
         self.FlightsRankDataframe = pd.read_parquet(filePath)
         assert list(self.FlightsRankDataframe) == initialHeaders
+        
+        self.flightId = self.FlightsRankDataframe['flight_id'].unique()
         
         ''' column typecode renamed as aircraft type code '''
         self.FlightsRankDataframe = self.renameColumns(self.FlightsRankDataframe)
@@ -69,7 +164,12 @@ class FlightsDatabase(object):
         ''' hot encoding is done after all 13.000 thousands Flight Data files are concated '''
         #self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
         
+        self.FlightsRankDataframe = self.interpolateTimeSeries( self.FlightsRankDataframe  )
+        
         return self.FlightsRankDataframe
+    
+    ''' extend timestamp series to one minute interval '''
+
         
     def readOneTrainFile(self, fileName):
         
@@ -83,7 +183,9 @@ class FlightsDatabase(object):
         assert file.is_file() == True
         
         self.FlightsTrainDataframe = pd.read_parquet(filePath)
-        assert list(self.FlightsRankDataframe) == initialHeaders
+        assert list(self.FlightsTrainDataframe) == initialHeaders
+        
+        self.flightId = self.FlightsTrainDataframe['flight_id'].unique()
 
         ''' column typecode renamed as aircraft type code '''
         self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
@@ -100,6 +202,8 @@ class FlightsDatabase(object):
         ''' do not hot encode on a per file basis as some file may have only one value in the source '''
         ''' hot encoding is done after all 13.000 thousands Flight Data files are concated '''
         #self.FlightsTrainDataframe  = self.oneHotEncodeSource(self.FlightsTrainDataframe, "source")
+        
+        self.FlightsTrainDataframe = self.interpolateTimeSeries( self.FlightsTrainDataframe  )
         
         return self.FlightsTrainDataframe
         
@@ -123,7 +227,7 @@ class FlightsDatabase(object):
                         
                         self.FlightsTrainDataframe = pd.read_parquet(self.filePath)
                         self.FlightsTrainDataframe = self.renameColumns(self.FlightsTrainDataframe)
-                        
+                                                
                         print(tabulate(self.FlightsTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
                         #logging.info( str ( self.FlightsTrainDataframe.head()))

@@ -107,17 +107,14 @@ class Test_Main(unittest.TestCase):
         verticalRateStd = df['vertical_rate'].std()
         maxVerticalRateFeetMinutes = 2000.0
         ''' suppress vertical rates outside 3 standard deviation '''
-        df['vertical_rate'] = df['vertical_rate'].mask( ( df['vertical_rate'] < verticalRateMean - 3*verticalRateStd ) | ( df['vertical_rate'] > verticalRateMean + 3*maxVerticalRateFeetMinutes  ) )
+        df['vertical_rate'] = df['vertical_rate'].mask( ( df['vertical_rate'] < verticalRateMean - (3*verticalRateStd)) | ( df['vertical_rate'] > (verticalRateMean + 3*verticalRateStd ) ) )
         print ( df.isnull().sum() )
         #print("shape before dropping outliers on vertical rate = " , str(df.shape))
         #df = df[~((df['vertical_rate'] < verticalRateMean - maxVerticalRateFeetMinutes) | (df['vertical_rate'] > verticalRateMean + maxVerticalRateFeetMinutes)).any(axis=1)]
         #print("shape after dropping outliers on vertical rate = " , str(df.shape))
         
-        
-
         df = df.fillna(0.0)
         print(tabulate(df.describe().transpose(), headers='keys', tablefmt='grid' , showindex=True ,))
-        
         
         timeSeries = df['time_diff_seconds']
         for columnName in ['latitude', 'longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']:
@@ -181,11 +178,8 @@ class Test_Main(unittest.TestCase):
         
         #smoothed_data = savgol_filter(data, window_length=11, polyorder=2)
         #Both methods are effective, but the choice depends on your specific data and smoothing needs.
-        
 
 
-
-    
     def test_main_one(self):
         logging.basicConfig(level=logging.INFO)
 
