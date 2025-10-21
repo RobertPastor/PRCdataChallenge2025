@@ -245,7 +245,6 @@ class FuelDatabase(object):
             self.FuelRankDataframe = self.addTimeDiffSeconds(self.FuelRankDataframe)
             ''' in the rank fuel parquet file , the fuel_kg is None '''
             #self.FuelRankDataframe = self.computeFuelFlowKgSeconds(self.FuelRankDataframe)
-            
             self.FuelRankDataframe = self.renameStartEndColumns(self.FuelRankDataframe)
             
             assert self.extendFuelRankWithFlightTakeOff()
@@ -343,7 +342,6 @@ class FuelDatabase(object):
         
         if flightListDatabase.isExtendedWithAircraftData():
             columnNameListToKeep = columnNameListToKeep + flightListDatabase.getAircraftExtendedListOfCharacteristics()
-            
         df_trainFlightList = keepOnlyColumns( df_trainFlightList , columnNameListToKeep )
         
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
@@ -378,7 +376,6 @@ class FuelDatabase(object):
         
         ''' drop absolute date time stamp '''
         df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
-        
         df = dropUnusedColumns( df , ['aircraft_type_code','source'])
         
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
@@ -413,7 +410,6 @@ class FuelDatabase(object):
         
         ''' drop absolute date time stamp '''
         df = dropUnusedColumns( df , ['timestamp','takeoff','flight_id'] )
-        
         df = dropUnusedColumns( df , ['aircraft_type_code','source'])
 
         ''' replace nan with mean value '''

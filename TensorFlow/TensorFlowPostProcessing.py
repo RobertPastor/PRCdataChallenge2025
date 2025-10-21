@@ -40,7 +40,7 @@ from tensorflow.keras.utils import CustomObjectScope
 def rmse(y_true, y_pred):
     return backend.sqrt( backend.mean (backend.square(y_pred - y_true)))
 
-''' compute flight duration in seconds '''
+''' compute fuel kg from fuel flow '''
 def computeFuelKg( row ):
     return (abs( row['fuel_flow_kg_sec'] ) * row['time_diff_seconds'])
 
@@ -74,6 +74,7 @@ class Test_Main(unittest.TestCase):
         submissionCsvFile = "fuel_rank_submission_2025-10-17-10-25-04.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-17-14-56-37.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-18-06-37-21.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
         print("input CSV file = " , submissionCsvFile)
         df_predictions = pd.read_csv(submissionCsvFile , sep=';')
 
@@ -107,7 +108,7 @@ class Test_Main(unittest.TestCase):
         #df_result.to_parquet('understated-zucchini_v1.parquet')
         #df_result.to_parquet('understated-zucchini_v2.parquet')
         #targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
-        targetTeamParquetFileName = 'understated-zucchini_v4.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v5.parquet'
         print("final surmission parquet file = " + targetTeamParquetFileName)
         df_result.to_parquet(targetTeamParquetFileName)
 
