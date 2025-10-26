@@ -292,9 +292,6 @@ class FuelDatabase(object):
             if self.count_of_files_to_read and self.count_of_files_to_read > 0:
                 self.FuelTrainDataframe = self.FuelTrainDataframe.head(self.count_of_files_to_read)
 
-            #logging.info ( str(self.FuelTrainDataframe.shape ) )
-            #logging.info ( str(  list ( self.FuelTrainDataframe)) )
-        
             return True
         else:
             self.FuelTrainDataframe = None

@@ -194,7 +194,6 @@ def tf_model_fit( X_train, y_train, epochs):
 #============================================
 class Test_Main(unittest.TestCase):
 
-
     def test_a_Train(self):
         
         logging.basicConfig(level=logging.INFO)
@@ -224,7 +223,6 @@ class Test_Main(unittest.TestCase):
         X = train_dataset.drop( y_columnName , axis = 1)
         
         X = scaleDataset( X )
-        #print ( str ( list (X) ))
         
         ''' convert True False to float '''
         X = np.asarray(X).astype(np.float32)
