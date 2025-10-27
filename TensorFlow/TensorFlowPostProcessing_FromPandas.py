@@ -69,13 +69,13 @@ class Test_Main(unittest.TestCase):
         print(df_rank.head())
         print(df_rank.shape)
         
-        ''' keep only columns as defined in th PRC Challenge web site '''
+        ''' keep only columns as defined in the PRC Challenge web site '''
         # Lecture d'un fichier CSV
         submissionCsvFile = "fuel_rank_submission_2025-10-17-10-25-04.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-17-14-56-37.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-18-06-37-21.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
-        print("input CSV file = " , submissionCsvFile)
+        print("input CSV file Warning - with fuel flow = " , submissionCsvFile)
         df_predictions = pd.read_csv(submissionCsvFile , sep=';')
 
         # Affichage des 5 premières lignes
@@ -89,6 +89,7 @@ class Test_Main(unittest.TestCase):
         df_result['fuel_kg'] = df_result.apply ( computeFuelKg , axis = 1)
         
         df_result = df_result.rename( columns= {'fuel_burn_start':'start','fuel_burn_end':'end' ,'idx_x':'idx'} )
+        print ( list ( df_result))
         df_result = df_result.drop ( ['idx_y', 'fuel_flow_kg_sec' , 'time_diff_seconds' ], axis = 1)
         
         df_result['start_no_utc'] = df_result.apply ( suppressUTC , args = { 'start' }, axis = 1)
