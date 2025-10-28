@@ -114,6 +114,8 @@ class Test_Main(unittest.TestCase):
         
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-25-16-29-19.parquet"
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
+        extendedFuelDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
+        
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
         
         filePath = os.path.join( filesFolder , extendedFuelDataFileName)

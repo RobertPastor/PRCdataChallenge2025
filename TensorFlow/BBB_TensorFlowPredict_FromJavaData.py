@@ -81,6 +81,7 @@ class Test_Main(unittest.TestCase):
         model_file_name = "results_model_2025-10-25-16-58-04.h5"
         model_file_name = "results_model_2025-10-25-18-08-44.h5"
         model_file_name = "results_model_2025-10-26-11-56-15.h5"
+        model_file_name = "results_model_2025-10-27-19-42-31.h5"
         filesFolder = os.path.dirname(__file__)
         filePathModel = os.path.join(filesFolder , model_file_name)
         
@@ -91,6 +92,7 @@ class Test_Main(unittest.TestCase):
         ''' first file create from the java features analyser '''
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-25-17-24-14.parquet"
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
+        extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
         
         filePath = os.path.join( filesFolder , extendedRankFuelDataFileName)

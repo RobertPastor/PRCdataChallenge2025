@@ -125,10 +125,11 @@ class Test_Main(unittest.TestCase):
         df = dropUnusedColumns( df , ['start','end','time_diff_seconds'] ) 
         print ( list ( df ))
         
-        #Mais la donnée « aircraft track angle » sera plus facile à interpréter pour le modèle si vous convertissez les colonnes de direction et de vitesse de l’avion 
-        #en un vecteur vitesse 
+        ''' Mais la donnée « aircraft track angle » sera plus facile à interpréter pour le modèle '''
+        ''' si vous convertissez les colonnes de direction et de vitesse de l’avion '''
+        ''' en un vecteur vitesse '''
         ''' convert track angles from degrees to radians '''
-        track_radians = df.pop('track')* np.pi / 180
+        track_radians = df.pop('track')* np.pi / 180.0
         
         groundSpeedMax = df['groundspeed'].max()
         groundSpeed = df.pop('groundspeed')

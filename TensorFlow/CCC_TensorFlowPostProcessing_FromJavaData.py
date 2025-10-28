@@ -60,8 +60,19 @@ class Test_Main(unittest.TestCase):
         print("tensor flow version = " , tf.__version__)
         
         logging.info (' -------------- Post Processing to convert fuel flow to fuel kg Fuel -------------')
-    
+        
+        submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-26-12-14-25.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
+
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
+        extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
+        
+        targetTeamParquetFileName = 'understated-zucchini_v5.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v6.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v7.parquet'
+
+
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
             
         filePath = os.path.join( filesFolder , extendedRankFuelDataFileName)
@@ -73,7 +84,6 @@ class Test_Main(unittest.TestCase):
             print("---- start predictions post processing -- ")
             
             start_time = time.time()
-                
             X_rank = pd.read_parquet ( filePath )
             
             print ("final shape = " +  str (  X_rank .shape ) ) 
@@ -88,8 +98,6 @@ class Test_Main(unittest.TestCase):
             #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
             print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
-            submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
-            submissionCsvFile = "fuel_rank_submission_2025-10-26-12-14-25.csv"
             print("input CSV file Warning - with fuel flow = " , submissionCsvFile)
             df_predictions = pd.read_csv(submissionCsvFile , sep=';')
 
@@ -128,8 +136,6 @@ class Test_Main(unittest.TestCase):
             #df_result.to_parquet('understated-zucchini_v1.parquet')
             #df_result.to_parquet('understated-zucchini_v2.parquet')
             #targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
-            targetTeamParquetFileName = 'understated-zucchini_v5.parquet'
-            targetTeamParquetFileName = 'understated-zucchini_v6.parquet'
             print("final surmission parquet file = " + targetTeamParquetFileName)
             df_result.to_parquet(targetTeamParquetFileName)
             
