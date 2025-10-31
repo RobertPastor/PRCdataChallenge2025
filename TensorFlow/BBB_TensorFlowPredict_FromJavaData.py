@@ -82,6 +82,10 @@ class Test_Main(unittest.TestCase):
         model_file_name = "results_model_2025-10-25-18-08-44.h5"
         model_file_name = "results_model_2025-10-26-11-56-15.h5"
         model_file_name = "results_model_2025-10-27-19-42-31.h5"
+        model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
+        model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
+        model_file_name = "results_model_2025-10-31-16-25-19-without-outliers-median.h5"
+        model_file_name = "results_model_2025-10-31-17-35-29-without-outliers-capping.h5"
         filesFolder = os.path.dirname(__file__)
         filePathModel = os.path.join(filesFolder , model_file_name)
         
@@ -93,6 +97,7 @@ class Test_Main(unittest.TestCase):
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-25-17-24-14.parquet"
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
+        extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-31-17-36-58.parquet"
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
         
         filePath = os.path.join( filesFolder , extendedRankFuelDataFileName)
@@ -116,14 +121,12 @@ class Test_Main(unittest.TestCase):
             print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
             
             print ( list (X_rank ))
-
             X_rank = scaleDataset( X_rank )
 
             ''' convert True False to float '''
             X_rank = np.asarray(X_rank).astype(np.float32)
             
-            ''' generate predictions '''
-            #predictions = model.predict(X_rank[np.newaxis, ...])
+            ''' generate predictions '''            #predictions = model.predict(X_rank[np.newaxis, ...])
             predictions = model.predict(X_rank)
             print ( predictions )
             # Convert predictions to a Pandas DataFrame
@@ -141,7 +144,10 @@ class Test_Main(unittest.TestCase):
             rankSubmissionFilePath = os.path.join(filesFolder , rankSubmissionfileName)
             df_predictions.to_csv(rankSubmissionFilePath, na_rep='N/A', sep=';',  index=True)  
             
-            
+            end_time = time.time
+            #elapsed_time = end_time - start_time
+            #print(f"Elapsed time: {elapsed_time:.2f} seconds")
+
             
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

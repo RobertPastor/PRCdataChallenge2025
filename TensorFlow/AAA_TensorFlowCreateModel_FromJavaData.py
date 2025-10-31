@@ -106,19 +106,49 @@ def tf_model_fit( X_train, y_train, epochs):
     plot_loss(history = history , y_limit = 1.0 , currentDateTimeAsString=currentDateTimeAsString)
     return modelFilePath , currentDateTimeAsString
 
+
+def clean_outliers_with_median( df , list_of_columnNames_to_clean ):
+    for columnName in list_of_columnNames_to_clean:
+        Q1 = df[columnName].quantile(0.25)
+        Q3 = df[columnName].quantile(0.75)
+        IQR = Q3 - Q1
+        
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        #outliers = df[(df[columnName] < lower_bound) | (df[columnName] > upper_bound)]
+        #print("Outliers:\n")
+        
+        df[columnName] = np.where((df[columnName] < lower_bound) | (df[columnName] > upper_bound), df[columnName].median(), df[columnName])
+        #print("Data after Replacing Outliers:\n", df)
+        
+        return df
+    
+def clean_outliers_capping ( df , list_of_columnNames_to_clean ):
+    for columnName in list_of_columnNames_to_clean:
+        Q1 = df[columnName].quantile(0.25)
+        Q3 = df[columnName].quantile(0.75)
+        IQR = Q3 - Q1
+        
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        df[columnName] = np.clip(df[columnName], lower_bound, upper_bound)
+        return df
+    
 #============================================
 class Test_Main(unittest.TestCase):
 
 
     def test_a_Train(self):
         
-        extendedFuelDataFileName = "ExtendedFuel_train_2025-10-25-16-29-19.parquet"
-        extendedFuelDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
-        extendedFuelDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
-        
+        extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-25-16-29-19.parquet"
+        extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
+        extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
+        extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-31-12-44-23.parquet"
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
         
-        filePath = os.path.join( filesFolder , extendedFuelDataFileName)
+        filePath = os.path.join( filesFolder , extendedFuelTrainDataFileName)
         file = Path(filePath )
         
         directory = Path(filesFolder)
@@ -130,15 +160,23 @@ class Test_Main(unittest.TestCase):
             print( train_dataset.shape )
             print ( list (train_dataset))
             
-            print ( train_dataset.describe().transpose() )
+            #print ( train_dataset.describe().transpose() )
  
             train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
             train_dataset = train_dataset.fillna(0.0)
+                        
+            ''' clean outliers '''
+            listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
+                                         "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
+                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec","fuel_burnt_end_relative_to_landed_sec",
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+            train_dataset = clean_outliers_capping( train_dataset , listOfColumnsWithOutliers)
             
-            print ( list ( train_dataset))
+            print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
             
-            print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-            print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            #print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+            #print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
 
             ''' do not scale the independent variable Y '''
             y_columnName = 'fuel_flow_kg_sec'
@@ -146,8 +184,6 @@ class Test_Main(unittest.TestCase):
             ''' scale only the dependent variables  '''
             X = scaleDataset( X )
             #print ( str ( list (X) ))
-            ''' convert True False to float '''
-            #X = np.asarray(X).astype(np.double)
             
             #print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
             #print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
@@ -162,7 +198,7 @@ class Test_Main(unittest.TestCase):
             #scaling the target variable is often necessary to ensure that the loss function operates within a manageable range.
             #y = np.asarray(y).astype(np.float32)
             '''  Split the data (70% train, 20% test)'''
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
             
             ''' split data set in 0% train and 20% test '''
             epochs = 150
@@ -195,7 +231,6 @@ class Test_Main(unittest.TestCase):
             with open(accuracyFilePath, "w") as file:
                 file.write(f"Test Loss: {loss}\n")
                 file.write(f"Test Accuracy: {accuracy}")
-
 
 
 if __name__ == '__main__':

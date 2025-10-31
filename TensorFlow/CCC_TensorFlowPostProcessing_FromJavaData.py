@@ -64,13 +64,22 @@ class Test_Main(unittest.TestCase):
         submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-26-12-14-25.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-31-17-43-04-with-outliers.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-31-17-54-39-without-outliers-median.csv"
+        submissionCsvFile = "fuel_rank_submission_2025-10-31-18-03-47-without-outliers-capping.csv"
 
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
+        extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
+        extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-31-17-36-58.parquet"
         
         targetTeamParquetFileName = 'understated-zucchini_v5.parquet'
         targetTeamParquetFileName = 'understated-zucchini_v6.parquet'
         targetTeamParquetFileName = 'understated-zucchini_v7.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v8.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v9.parquet'
+        targetTeamParquetFileName = 'understated-zucchini_v10.parquet'
 
 
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
@@ -136,7 +145,7 @@ class Test_Main(unittest.TestCase):
             #df_result.to_parquet('understated-zucchini_v1.parquet')
             #df_result.to_parquet('understated-zucchini_v2.parquet')
             #targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
-            print("final surmission parquet file = " + targetTeamParquetFileName)
+            print("final submission parquet file = " + targetTeamParquetFileName)
             df_result.to_parquet(targetTeamParquetFileName)
             
             end_time = time.time()  # Record the end time
