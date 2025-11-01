@@ -11,6 +11,7 @@ from pathlib import Path
 from trajectory.Guidance.WayPointFile import Airport
 
 expectedHeaders = ['icao'  , 'longitude' ,'latitude' , 'elevation']
+finalHeaders = ['airport_icao'  , 'airport_longitude_deg' ,'airport_latitude_deg' , 'airport_elevation_ft']
 
 class AirportsDataChallengeDatabase(object):
     className = ''
@@ -32,7 +33,7 @@ class AirportsDataChallengeDatabase(object):
         self.dataChallengeAirportsDict = {}
         
     def checkHeaders(self):
-        return (set(self.airportsDataframe) == set(expectedHeaders))
+        return (set(self.airportsDataframe) == set(finalHeaders))
         
     def getAirPort(self , ICAOcode = ""):
         if ICAOcode in self.dataChallengeAirportsDict:
@@ -59,21 +60,28 @@ class AirportsDataChallengeDatabase(object):
             df = pd.read_parquet ( self.filePath )
             logging.info ( self.className + ": shape = " + str(df.shape ) )
             logging.info ( self.className + ": list of headers = " +  str(  list ( df)) )
-            
-            #logging.info ( df.head(10) )
-            
+                        
             self.airportsDataframe = df.dropna()
+            print ( list ( self.airportsDataframe ))
+            ''' rename columns to add a unit such as degrees '''
+            self.airportsDataframe = self.airportsDataframe.rename(columns=
+                                        {'icao' : 'airport_icao', 
+                                         'latitude': 'airport_latitude_deg', 
+                                        'longitude': 'airport_longitude_deg' ,
+                                        'elevation': 'airport_elevation_ft' })
             #logging.info ( self.airportsDataframe.head(10) )
+            print ("airports dataframe columns = " + str ( list ( self.airportsDataframe ) ) )
+            print (  str( self.airportsDataframe.shape ))
             
             for index, row in self.airportsDataframe.iterrows():
                 #logging.info("index = " + str(index))
-                #print(row['icao'], row['longitude'] , row['latitude'], row['latitude'] , )
+                #print(row['airport_icao'], row['airport_longitude_deg'] , row['airport_latitude_deg'], row['airport_elevation_ft'] , )
                 
-                self.dataChallengeAirportsDict[row['icao']] = Airport (Name                          = row['icao'],
-                                                                   LatitudeDegrees                   = float( row['latitude'] ) ,
-                                                                   LongitudeDegrees                  = float( row['longitude'] ) ,
-                                                                   fieldElevationAboveSeaLevelMeters = float( row['elevation']) ,
-                                                                   ICAOcode                          = row['icao'] ,
+                self.dataChallengeAirportsDict[row['airport_icao']] = Airport (Name                          = row['airport_icao'],
+                                                                   LatitudeDegrees                   = float( row['airport_latitude_deg'] ) ,
+                                                                   LongitudeDegrees                  = float( row['airport_longitude_deg'] ) ,
+                                                                   fieldElevationAboveSeaLevelMeters = float( row['airport_elevation_ft']) ,
+                                                                   ICAOcode                          = row['airport_icao'] ,
                                                                    Country                           = "unknown")
             
             return True

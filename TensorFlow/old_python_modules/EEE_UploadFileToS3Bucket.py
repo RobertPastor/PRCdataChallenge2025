@@ -9,9 +9,43 @@ import os
 from minio import Minio
 from minio.error import S3Error
 
+from minio.datatypes import Object
+import re
 
 import logging
 import unittest
+
+
+def getLatestTeamSubmittedVersion():
+
+    # create a client
+    client = Minio( endpoint = "s3.opensky-network.org" ,
+                    access_key = "HertaMoschenPastor" ,
+                    secret_key = "HertaMoschenPastor1&&&xxx" ,
+                    secure = True)
+                    
+    
+    print("total buckets : " , len ( client.list_buckets() ) )
+    for bucket in client.list_buckets():
+        print ( bucket.name , bucket.creation_date )
+    
+    regexp_pattern = r"[.]"
+    listOfVersions = []
+    for obj in client.list_objects(bucket_name="prc-2025-understated-zucchini", prefix="understated-zucchini"):
+        #print ( object.object_name )
+        fileName = obj.object_name
+        if str(fileName).endswith("parquet"):
+            print ( fileName )
+            fileVersion = str(fileName.split("_")[1])
+            print ( fileVersion )
+            fileVersion = re.split(regexp_pattern, fileVersion)
+            fileVersion = fileVersion[0]
+            print ( fileVersion )
+            listOfVersions.append(int(str(fileVersion)[1:]))
+            
+    listOfVersions.sort()
+    print ( listOfVersions)
+    return max ( listOfVersions )
 
 #============================================
 class Test_Main(unittest.TestCase):
@@ -39,6 +73,10 @@ class Test_Main(unittest.TestCase):
         fileName_to_upload  = "understated-zucchini_v9.parquet"
         ''' witout outliers replace by capping or clipping to max and min'''
         fileName_to_upload  = "understated-zucchini_v10.parquet"
+        
+        ''' compute file name to upload '''
+        newVersionInt = getLatestTeamSubmittedVersion()+1
+        fileName_to_upload = "understated-zucchini_v" + str(newVersionInt) + ".parquet"
 
         filePath_to_upload = os.path.join(filesFolder , fileName_to_upload)
     

@@ -1,0 +1,686 @@
+'''
+Created on 1 nov. 2025
+
+@author: robert
+'''
+
+from minio import Minio
+from minio.datatypes import Object
+import re
+
+import numpy as np
+
+from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
+from pathlib import Path
+from tabulate import tabulate
+
+import matplotlib.pyplot as plt
+
+import pandas as pd
+import time
+import os
+from sklearn.preprocessing import OneHotEncoder
+# Set the option to display all columns
+pd.options.display.max_columns = None
+
+import numpy as np 
+# Make NumPy printouts easier to read.
+np.set_printoptions(precision=3, suppress=True)
+
+from tabulate import tabulate
+from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr, keepOnlyColumns
+
+''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras import backend
+
+from sklearn.compose import make_column_transformer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from trajectory.Fuel.FuelReader import FuelDatabase
+
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import CustomObjectScope
+
+import logging
+import unittest
+
+from pathlib import Path
+from tabulate import tabulate
+
+'''
+listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
+                                         "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
+                                         "aircraft_groundspeed_kt_X_at_fuel_start","aircraft_groundspeed_kt_Y_at_fuel_start",
+                                         "aircraft_groundspeed_kt_X_at_fuel_end","aircraft_groundspeed_kt_X_at_fuel_end",
+                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+                                         "fuel_burnt_end_relative_to_landed_sec",
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+
+'''
+''' clean outliers '''
+listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
+                                         "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
+                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+                                         "fuel_burnt_end_relative_to_landed_sec",
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+
+
+class PRCdataChallenge2025Submissions:
+    """Exemple de classe simple"""
+    
+    def __init__(self , extendedFuelTrainDataFileName , extendedRankFuelDataFileName , javaTrainRankfilesFolder):
+        self.extendedFuelTrainDataFileName = extendedFuelTrainDataFileName
+        self.extendedRankFuelDataFileName = extendedRankFuelDataFileName
+        self.javaTrainRankfilesFolder = javaTrainRankfilesFolder
+        
+    def capped_value( self, row , columnName ):
+        if row[columnName] > row['upper_bound']:
+            return row['upper_bound']
+        if row[columnName] < row['lower_bound']:
+            return row['lower_bound']
+        else:
+            return row[columnName]
+        
+    def clean_outliers_capped(self , df , list_of_columnNames_to_clean):
+        for columnName in list_of_columnNames_to_clean:
+            Q1 = df[columnName].quantile(0.25)
+            Q3 = df[columnName].quantile(0.75)
+            IQR = Q3 - Q1
+            
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            df[columnName] = np.clip(df[columnName], lower_bound, upper_bound)
+            return df
+        
+        
+    def clean_outliers_capping_with_groupby ( self,  df , groupByColumnName, list_of_columnNames_to_clean ):
+    
+    #grouped = df.groupby( groupByColumnName , axis = 1)
+        for columnName in list_of_columnNames_to_clean:
+            
+            df['q1'] = df.groupby(groupByColumnName)[columnName].transform('quantile', (0.25))
+            df['q3'] = df.groupby(groupByColumnName)[columnName].transform('quantile', (0.75))
+            
+            df['IQR'] = df['q3'] - df['q1']
+            
+            #df['lower_bound'] = df['q1'] - 1.5 * df['IQR']
+            df['lower_bound'] = df.apply(lambda row: row['q1'] - ( 1.5 * row['IQR']), axis=1)
+            
+            #df['upper_bound'] = df['q3'] + 1.5 * df['IQR']
+            df['upper_bound'] = df.apply(lambda row: row['q3'] + ( 1.5 * row['IQR']), axis=1)
+            
+            df[columnName] = df.apply( self.capped_value , axis = 1 , args = [columnName])
+            df = dropUnusedColumns( df , ['q1','q3','IQR','lower_bound','upper_bound'])
+        return df
+    
+    
+    def cappedOutliersGroupedByFlightId(self  , df):
+        
+            
+        ''' use groupby flight id to clean outliers '''
+        df = self.clean_outliers_capping_with_groupby( df , 'flight_id' , listOfColumnsWithOutliers)
+        print ( list (df))
+            
+        print ( tabulate( df.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
+            
+        ''' drop column flight id '''
+        df = dropUnusedColumns(df , ['flight_id'])
+        print( list ( df ))
+        return df
+ 
+    def getLatestUploadedSubmission(self):
+        
+        client = Minio( endpoint = "s3.opensky-network.org" ,
+                access_key = "HertaMoschenPastor" ,
+                secret_key = "HertaMoschenPastor1&&&xxx" ,
+                secure = True)
+                
+
+        print("total buckets : " , len ( client.list_buckets() ) )
+        for bucket in client.list_buckets():
+            print ( bucket.name , bucket.creation_date )
+        
+            regexp_pattern = r"[.]"
+            listOfVersions = []
+            for object in client.list_objects(bucket_name="prc-2025-understated-zucchini", prefix="understated-zucchini"):
+                #print ( object.object_name )
+                fileName = object.object_name
+                if str(fileName).endswith("parquet"):
+                    print ( fileName )
+                    fileVersion = str(fileName.split("_")[1])
+                    print ( fileVersion )
+                    fileVersion = re.split(regexp_pattern, fileVersion)
+                    fileVersion = fileVersion[0]
+                    print ( fileVersion )
+                    listOfVersions.append(int(str(fileVersion)[1:]))
+        
+            listOfVersions.sort()
+            print ( listOfVersions)        
+            print( " max submitted proposal = "+ max(listOfVersions))   
+            
+    def scaleDataset( self , df ):
+    
+        '''  Apply MinMaxScaler '''
+        columnNameListToScale = []
+        for columnName in list ( df ):
+            columnNameListToScale.append(columnName)
+        
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        df = scaler.fit_transform(df[columnNameListToScale])
+        
+        print ( str ( df.shape ))
+        return df
+                                              
+    def plot_loss(self, history , y_limit , currentDateTimeAsString):
+        
+        plt.plot(history.history['loss'], label='training_loss')
+        plt.plot(history.history['val_loss'], label='validation_loss')
+        plt.title("convergence versus epochs")
+        plt.ylim([0,y_limit])
+        plt.xlabel('Epoch')
+        plt.ylabel('Error (fuel_burn_kg / seconds)')
+        plt.legend()
+        plt.grid(True)
+        
+        # Save the plot to a file
+        plotFileName = 'results_training_loss_vs_validation_loss' + '_'+ currentDateTimeAsString + '.png'
+        filesFolder = os.path.dirname(__file__)
+        plotFilePath = os.path.join(filesFolder , plotFileName)
+     
+        plt.savefig(plotFilePath)  # Save as PNG
+    
+    # Close the plot to free memory
+        plt.close()
+                                              
+    ''' Root mean square between prediction and actual values '''
+    def rmse(self, y_true, y_pred):
+        return backend.sqrt( backend.mean (backend.square(y_pred - y_true)))
+                                              
+    def tf_model_fit( self, X_train, y_train, epochs):
+    
+        print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        print ( X_train.shape )
+        print(tabulate(y_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        print ( y_train.shape )
+    
+        ''' declare the model '''
+        #tf.random.set_seed ( 42 )
+        model = Sequential ( [ Dense( 256 , activation = 'relu' ),
+                                  Dense( 256 , activation = 'relu' ),
+                                  Dense( 128 , activation = 'relu' ),
+                                  Dense(1)])
+    
+        model.compile(loss = self.rmse , optimizer = 'adam' , metrics = [self.rmse])
+        history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2 , verbose=1)
+        
+        # Save the entire model to a file
+        currentDateTimeAsString = getCurrentDateTimeAsStr()
+        modelFileName = "results_model_" +  currentDateTimeAsString + ".h5"
+
+        filesFolder = os.path.dirname(__file__)
+        modelFilePath = os.path.join(filesFolder , modelFileName)
+        model.save(modelFilePath)  # HDF5 format
+        
+        self.plot_loss(history = history , y_limit = 0.6 , currentDateTimeAsString=currentDateTimeAsString)
+        return modelFilePath , currentDateTimeAsString
+    
+    def getFlightListMergedWithAirports(self , train_rank ):
+        from trajectory.FlightList.FlightListReader import FlightListDatabase
+        flightListDatabase = FlightListDatabase()
+
+        if train_rank == 'train':
+            ''' read flight list '''
+            flightListDatabase.readTrainFlightList()
+            return flightListDatabase.extendedTrainFlightListDataframe
+        else:
+            flightListDatabase.readRankFlightList()
+            return flightListDatabase.extendedRankFlightListDataframe
+            
+    ''' compute distance between departure and arrival airport using great circle '''
+    def computeFlightDistanceNauticalMiles( self  , row , 
+                                            origin_latitude_deg_columnName , origin_longitude_deg_columnName , 
+                                            origin_elevation_meters_columnName , destination_latitude_deg_columnName , 
+                                            destination_longitude_deg_columnName , destination_elevation_meters_columnName):
+        from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
+        from trajectory.Environment.Constants import Meter2NauticalMiles
+
+        originGeoPoint = GeographicalPoint ( LatitudeDegrees            = row[origin_latitude_deg_columnName], 
+                                                       LongitudeDegrees           = row[origin_longitude_deg_columnName],
+                                                       AltitudeMeanSeaLevelMeters = row[origin_elevation_meters_columnName])
+        
+        destinationGeoPoint = GeographicalPoint ( LatitudeDegrees              = row[destination_latitude_deg_columnName], 
+                                                       LongitudeDegrees           = row[destination_longitude_deg_columnName],
+                                                       AltitudeMeanSeaLevelMeters = row[destination_elevation_meters_columnName])
+        return abs(originGeoPoint.computeDistanceMetersTo(destinationGeoPoint) * Meter2NauticalMiles)
+
+                                              
+    def Build_Model_From_Train(self , extendedFuelTrainDataFileName ):
+        
+        filePath = os.path.join( self.javaTrainRankfilesFolder , extendedFuelTrainDataFileName)
+        file = Path(filePath )
+        
+        directory = Path(self.javaTrainRankfilesFolder)
+        if directory.is_dir() and file.is_file():
+            
+            start_time = time.time()
+            
+            train_dataset = pd.read_parquet ( filePath )
+            print( train_dataset.shape )
+            print ( list (train_dataset))
+            
+            #train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
+            train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' ])
+            train_dataset = train_dataset.fillna(0.0)
+                        
+            ''' clean outliers '''
+           
+            ''' use clean outliers with capping quantiles without groupby flight_id '''
+            train_dataset = self.clean_outliers_capped( train_dataset , listOfColumnsWithOutliers)
+            print ( list (train_dataset))
+            
+            print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
+            
+            listOfColumnNamesToKeep = list ( train_dataset)
+
+            ''' merge with flight list data '''
+            flightListExtendedWithAirports = self.getFlightListMergedWithAirports("train")
+            print ( list ( flightListExtendedWithAirports))
+
+            ''' filter on subset of needed columns '''
+            flightListColumnsToKeep = ['flight_id' , 'origin_longitude_deg' , 'origin_latitude_deg' , 'origin_elevation_ft' ,
+                                       'destination_longitude_deg', 'destination_latitude_deg', 'destination_elevation_ft']
+            
+            flightListExtendedWithAirports = keepOnlyColumns ( flightListExtendedWithAirports , flightListColumnsToKeep)
+            
+            train_dataset = pd.merge ( train_dataset , flightListExtendedWithAirports , left_on='flight_id', right_on='flight_id', how='inner')
+            #train_dataset = pd.merge( train_dataset )
+            print ( list ( train_dataset))
+            
+            #trainFlightListDataframe 
+            ''' drop column flight id '''
+            train_dataset = dropUnusedColumns(train_dataset , ['flight_id'])
+            
+            ''' compute haversine distance between origin airport and fuel start aircraft position '''
+            train_dataset['aircraft_distance_origin_to_fuel_start_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1 ,
+                                                                                               
+                        args=('origin_latitude_deg','origin_longitude_deg','origin_elevation_ft',
+                              'aircraft_latitude_deg_at_fuel_start','aircraft_longitude_deg_at_fuel_start', 'origin_elevation_ft' ))
+            
+            ''' compute haversine distance between origin airport and fuel end '''
+            train_dataset['aircraft_distance_origin_to_fuel_end_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1 ,
+                                                                                             
+                        args=('origin_latitude_deg','origin_longitude_deg', 'origin_elevation_ft',
+                              'aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end','origin_elevation_ft'))
+            
+            train_dataset['aircraft_distance_fuel_start_to_destination_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1,
+                                                                                                  
+                        args=('aircraft_latitude_deg_at_fuel_start','aircraft_longitude_deg_at_fuel_start', 'destination_elevation' ,
+                              'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
+            
+            train_dataset['aircraft_distance_fuel_end_to_destination_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1,
+                                                                                                  
+                        args=('aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end', 'destination_elevation' ,
+                              'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
+            
+            listOfColumnNamesToKeep = listOfColumnNamesToKeep + ['aircraft_distance_origin_to_fuel_start_Nm','aircraft_distance_origin_to_fuel_end_Nm',
+                                                                 'aircraft_distance_fuel_end_to_destination_Nm', 'aircraft_distance_fuel_end_to_destination_Nm']
+            train_dataset = keepOnlyColumns( train_dataset , listOfColumnNamesToKeep)
+            
+            print( list ( train_dataset ))
+            print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+            print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
+            ''' do not scale the independent variable Y '''
+            y_columnName = 'fuel_flow_kg_sec'
+            X = train_dataset.drop( y_columnName , axis = 1)
+            ''' scale only the dependent variables  '''
+            X = self.scaleDataset( X )
+            #print ( str ( list (X) ))
+            
+            #print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+            #print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            ''' pandas series with only one column -> the y '''
+            y = train_dataset[[y_columnName]]
+            print ( str ( list (y) ))
+            ''' whole array must contain only floats no any string '''
+            y = np.asarray(y).astype(np.float32)
+
+            ''' convert True False to float '''
+            #Neural Networks and Complex Models: For models like neural networks, 
+            #scaling the target variable is often necessary to ensure that the loss function operates within a manageable range.
+            #y = np.asarray(y).astype(np.float32)
+            '''  Split the data (70% train, 20% test)'''
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+            
+            ''' split data set in 0% train and 20% test '''
+            epochs = 150
+            model_file_path , currentDateTimeAsString = self.tf_model_fit( X_train, y_train , epochs )
+            print ( model_file_path )
+            
+            end_time = time.time()  # Record the end time
+            elapsed_time = end_time - start_time
+            print(f"Elapsed time: {elapsed_time:.2f} seconds")
+            
+            with CustomObjectScope({'rmse': self.rmse}):
+                model = load_model(model_file_path)
+            
+            ''' evaluate the model '''
+            loss, accuracy = model.evaluate(X_test, y_test)
+            #The loss function quantifies the difference between the predicted outputs and the actual target values.
+            #It is a continuous value that the model tries to minimize during training.
+            # Common loss functions in CNNs include Cross-Entropy Loss for classification tasks and Mean Squared Error (MSE) for regression tasks.
+            print(f"Test Loss: {loss}")
+            #Accuracy measures the percentage of correct predictions made by the model out of all predictions. It is a discrete metric
+            # and is often used to evaluate the model's performance after training. 
+            #For example, if a CNN classifies 95 out of 100 test samples correctly, its accuracy is 95%
+            print(f"Test Accuracy: {accuracy}")
+        
+            # Using a context manager to create and write to a file
+            accuracyfileName = "results_accuracy_results" + "_" + currentDateTimeAsString + ".txt"
+            filesFolder = os.path.dirname(__file__)
+            accuracyFilePath = os.path.join(filesFolder , accuracyfileName)
+     
+            with open(accuracyFilePath, "w") as file:
+                file.write(f"Test Loss: {loss}\n")
+                file.write(f"Test Accuracy: {accuracy}")
+            
+            return model_file_path
+        
+    def predictFromRankAndModel(self , model_file_name , extendedRankFuelDataFileName ):
+        logging.basicConfig(level=logging.INFO)
+        
+        logging.info (' -------------- Rank Fuel -------------')
+        
+        localfilesFolder = os.path.dirname(__file__)
+        filePathModel = os.path.join(localfilesFolder , model_file_name)
+        
+        # Save and load a model with the custom activation
+        with CustomObjectScope({'rmse': self.rmse}):
+            model = load_model(filePathModel)
+         
+        rankFilePath = os.path.join( self.javaTrainRankfilesFolder , extendedRankFuelDataFileName)
+        rankFile = Path(rankFilePath )
+        
+        directory = Path(self.javaTrainRankfilesFolder)
+        if directory.is_dir() and rankFile.is_file():
+            
+            start_time = time.time()
+            
+            X_rank = pd.read_parquet ( rankFilePath )
+            print( X_rank.shape )
+            print ( list (X_rank ))
+            
+            print ( X_rank.describe().transpose() )
+ 
+            X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' ,  'fuel_kg' , 'fuel_flow_kg_sec','flight_id'])
+            X_rank = X_rank.fillna(0.0)
+                       
+            ''' DO NOT USE -> do not use groupby flight id to clean outliers '''
+            #X_rank = clean_outliers_capping_with_groupby( X_rank , 'flight_id' , listOfColumnsWithOutliers)
+            #X_rank = self.clean_outliers_capped( X_rank , listOfColumnsWithOutliers)
+
+            print( str ( X_rank.shape ))
+            print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            
+            print ( list (X_rank ))
+            X_rank = self.scaleDataset( X_rank )
+
+            ''' convert True False to float '''
+            X_rank = np.asarray(X_rank).astype(np.float32)
+            
+            ''' generate predictions '''            #predictions = model.predict(X_rank[np.newaxis, ...])
+            predictions = model.predict(X_rank)
+            print ( predictions )
+            # Convert predictions to a Pandas DataFrame
+            y_columnName = 'fuel_flow_kg_sec'
+            df_predictions = pd.DataFrame(predictions, columns=[y_columnName])
+            print(tabulate(df_predictions[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            
+            # Name the index column -> starting zero
+            df_predictions.index.name = 'idx'
+    
+            # Write DataFrame to a CSV file
+            filesFolder = os.path.dirname(__file__)
+            currentDateTimeAsStr = getCurrentDateTimeAsStr( )
+            rankSubmissionfileName = 'fuel_rank_submission' +'_' + currentDateTimeAsStr +'.csv'
+            rankSubmissionFilePath = os.path.join(filesFolder , rankSubmissionfileName)
+            
+            df_predictions.to_csv(rankSubmissionFilePath, na_rep='N/A', sep=';',  index=True)  
+            
+            end_time = time.time
+            #time_difference = end_time - start_time
+            #print(f"Execution Time: {end_time - start_time} seconds")
+            return rankSubmissionFilePath
+        
+        
+    ''' compute fuel kg from fuel flow '''
+    def computeFuelKg( self , row ):
+        return (abs( row['fuel_flow_kg_sec'] ) * row['time_diff_seconds'])
+    
+    def suppressUTC ( self, row , columnName ):
+        from datetime import timezone
+        return row[columnName].replace(tzinfo=timezone.utc).astimezone(tz=None)
+    
+    def getLatestTeamSubmittedVersion(self):
+    # create a client
+        client = Minio( endpoint = "s3.opensky-network.org" ,
+                        access_key = "HertaMoschenPastor" ,
+                        secret_key = "HertaMoschenPastor1&&&xxx" ,
+                        secure = True)
+                        
+        
+        print("total buckets : " , len ( client.list_buckets() ) )
+        for bucket in client.list_buckets():
+            print ( bucket.name , bucket.creation_date )
+    
+        regexp_pattern = r"[.]"
+        listOfVersions = []
+        for object in client.list_objects(bucket_name="prc-2025-understated-zucchini", prefix="understated-zucchini"):
+            #print ( object.object_name )
+            fileName = object.object_name
+            if str(fileName).endswith("parquet"):
+                print ( fileName )
+                fileVersion = str(fileName.split("_")[1])
+                print ( fileVersion )
+                fileVersion = re.split(regexp_pattern, fileVersion)
+                fileVersion = fileVersion[0]
+                print ( fileVersion )
+                listOfVersions.append(int(str(fileVersion)[1:]))
+            
+        listOfVersions.sort()
+        print ( listOfVersions)
+        return max ( listOfVersions )
+
+    def generateTeamSubmissionParquetFile (self , submissionCsvFileName ,  extendedRankFuelDataFileName):
+        pass
+    
+        logging.info (' -------------- Post Processing to convert fuel flow to fuel kg Fuel -------------')
+        
+        newSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
+        targetTeamParquetFileName = 'understated-zucchini_v' + str(newSubmissionVersion) + ".parquet"
+        print ( targetTeamParquetFileName )
+            
+        filePath = os.path.join( self.javaTrainRankfilesFolder  , extendedRankFuelDataFileName)
+        file = Path(filePath )
+        print( file.absolute())
+        directory = Path(self.javaTrainRankfilesFolder)
+        if directory.is_dir() and file.is_file():
+            
+            print("---- start  post processing of CSV predictions -- ")
+            
+            start_time = time.time()
+            X_rank = pd.read_parquet ( filePath )
+            
+            print ("final shape = " +  str (  X_rank .shape ) ) 
+            #assert df.shape[0] == fuelDatabase.getFuelRankDataframeNbRows()
+            
+            ''' list of columns to keep only '''
+            listOfColumnsToKeep = ['idx', 'flight_id', 'start', 'end','time_diff_seconds']
+            X_rank =  keepOnlyColumns ( X_rank , listOfColumnsToKeep )
+             
+            print ( str ( X_rank.shape ))
+            print ( list ( X_rank ))
+            #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
+            print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+            print("input CSV file Warning - with fuel flow = " , submissionCsvFileName)
+            filesFolder = os.path.dirname(__file__)
+            submissionCsvFilePath  = os.path.join(filesFolder , submissionCsvFileName)
+            if Path(submissionCsvFilePath).exists() and Path(submissionCsvFilePath).is_file():
+                df_predictions = pd.read_csv(CsvPredictionsFilePath , sep=';')
+    
+                # Affichage des 5 premières lignes
+                print(df_predictions.head())
+                print(df_predictions.shape)
+                
+                # Join on index
+                df_result = pd.merge(X_rank, df_predictions, left_index=True, right_index=True)
+                print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+                
+                ''' compute absolute consumption for the time difference '''
+                df_result['fuel_kg'] = df_result.apply ( self.computeFuelKg , axis = 1)
+                print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+                
+                df_result = df_result.rename( columns= {'fuel_burn_start':'start','fuel_burn_end':'end' ,'idx_x':'idx'} )
+                df_result = df_result.drop ( ['idx_y', 'fuel_flow_kg_sec' , 'time_diff_seconds' ], axis = 1)
+                print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+               
+                df_result['start_no_utc'] = df_result.apply ( self.suppressUTC , args = { 'start' }, axis = 1)
+                df_result['end_no_utc'] = df_result.apply ( self.suppressUTC , args = { 'end' }, axis = 1)
+                print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+                
+                df_result = df_result.drop ( ['start', 'end'  ], axis = 1)
+                df_result = df_result.rename( columns= {'start_no_utc':'start','end_no_utc':'end' } )
+                print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+               
+                # Rearrange columns order 
+                new_order = ['idx', 'flight_id', 'start', 'end','fuel_kg']
+                df_result = df_result[new_order]
+        
+                print(tabulate(df_result[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+                print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+                
+                ''' write to parquet '''
+                #df_result.to_parquet('understated-zucchini_v1.parquet')
+                #df_result.to_parquet('understated-zucchini_v2.parquet')
+                #targetTeamParquetFileName = 'understated-zucchini_v3.parquet'
+                
+                filesFolder = os.path.dirname(__file__)
+                targetTeamParquetFilePath = os.path.join(filesFolder , targetTeamParquetFileName)
+                
+                print("final submission parquet file = " + targetTeamParquetFilePath)
+                df_result.to_parquet(targetTeamParquetFileName)
+                
+                end_time = time.time()  # Record the end time
+                elapsed_time = end_time - start_time
+                print(f"Elapsed time: {elapsed_time:.2f} seconds")
+                
+                print(" submission parquet file <<" + targetTeamParquetFilePath +">> generated correctly")
+            
+    def uploadTeamParquetFileToS3(self ):
+        
+        # and secret key.
+        client = Minio("s3.opensky-network.org",
+            access_key="HertaMoschenPastor",
+            secret_key="HertaMoschenPastor1&&&xxx",
+        )
+        # The file to upload, change this path if needed
+        filesFolder = os.path.dirname(__file__)
+        
+        ''' compute file name to upload '''
+        newVersionInt = self.getLatestTeamSubmittedVersion()+1
+        fileName_to_upload = "understated-zucchini_v" + str(newVersionInt) + ".parquet"
+
+        filePath_to_upload = os.path.join(filesFolder , fileName_to_upload)
+    
+        # The destination bucket and filename on the MinIO server
+        bucket_name = "prc-2025-understated-zucchini"
+        
+        # Make the bucket if it doesn't exist.
+        found = client.bucket_exists(bucket_name)
+        if found:
+            print("Bucket", bucket_name, "already exists")
+
+        # Upload the file, renaming it in the process
+        client.fput_object(
+            bucket_name, fileName_to_upload, filePath_to_upload,
+        )
+        print(
+            fileName_to_upload, "successfully uploaded as object",
+            fileName_to_upload, "to bucket", bucket_name,
+        )
+        
+        
+if __name__ == '__main__':
+    import platform
+    logging.basicConfig(level=logging.INFO)
+    print("python version = " + platform.python_version())
+    print("tensorflow version = " + tf.__version__)
+    print("pandas version = " + pd. __version__)
+    
+    submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-10-26-12-14-25.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-10-31-17-43-04-with-outliers.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-10-31-17-54-39-without-outliers-median.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-10-31-18-03-47-without-outliers-capping.csv"
+    submissionCsvFile = "fuel_rank_submission_2025-11-01-09-59-08-outliers-capped-groupby-flightID.csv"
+    
+    
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-25-16-29-19.parquet"
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-31-12-44-23.parquet"
+    
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-25-17-24-14.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-31-17-36-58.parquet"
+
+    javaTrainRankfilesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
+        
+    prcDataChallenge2025Submissions = PRCdataChallenge2025Submissions(extendedFuelTrainDataFileName , 
+                                                                      extendedRankFuelDataFileName, 
+                                                                      javaTrainRankfilesFolder)
+
+    generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train(extendedFuelTrainDataFileName )
+    print (" generated model name = " + generatedModelFileName)
+    # Load the model
+    model_file_name = "results_model_2025-10-16-06-46-23.h5"
+    model_file_name = "results_model_2025-10-16-06-46-23.h5"
+    model_file_name = "results_model_2025-10-16-23-49-37.h5"
+    model_file_name = "results_model_2025-10-17-14-33-54.h5"
+    model_file_name = "results_model_2025-10-20-18-33-11.h5"
+    model_file_name = "results_model_2025-10-20-18-33-11.h5"
+    ''' from java parquet file '''
+    model_file_name = "results_model_2025-10-25-16-58-04.h5"
+    model_file_name = "results_model_2025-10-25-18-08-44.h5"
+    model_file_name = "results_model_2025-10-26-11-56-15.h5"
+    model_file_name = "results_model_2025-10-27-19-42-31.h5"
+    model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
+    model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
+    model_file_name = "results_model_2025-10-31-16-25-19-without-outliers-median.h5"
+    model_file_name = "results_model_2025-10-31-17-35-29-without-outliers-capping.h5"
+    model_file_name = "results_model_2025-11-01-09-51-00-capped-outliers-groupby-flightId.h5"
+
+    ''' filtering outliers with capped value on whole dataframe not capping with groupby on flight id '''
+    #generatedModelFileName = "results_model_2025-11-01-11-20-23.h5"
+    
+    CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , extendedRankFuelDataFileName)
+    print("generated CSV results file path = " + CsvPredictionsFilePath)
+    
+    #CsvPredictionsFilePath = "fuel_rank_submission_2025-11-01-11-57-32.csv"
+
+    generatedTeamSubmissionParquetFileName = prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(CsvPredictionsFilePath , extendedRankFuelDataFileName)
+    print ( generatedTeamSubmissionParquetFileName )
+    
+    ''' upload parquet to S3 destination '''
+    #prcDataChallenge2025Submissions.uploadTeamParquetFileToS3( )
+        

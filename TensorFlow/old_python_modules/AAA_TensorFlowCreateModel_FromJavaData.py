@@ -103,7 +103,7 @@ def tf_model_fit( X_train, y_train, epochs):
     modelFilePath = os.path.join(filesFolder , modelFileName)
     model.save(modelFilePath)  # HDF5 format
     
-    plot_loss(history = history , y_limit = 1.0 , currentDateTimeAsString=currentDateTimeAsString)
+    plot_loss(history = history , y_limit = 0.6 , currentDateTimeAsString=currentDateTimeAsString)
     return modelFilePath , currentDateTimeAsString
 
 
@@ -116,25 +116,38 @@ def clean_outliers_with_median( df , list_of_columnNames_to_clean ):
         lower_bound = Q1 - 1.5 * IQR
         upper_bound = Q3 + 1.5 * IQR
         
-        #outliers = df[(df[columnName] < lower_bound) | (df[columnName] > upper_bound)]
-        #print("Outliers:\n")
-        
         df[columnName] = np.where((df[columnName] < lower_bound) | (df[columnName] > upper_bound), df[columnName].median(), df[columnName])
         #print("Data after Replacing Outliers:\n", df)
         
         return df
     
-def clean_outliers_capping ( df , list_of_columnNames_to_clean ):
+def capped_value( row , columnName ):
+    if row[columnName] > row['upper_bound']:
+        return row['upper_bound']
+    if row[columnName] < row['lower_bound']:
+        return row['lower_bound']
+    else:
+        return row[columnName]
+    
+def clean_outliers_capping_with_groupby ( df , groupByColumnName, list_of_columnNames_to_clean ):
+    
+    #grouped = df.groupby( groupByColumnName , axis = 1)
     for columnName in list_of_columnNames_to_clean:
-        Q1 = df[columnName].quantile(0.25)
-        Q3 = df[columnName].quantile(0.75)
-        IQR = Q3 - Q1
         
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
+        df['q1'] = df.groupby(groupByColumnName)[columnName].transform('quantile', (0.25))
+        df['q3'] = df.groupby(groupByColumnName)[columnName].transform('quantile', (0.75))
         
-        df[columnName] = np.clip(df[columnName], lower_bound, upper_bound)
-        return df
+        df['IQR'] = df['q3'] - df['q1']
+        
+        #df['lower_bound'] = df['q1'] - 1.5 * df['IQR']
+        df['lower_bound'] = df.apply(lambda row: row['q1'] - ( 1.5 * row['IQR']), axis=1)
+        
+        #df['upper_bound'] = df['q3'] + 1.5 * df['IQR']
+        df['upper_bound'] = df.apply(lambda row: row['q3'] + ( 1.5 * row['IQR']), axis=1)
+        
+        df[columnName] = df.apply( capped_value , axis = 1 , args = [columnName])
+        df = dropUnusedColumns( df , ['q1','q3','IQR','lower_bound','upper_bound'])
+    return df
     
 #============================================
 class Test_Main(unittest.TestCase):
@@ -162,21 +175,31 @@ class Test_Main(unittest.TestCase):
             
             #print ( train_dataset.describe().transpose() )
  
-            train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
+            #train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
+            train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' ])
             train_dataset = train_dataset.fillna(0.0)
                         
             ''' clean outliers '''
             listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
                                          "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
                                          "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
-                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec","fuel_burnt_end_relative_to_landed_sec",
+                                         "aircraft_groundspeed_kt_X_at_fuel_start","aircraft_groundspeed_kt_Y_at_fuel_start",
+                                         "aircraft_groundspeed_kt_X_at_fuel_end","aircraft_groundspeed_kt_X_at_fuel_end",
+                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+                                         "fuel_burnt_end_relative_to_landed_sec",
                                          "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
-            train_dataset = clean_outliers_capping( train_dataset , listOfColumnsWithOutliers)
+            
+            ''' use groupby flight id to clean outliers '''
+            train_dataset = clean_outliers_capping_with_groupby( train_dataset , 'flight_id' , listOfColumnsWithOutliers)
+            print ( list (train_dataset))
             
             print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
             
-            #print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-            #print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            ''' drop column flight id '''
+            train_dataset = dropUnusedColumns(train_dataset , ['flight_id'])
+            print( list ( train_dataset ))
+            print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+            print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
 
             ''' do not scale the independent variable Y '''
             y_columnName = 'fuel_flow_kg_sec'

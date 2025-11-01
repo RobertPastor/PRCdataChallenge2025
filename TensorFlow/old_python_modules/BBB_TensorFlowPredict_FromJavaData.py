@@ -59,6 +59,34 @@ def rmse(y_true, y_pred):
 def computeFuelKg( row ):
     return (abs( row['fuel_flow_kg_sec'] ) * row['time_diff_seconds'])
 
+def capped_value( row , columnName ):
+    if row[columnName] > row['upper_bound']:
+        return row['upper_bound']
+    if row[columnName] < row['lower_bound']:
+        return row['lower_bound']
+    else:
+        return row[columnName]
+    
+def clean_outliers_capping_with_groupby ( df , groupByColumnName, list_of_columnNames_to_clean ):
+    
+    #grouped = df.groupby( groupByColumnName , axis = 1)
+    for columnName in list_of_columnNames_to_clean:
+        
+        df['q1'] = df.groupby(groupByColumnName)[columnName].transform('quantile', (0.25))
+        df['q3'] = df.groupby(groupByColumnName)[columnName].transform('quantile', (0.75))
+        
+        df['IQR'] = df['q3'] - df['q1']
+        
+        #df['lower_bound'] = df['q1'] - 1.5 * df['IQR']
+        df['lower_bound'] = df.apply(lambda row: row['q1'] - ( 1.5 * row['IQR']), axis=1)
+        
+        #df['upper_bound'] = df['q3'] + 1.5 * df['IQR']
+        df['upper_bound'] = df.apply(lambda row: row['q3'] + ( 1.5 * row['IQR']), axis=1)
+        
+        df[columnName] = df.apply( capped_value , axis = 1 , args = [columnName])
+        df = dropUnusedColumns( df , ['q1','q3','IQR','lower_bound','upper_bound'])
+    return df
+    
 
 #============================================
 class Test_Main(unittest.TestCase):
@@ -86,6 +114,7 @@ class Test_Main(unittest.TestCase):
         model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
         model_file_name = "results_model_2025-10-31-16-25-19-without-outliers-median.h5"
         model_file_name = "results_model_2025-10-31-17-35-29-without-outliers-capping.h5"
+        model_file_name = "results_model_2025-11-01-09-51-00-capped-outliers-groupby-flightId.h5"
         filesFolder = os.path.dirname(__file__)
         filePathModel = os.path.join(filesFolder , model_file_name)
         
@@ -114,9 +143,24 @@ class Test_Main(unittest.TestCase):
             
             print ( X_rank.describe().transpose() )
  
-            X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' , 'flight_id', 'fuel_kg' , 'fuel_flow_kg_sec'])
+            X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' ,  'fuel_kg' , 'fuel_flow_kg_sec'])
             X_rank = X_rank.fillna(0.0)
             
+            listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
+                                         "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
+                                         "aircraft_groundspeed_kt_X_at_fuel_start","aircraft_groundspeed_kt_Y_at_fuel_start",
+                                         "aircraft_groundspeed_kt_X_at_fuel_end","aircraft_groundspeed_kt_X_at_fuel_end",
+                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+                                         "fuel_burnt_end_relative_to_landed_sec",
+                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+            
+            ''' use groupby flight id to clean outliers '''
+            X_rank = clean_outliers_capping_with_groupby( X_rank , 'flight_id' , listOfColumnsWithOutliers)
+
+            ''' drop column flight id '''
+            X_rank = dropUnusedColumns(X_rank , ['flight_id'])
+
             print( str ( X_rank.shape ))
             print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
             

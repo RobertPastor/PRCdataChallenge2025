@@ -36,6 +36,9 @@ import unittest
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import CustomObjectScope
 
+from minio import Minio
+from minio.datatypes import Object
+import re
 
 from pathlib import Path
 from tabulate import tabulate
@@ -50,6 +53,37 @@ def computeFuelKg( row ):
 
 def suppressUTC ( row , columnName ):
     return row[columnName].replace(tzinfo=timezone.utc).astimezone(tz=None)
+
+def getLatestTeamSubmittedVersion():
+    # create a client
+    client = Minio( endpoint = "s3.opensky-network.org" ,
+                    access_key = "HertaMoschenPastor" ,
+                    secret_key = "HertaMoschenPastor1&&&xxx" ,
+                    secure = True)
+                    
+    
+    print("total buckets : " , len ( client.list_buckets() ) )
+    for bucket in client.list_buckets():
+        print ( bucket.name , bucket.creation_date )
+    
+    regexp_pattern = r"[.]"
+    listOfVersions = []
+    for object in client.list_objects(bucket_name="prc-2025-understated-zucchini", prefix="understated-zucchini"):
+        #print ( object.object_name )
+        fileName = object.object_name
+        if str(fileName).endswith("parquet"):
+            print ( fileName )
+            fileVersion = str(fileName.split("_")[1])
+            print ( fileVersion )
+            fileVersion = re.split(regexp_pattern, fileVersion)
+            fileVersion = fileVersion[0]
+            print ( fileVersion )
+            listOfVersions.append(int(str(fileVersion)[1:]))
+            
+    listOfVersions.sort()
+    print ( listOfVersions)
+    return max ( listOfVersions )
+
 
 #============================================
 class Test_Main(unittest.TestCase):
@@ -68,7 +102,8 @@ class Test_Main(unittest.TestCase):
         submissionCsvFile = "fuel_rank_submission_2025-10-31-17-43-04-with-outliers.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-31-17-54-39-without-outliers-median.csv"
         submissionCsvFile = "fuel_rank_submission_2025-10-31-18-03-47-without-outliers-capping.csv"
-
+        submissionCsvFile = "fuel_rank_submission_2025-11-01-09-59-08-outliers-capped-groupby-flightID.csv"
+        
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
         extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
@@ -80,7 +115,9 @@ class Test_Main(unittest.TestCase):
         targetTeamParquetFileName = 'understated-zucchini_v8.parquet'
         targetTeamParquetFileName = 'understated-zucchini_v9.parquet'
         targetTeamParquetFileName = 'understated-zucchini_v10.parquet'
-
+        
+        targetTeamParquetFileName = 'understated-zucchini_v' + str(getLatestTeamSubmittedVersion()+1) + ".parquet"
+        print ( targetTeamParquetFileName )
 
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
             

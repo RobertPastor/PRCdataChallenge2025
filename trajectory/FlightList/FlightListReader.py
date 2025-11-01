@@ -20,18 +20,19 @@ from trajectory.Environment.Aircrafts.FAAaircraftDatabaseFile import FaaAircraft
 initialHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id']
 
 expectedHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id',
-                   'origin_longitude', 'origin_latitude' , 'origin_elevation' , 'destination_longitude' , 'destination_latitude' , 'destination_elevation',
+                   'origin_longitude_deg', 'origin_latitude_deg' , 'origin_elevation_ft' , 
+                   'destination_longitude_deg' , 'destination_latitude_deg' , 'destination_elevation_ft',
                    'flight_distance_Nm' , 'flight_duration_sec' , 'year' , 'month' , 'day_of_year']
 
 ''' compute distance between departure and arrival airport using great circle '''
 def computeFlightDistanceNauticalMiles( row ):
-    departureAirportGeoPoint = GeographicalPoint ( LatitudeDegrees            = row['origin_latitude'], 
-                                                   LongitudeDegrees           = row['origin_longitude'],
-                                                   AltitudeMeanSeaLevelMeters = row['origin_elevation'])
+    departureAirportGeoPoint = GeographicalPoint ( LatitudeDegrees            = row['origin_latitude_deg'], 
+                                                   LongitudeDegrees           = row['origin_longitude_deg'],
+                                                   AltitudeMeanSeaLevelMeters = row['origin_elevation_ft'])
     
-    arrivalAirportGeoPoint = GeographicalPoint ( LatitudeDegrees              = row['destination_latitude'], 
-                                                   LongitudeDegrees           = row['destination_longitude'],
-                                                   AltitudeMeanSeaLevelMeters = row['destination_elevation'])
+    arrivalAirportGeoPoint = GeographicalPoint ( LatitudeDegrees              = row['destination_latitude_deg'], 
+                                                   LongitudeDegrees           = row['destination_longitude_deg'],
+                                                   AltitudeMeanSeaLevelMeters = row['destination_elevation_ft'])
     return departureAirportGeoPoint.computeDistanceMetersTo(arrivalAirportGeoPoint) * Meter2NauticalMiles
 
 ''' compute flight duration in seconds '''
@@ -103,7 +104,7 @@ class FlightListDatabase(object):
             
             ''' extract the day number of the year '''
             self.TrainFlightListDataframe['day_of_year'] = self.TrainFlightListDataframe['takeoff'].dt.dayofyear
-
+            ''' extend flight list with aircraft data '''
             assert self.extendTrainFlightListWithAircraftData()
 
             logging.info ( self.className +  str(self.TrainFlightListDataframe.shape ) )
@@ -151,7 +152,7 @@ class FlightListDatabase(object):
             ''' extract the day number of the year '''
             self.RankFlightListDataframe['day_of_year'] = self.RankFlightListDataframe['takeoff'].dt.dayofyear
             
-            assert self.extendRankFlightListWithAircraftData()
+            #assert self.extendRankFlightListWithAircraftData()
 
             logging.info ( str(self.RankFlightListDataframe.shape ) )
             logging.info ( str(  list ( self.RankFlightListDataframe)) )
@@ -218,23 +219,34 @@ class FlightListDatabase(object):
         logging.info( str ( list ( self.RankFlightListDataframe ) ) )
         
         ''' extend origin icao '''
-        df_flightListExtendedWithAirportData = pd.merge ( self.RankFlightListDataframe , airportsDataframe , left_on='origin_icao', right_on='icao', how='inner' )
-        logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+        df_flightListExtendedWithAirportData = pd.merge ( self.RankFlightListDataframe , airportsDataframe , 
+                                                          left_on='origin_icao', right_on='airport_icao', how='inner' )
+        
+        logging.info( self.className + "- " +str ( list ( df_flightListExtendedWithAirportData ) ) )
 
         ''' suppress icao '''
         df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        
         ''' rename extended columns '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'origin_latitude','longitude':'origin_longitude','elevation':'origin_elevation'})
-        logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(
+            columns= {'airport_latitude_deg' :'origin_latitude_deg',
+                      'airport_longitude_deg':'origin_longitude_deg',
+                      'airport_elevation_ft' :'origin_elevation_ft'})
+        
+        logging.info( self.class_name + " - " + str ( list ( df_flightListExtendedWithAirportData ) ) )
         
         ''' extend destination icao '''
-        df_flightListExtendedWithAirportData = pd.merge ( df_flightListExtendedWithAirportData , airportsDataframe , left_on='destination_icao', right_on='icao', how='inner' )
+        df_flightListExtendedWithAirportData = pd.merge ( df_flightListExtendedWithAirportData , airportsDataframe , 
+                                                          left_on='destination_icao', right_on='airport_icao', how='inner' )
         
         ''' suppress icao '''
         df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
         
         ''' rename extended columns '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'destination_latitude','longitude':'destination_longitude','elevation':'destination_elevation'})
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(
+            columns= {'airport_latitude_deg'  :'destination_latitude_deg',
+                      'airport_longitude_deg' :'destination_longitude_deg',
+                      'airport_elevation_ft'  :'destination_elevation_ft'})
         #logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
         
         self.extendedRankFlightListDataframe = df_flightListExtendedWithAirportData
@@ -256,23 +268,33 @@ class FlightListDatabase(object):
         logging.info( str ( list ( self.TrainFlightListDataframe ) ) )
         
         ''' extend origin icao '''
-        df_flightListExtendedWithAirportData = pd.merge ( self.TrainFlightListDataframe , airportsDataframe , left_on='origin_icao', right_on='icao', how='inner' )
+        df_flightListExtendedWithAirportData = pd.merge ( self.TrainFlightListDataframe , airportsDataframe , 
+                                                          left_on='origin_icao', right_on='airport_icao', how='inner' )
         logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
 
-        ''' suppress icao '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        ''' suppress airport icao '''
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['airport_icao'] , axis=1 )
+        
         ''' rename extended columns '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'origin_latitude','longitude':'origin_longitude','elevation':'origin_elevation'})
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(
+            columns= {'airport_latitude_deg' :'origin_latitude_deg',
+                      'airport_longitude_deg':'origin_longitude_deg',
+                      'airport_elevation_ft' :'origin_elevation_ft'})
         logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
         
         ''' extend destination icao '''
-        df_flightListExtendedWithAirportData = pd.merge ( df_flightListExtendedWithAirportData , airportsDataframe , left_on='destination_icao', right_on='icao', how='inner' )
+        df_flightListExtendedWithAirportData = pd.merge ( df_flightListExtendedWithAirportData , airportsDataframe , 
+                                                          left_on='destination_icao', right_on='airport_icao', how='inner' )
         
         ''' suppress icao '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['airport_icao'] , axis=1 )
         ''' rename extended columns '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(columns= {'latitude':'destination_latitude','longitude':'destination_longitude','elevation':'destination_elevation'})
-        #logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
+        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(
+            columns= {'airport_latitude_deg':'destination_latitude_deg',
+                      'airport_longitude_deg':'destination_longitude_deg',
+                      'airport_elevation_ft':'destination_elevation_ft'})
+        
+        logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) ) 
         
         self.extendedTrainFlightListDataframe = df_flightListExtendedWithAirportData
         self.TrainFlightListDataframe = df_flightListExtendedWithAirportData
