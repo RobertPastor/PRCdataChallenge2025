@@ -45,10 +45,12 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import CustomObjectScope
 
 import logging
-import unittest
 
 from pathlib import Path
 from tabulate import tabulate
+
+from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
+from trajectory.Environment.Constants import Meter2NauticalMiles
 
 '''
 listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
@@ -247,18 +249,54 @@ class PRCdataChallenge2025Submissions:
                                             origin_latitude_deg_columnName , origin_longitude_deg_columnName , 
                                             origin_elevation_meters_columnName , destination_latitude_deg_columnName , 
                                             destination_longitude_deg_columnName , destination_elevation_meters_columnName):
-        from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
-        from trajectory.Environment.Constants import Meter2NauticalMiles
+        import sys
+        computedDistanceNm = 0.0
+        epsilon = sys.float_info.epsilon
+        try:
+            originLatitudeDeg = max ( float(row[origin_latitude_deg_columnName]) , float(-90.0) + epsilon)
+            originLatitudeDeg = min ( originLatitudeDeg , float (+90.0) - epsilon)
 
-        originGeoPoint = GeographicalPoint ( LatitudeDegrees            = row[origin_latitude_deg_columnName], 
-                                                       LongitudeDegrees           = row[origin_longitude_deg_columnName],
-                                                       AltitudeMeanSeaLevelMeters = row[origin_elevation_meters_columnName])
+            destinationLatitudeDeg = max ( float (row[destination_latitude_deg_columnName]) , float(-90.0) + epsilon)
+            destinationLatitudeDeg = min ( destinationLatitudeDeg , float(+90.0) - epsilon)
+
+            originGeoPoint = GeographicalPoint ( LatitudeDegrees            = originLatitudeDeg, 
+                                                 LongitudeDegrees           = float(row[origin_longitude_deg_columnName]),
+                                                 AltitudeMeanSeaLevelMeters = float(row[origin_elevation_meters_columnName]))
+            
+            destinationGeoPoint = GeographicalPoint ( LatitudeDegrees              = destinationLatitudeDeg, 
+                                                      LongitudeDegrees             = float(row[destination_longitude_deg_columnName]),
+                                                      AltitudeMeanSeaLevelMeters   = float(row[destination_elevation_meters_columnName]))
         
-        destinationGeoPoint = GeographicalPoint ( LatitudeDegrees              = row[destination_latitude_deg_columnName], 
-                                                       LongitudeDegrees           = row[destination_longitude_deg_columnName],
-                                                       AltitudeMeanSeaLevelMeters = row[destination_elevation_meters_columnName])
-        return abs(originGeoPoint.computeDistanceMetersTo(destinationGeoPoint) * Meter2NauticalMiles)
-
+            computedDistanceNm = abs(originGeoPoint.computeDistanceMetersTo(destinationGeoPoint) * Meter2NauticalMiles)
+        except AssertionError as e:
+            raise ValueError ( row['flight_id'] , row[origin_latitude_deg_columnName] , row[destination_latitude_deg_columnName])
+            computedDistanceNm = 0.0
+        return computedDistanceNm
+        
+    def computeDistanceBetweenOriginAirportAndAircraftPosition(self , df):
+        
+        ''' compute haversine distance between origin airport and fuel start aircraft position '''
+        df['aircraft_distance_origin_to_fuel_start_Nm'] = df.apply ( self.computeFlightDistanceNauticalMiles , axis = 1 ,
+                                                                                               
+                 args=('origin_latitude_deg','origin_longitude_deg','origin_elevation_ft',
+                              'aircraft_latitude_deg_at_fuel_start','aircraft_longitude_deg_at_fuel_start', 'origin_elevation_ft' ))
+            
+        ''' compute haversine distance between origin airport and fuel end '''
+        df['aircraft_distance_origin_to_fuel_end_Nm'] = df.apply ( self.computeFlightDistanceNauticalMiles , axis = 1 ,
+                                                                                             
+                args=('origin_latitude_deg','origin_longitude_deg', 'origin_elevation_ft',
+                              'aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end','origin_elevation_ft'))
+            
+        df['aircraft_distance_fuel_start_to_destination_Nm'] = df.apply ( self.computeFlightDistanceNauticalMiles , axis = 1,
+                                                                                                  
+                        args=('aircraft_latitude_deg_at_fuel_start','aircraft_longitude_deg_at_fuel_start', 'destination_elevation_ft' ,
+                              'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
+            
+        df['aircraft_distance_fuel_end_to_destination_Nm'] = df.apply ( self.computeFlightDistanceNauticalMiles , axis = 1,
+                                                                                                  
+                        args=('aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end', 'destination_elevation_ft' ,
+                              'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
+        return df
                                               
     def Build_Model_From_Train(self , extendedFuelTrainDataFileName ):
         
@@ -303,30 +341,11 @@ class PRCdataChallenge2025Submissions:
             print ( list ( train_dataset))
             
             #trainFlightListDataframe 
+            
+            train_dataset = self.computeDistanceBetweenOriginAirportAndAircraftPosition(train_dataset)
+            
             ''' drop column flight id '''
             train_dataset = dropUnusedColumns(train_dataset , ['flight_id'])
-            
-            ''' compute haversine distance between origin airport and fuel start aircraft position '''
-            train_dataset['aircraft_distance_origin_to_fuel_start_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1 ,
-                                                                                               
-                        args=('origin_latitude_deg','origin_longitude_deg','origin_elevation_ft',
-                              'aircraft_latitude_deg_at_fuel_start','aircraft_longitude_deg_at_fuel_start', 'origin_elevation_ft' ))
-            
-            ''' compute haversine distance between origin airport and fuel end '''
-            train_dataset['aircraft_distance_origin_to_fuel_end_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1 ,
-                                                                                             
-                        args=('origin_latitude_deg','origin_longitude_deg', 'origin_elevation_ft',
-                              'aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end','origin_elevation_ft'))
-            
-            train_dataset['aircraft_distance_fuel_start_to_destination_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1,
-                                                                                                  
-                        args=('aircraft_latitude_deg_at_fuel_start','aircraft_longitude_deg_at_fuel_start', 'destination_elevation' ,
-                              'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
-            
-            train_dataset['aircraft_distance_fuel_end_to_destination_Nm'] = train_dataset.apply ( self.computeFlightDistanceNauticalMiles , axis = 1,
-                                                                                                  
-                        args=('aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end', 'destination_elevation' ,
-                              'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
             
             listOfColumnNamesToKeep = listOfColumnNamesToKeep + ['aircraft_distance_origin_to_fuel_start_Nm','aircraft_distance_origin_to_fuel_end_Nm',
                                                                  'aircraft_distance_fuel_end_to_destination_Nm', 'aircraft_distance_fuel_end_to_destination_Nm']
@@ -415,17 +434,56 @@ class PRCdataChallenge2025Submissions:
             X_rank = pd.read_parquet ( rankFilePath )
             print( X_rank.shape )
             print ( list (X_rank ))
+            assert X_rank.shape[0] == 24289
             
             print ( X_rank.describe().transpose() )
  
-            X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' ,  'fuel_kg' , 'fuel_flow_kg_sec','flight_id'])
+            X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' ,  'fuel_kg' , 'fuel_flow_kg_sec'])
+            
+            ''' we should not have not a number in the fuel_flow_kg_sec column '''
+            print ( X_rank.isnull().any(axis=1).sum() )
+            print ( X_rank.info())
             X_rank = X_rank.fillna(0.0)
+            
                        
             ''' DO NOT USE -> do not use groupby flight id to clean outliers '''
             #X_rank = clean_outliers_capping_with_groupby( X_rank , 'flight_id' , listOfColumnsWithOutliers)
             #X_rank = self.clean_outliers_capped( X_rank , listOfColumnsWithOutliers)
+            listOfColumnNamesToKeep = list ( X_rank)
+
+            ''' merge with flight list data '''
+            flightListExtendedWithAirports = self.getFlightListMergedWithAirports("rank")
+            print ( list ( flightListExtendedWithAirports))
+
+            ''' filter on subset of needed columns '''
+            flightListColumnsToKeep = ['flight_id' , 'origin_longitude_deg' , 'origin_latitude_deg' , 'origin_elevation_ft' ,
+                                       'destination_longitude_deg', 'destination_latitude_deg', 'destination_elevation_ft']
+            
+            flightListExtendedWithAirports = keepOnlyColumns ( flightListExtendedWithAirports , flightListColumnsToKeep)
+            
+            X_rank = pd.merge ( X_rank , flightListExtendedWithAirports , left_on='flight_id', right_on='flight_id', how='inner')
+            print ( X_rank.shape )
+            assert X_rank.shape[0] == 24289
+            #train_dataset = pd.merge( train_dataset )
+            print ( list ( X_rank))
+            
+            print ( X_rank.info())
+            assert X_rank.isnull().any(axis=1).sum() == 0
+            
+            ''' compute distance between airports and aircraft position at fuel start end '''
+            X_rank = self.computeDistanceBetweenOriginAirportAndAircraftPosition(X_rank)
+
+            #trainFlightListDataframe 
+            ''' drop column flight id '''
+            X_rank = dropUnusedColumns(X_rank , ['flight_id'])
+            
+            listOfColumnNamesToKeep = listOfColumnNamesToKeep + ['aircraft_distance_origin_to_fuel_start_Nm','aircraft_distance_origin_to_fuel_end_Nm',
+                                                                 'aircraft_distance_fuel_end_to_destination_Nm', 'aircraft_distance_fuel_end_to_destination_Nm']
+            X_rank = keepOnlyColumns( X_rank , listOfColumnNamesToKeep)
 
             print( str ( X_rank.shape ))
+            assert X_rank.shape[0] == 24289
+            
             print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
             
             print ( list (X_rank ))
@@ -436,15 +494,28 @@ class PRCdataChallenge2025Submissions:
             
             ''' generate predictions '''            #predictions = model.predict(X_rank[np.newaxis, ...])
             predictions = model.predict(X_rank)
-            print ( predictions )
+            print ( predictions.shape )
+
             # Convert predictions to a Pandas DataFrame
             y_columnName = 'fuel_flow_kg_sec'
             df_predictions = pd.DataFrame(predictions, columns=[y_columnName])
+            print ( df_predictions.shape )
+            assert df_predictions.shape[0] == 24289
+            
+            print ("number of null values in the predictions = " +  str(df_predictions.isnull().any(axis=1).sum()) )
+            ''' empty or N/A submissions are rejected '''
+            assert df_predictions.isnull().any(axis=1).sum() == 0
+
+            ''' make all predictions greater than zero '''
+            df_predictions = df_predictions.abs()
+            
             print(tabulate(df_predictions[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            
+            assert df_predictions.shape[0] == 24289
             
             # Name the index column -> starting zero
             df_predictions.index.name = 'idx'
-    
+            
             # Write DataFrame to a CSV file
             filesFolder = os.path.dirname(__file__)
             currentDateTimeAsStr = getCurrentDateTimeAsStr( )
@@ -525,6 +596,8 @@ class PRCdataChallenge2025Submissions:
             X_rank =  keepOnlyColumns ( X_rank , listOfColumnsToKeep )
              
             print ( str ( X_rank.shape ))
+            assert X_rank.shape[0] == 24289
+            
             print ( list ( X_rank ))
             #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
             print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
@@ -533,13 +606,14 @@ class PRCdataChallenge2025Submissions:
             filesFolder = os.path.dirname(__file__)
             submissionCsvFilePath  = os.path.join(filesFolder , submissionCsvFileName)
             if Path(submissionCsvFilePath).exists() and Path(submissionCsvFilePath).is_file():
+                ''' read computed submissions '''
                 df_predictions = pd.read_csv(CsvPredictionsFilePath , sep=';')
     
                 # Affichage des 5 premières lignes
                 print(df_predictions.head())
                 print(df_predictions.shape)
                 
-                # Join on index
+                # Join on index idx 
                 df_result = pd.merge(X_rank, df_predictions, left_index=True, right_index=True)
                 print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
                 
@@ -633,7 +707,6 @@ if __name__ == '__main__':
     submissionCsvFile = "fuel_rank_submission_2025-10-31-18-03-47-without-outliers-capping.csv"
     submissionCsvFile = "fuel_rank_submission_2025-11-01-09-59-08-outliers-capped-groupby-flightID.csv"
     
-    
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-25-16-29-19.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
@@ -650,8 +723,8 @@ if __name__ == '__main__':
                                                                       extendedRankFuelDataFileName, 
                                                                       javaTrainRankfilesFolder)
 
-    generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train(extendedFuelTrainDataFileName )
-    print (" generated model name = " + generatedModelFileName)
+    #generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train(extendedFuelTrainDataFileName )
+    #print (" generated model name = " + generatedModelFileName)
     # Load the model
     model_file_name = "results_model_2025-10-16-06-46-23.h5"
     model_file_name = "results_model_2025-10-16-06-46-23.h5"
@@ -672,7 +745,7 @@ if __name__ == '__main__':
 
     ''' filtering outliers with capped value on whole dataframe not capping with groupby on flight id '''
     #generatedModelFileName = "results_model_2025-11-01-11-20-23.h5"
-    
+    generatedModelFileName = "results_model_2025-11-01-18-34-52.h5"
     CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , extendedRankFuelDataFileName)
     print("generated CSV results file path = " + CsvPredictionsFilePath)
     

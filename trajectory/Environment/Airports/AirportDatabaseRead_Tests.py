@@ -13,12 +13,20 @@ from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 
 #============================================
 class Test_Main(unittest.TestCase):
+    
+    def test_main_two(self):
+        logging.basicConfig(level=logging.DEBUG)
+        
+        print( "-------------------- test with pandas reader ---------------")
+
+        airportsDatabase = AirportsDatabase()
+        assert airportsDatabase.readWithPandas()
 
     def test_main_one(self):
         logging.basicConfig(level=logging.DEBUG)
     
         airportsDatabase = AirportsDatabase()
-        ret = airportsDatabase.read()
+        ret = airportsDatabase.readAsDict()
         print ( ret )
         #for country in airportsDatabase.getCountries():
         #    print ( country )

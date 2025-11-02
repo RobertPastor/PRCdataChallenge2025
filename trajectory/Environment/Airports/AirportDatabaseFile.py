@@ -59,9 +59,10 @@ Sample entries
 import os
 import csv
 import logging
+import pandas as pd
 
 from trajectory.Guidance.WayPointFile import Airport
-from trajectory.Environment.Constants import  Meter2NauticalMiles
+from trajectory.Environment.Constants import  Meter2NauticalMiles, Feet2Meter
 from trajectory.Guidance.Haversine import points2distanceMeters
 
 fieldNames = ["Airport ID", "Airport Name" , "City", "Country", "IATA/FAA", "ICAO Code",
@@ -89,8 +90,33 @@ class AirportsDatabase(object):
         logging.info ( self.className + ': file folder= {0}'.format(self.airportsFilesFolder) )
         self.FilePath = os.path.join(self.airportsFilesFolder , self.FileName)
         logging.info ( self.className + ': file path= {0}'.format(self.FilePath) )
+        
+        self.airportsDataFrame = None
+        
+    def readWithPandas(self):
+        self.airportsDataFrame = pd.read_csv(self.FilePath , delimiter=";")
+        print(self.className + ' - ' + str(self.airportsDataFrame.shape))
+        print(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
+        
+        ''' add a column with elevation in feet '''
+        
+        self.airportsDataFrame['airport_elevation_ft']  = self.airportsDataFrame['elevation meters'] * Feet2Meter
+        self.airportsDataFrame = self.airportsDataFrame.rename(columns=
+                                        {'ICAO'            : 'airport_icao', 
+                                        'latitude degrees' : 'airport_latitude_deg', 
+                                        'longitude degrees': 'airport_longitude_deg' })
+        print(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
 
-    def read(self):
+        return True
+    
+    def getAirportsDataframe(self):
+        return self.airportsDataFrame
+    
+    def checkHeaders(self):
+        return True
+        #return set() == self.airportsDataFrame.
+
+    def readAsDict(self):
         try:
             dictReader = csv.DictReader(open(self.FilePath, encoding='utf-8'), fieldnames=fieldNames , delimiter=";")
             for row in dictReader:

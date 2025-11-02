@@ -24,16 +24,31 @@ class GeographicalPoint(object):
         self.className = self.__class__.__name__
         
         if isinstance(LatitudeDegrees, str):
-            self.LatitudeDegrees = float(LatitudeDegrees)
+            self.LatitudeDegrees = (float)(LatitudeDegrees)
         else:
-            self.LatitudeDegrees = LatitudeDegrees
-        if isinstance(LongitudeDegrees, str):
-            self.LongitudeDegrees = float(LongitudeDegrees)
-        else:
-            self.LongitudeDegrees = LongitudeDegrees
+            self.LatitudeDegrees = (float)(LatitudeDegrees)
             
-        assert self.LatitudeDegrees >= -90.0 and self.LatitudeDegrees <= 90.0
-        assert self.LongitudeDegrees >= -180.0 and self.LongitudeDegrees <= 180.0
+        if isinstance(LongitudeDegrees, str):
+            self.LongitudeDegrees = (float)(LongitudeDegrees)
+        else:
+            self.LongitudeDegrees = (float)(LongitudeDegrees)
+            
+        if self.LatitudeDegrees < -90.0:
+            print( self.LatitudeDegrees )
+            assert  self.LatitudeDegrees >= -90.0
+            
+        if self.LatitudeDegrees > 90.0:
+            print( self.LatitudeDegrees )
+            assert  self.LatitudeDegrees <= 90.0
+
+        if self.LongitudeDegrees < -180.0:
+            print( self.LongitudeDegrees )
+            assert self.LongitudeDegrees >= -180.0
+            
+        if self.LongitudeDegrees > 180.0:
+            print( self.LongitudeDegrees )
+            assert self.LongitudeDegrees <= -180.0
+
         
         self.AltitudeMeanSeaLevelMeters = AltitudeMeanSeaLevelMeters
         

@@ -16,6 +16,7 @@ from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 from trajectory.Environment.Constants import Meter2NauticalMiles
 
 from trajectory.Environment.Aircrafts.FAAaircraftDatabaseFile import FaaAircraftDatabase
+from tabulate import tabulate
 
 initialHeaders = ['flight_date', 'aircraft_type', 'takeoff', 'landed', 'origin_icao', 'origin_name', 'destination_icao', 'destination_name', 'flight_id']
 
@@ -117,6 +118,29 @@ class FlightListDatabase(object):
             logging.error (self.className + " : it is a file - {0}".format(self.filePathFlightListTrain))
 
             return False
+        
+    def readRankFlightListLite(self):
+        
+        logging.info(self.filePathFlightListRank)
+        
+        directory = Path(self.filesFolder)
+        logging.info(directory)
+        
+        file = Path(self.filePathFlightListRank)
+        
+        if directory.is_dir() and file.is_file():
+            
+            logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
+            logging.info (self.className + "it is a file - {0}".format(self.filePathFlightListRank))
+            
+            self.RankFlightListDataframe = pd.read_parquet ( self.filePathFlightListRank )
+            
+            print( str ( list(self.RankFlightListDataframe) ) )
+            print( str ( initialHeaders) )
+            assert list(self.RankFlightListDataframe) == initialHeaders
+            return True
+            
+        assert False
 
     def readRankFlightList(self ):
         logging.info(self.filePathFlightListRank)
@@ -215,42 +239,51 @@ class FlightListDatabase(object):
         
         airportsDataframe = airportsDb.getAirportsDataframe()
         
-        logging.info( str ( list ( airportsDataframe ) ) )
-        logging.info( str ( list ( self.RankFlightListDataframe ) ) )
+        logging.info(self.className + " - " + str ( list ( airportsDataframe ) ) )
+        logging.info(self.className + " - " + str ( list ( self.RankFlightListDataframe ) ) )
+        logging.info(self.className + " - " + str (  self.RankFlightListDataframe.shape ) )
+        
+        rankFlightListDataframeRowCount = self.RankFlightListDataframe.shape[0]
         
         ''' extend origin icao '''
-        df_flightListExtendedWithAirportData = pd.merge ( self.RankFlightListDataframe , airportsDataframe , 
-                                                          left_on='origin_icao', right_on='airport_icao', how='inner' )
+        df = pd.merge ( self.RankFlightListDataframe , airportsDataframe , 
+                                left_on='origin_icao', right_on='airport_icao', how='inner' )
         
-        logging.info( self.className + "- " +str ( list ( df_flightListExtendedWithAirportData ) ) )
+        ''' not merged airports '''
+        notMergedDf = self.RankFlightListDataframe[~self.RankFlightListDataframe.isin(df)].dropna()
+        print(tabulate(notMergedDf[:40], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        assert df.shape[0] == rankFlightListDataframeRowCount
+        logging.info( self.className + "- " +str ( list ( df ) ) )
 
         ''' suppress icao '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        df = df.drop( ['airport_icao'] , axis=1 )
         
         ''' rename extended columns '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(
+        df = df.rename(
             columns= {'airport_latitude_deg' :'origin_latitude_deg',
                       'airport_longitude_deg':'origin_longitude_deg',
                       'airport_elevation_ft' :'origin_elevation_ft'})
         
-        logging.info( self.class_name + " - " + str ( list ( df_flightListExtendedWithAirportData ) ) )
+        logging.info( self.className + " - " + str ( list ( df ) ) )
         
         ''' extend destination icao '''
-        df_flightListExtendedWithAirportData = pd.merge ( df_flightListExtendedWithAirportData , airportsDataframe , 
-                                                          left_on='destination_icao', right_on='airport_icao', how='inner' )
+        df = pd.merge ( df , airportsDataframe , left_on='destination_icao', right_on='airport_icao', how='inner' )
+        assert df.shape[0] == rankFlightListDataframeRowCount
         
         ''' suppress icao '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.drop( ['icao'] , axis=1 )
+        df = df.drop( ['airport_icao'] , axis=1 )
         
+        assert df.shape[0] == rankFlightListDataframeRowCount
         ''' rename extended columns '''
-        df_flightListExtendedWithAirportData = df_flightListExtendedWithAirportData.rename(
+        df = df.rename(
             columns= {'airport_latitude_deg'  :'destination_latitude_deg',
                       'airport_longitude_deg' :'destination_longitude_deg',
                       'airport_elevation_ft'  :'destination_elevation_ft'})
         #logging.info( str ( list ( df_flightListExtendedWithAirportData ) ) )
         
-        self.extendedRankFlightListDataframe = df_flightListExtendedWithAirportData
-        self.RankFlightListDataframe = df_flightListExtendedWithAirportData
+        self.extendedRankFlightListDataframe = df
+        self.RankFlightListDataframe = df
         
         return True
         
@@ -318,7 +351,7 @@ class FlightListDatabase(object):
         for index, row in self.TrainFlightListDataframe.iterrows():
             print(f"----- Index: {index} , Name: { row['flight_id'] } ----- ")
             flightName = row['flight_id']
-            if count < 100:
+            if count < 10:
                 df_flight = flightsDatabase.readOneTrainFile(flightName)
                 
                 df_join = pd.merge ( df_flight , self.TrainFlightListDataframe , on = 'flight_id' , how = "inner")
