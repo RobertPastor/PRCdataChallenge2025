@@ -98,3 +98,8 @@ ipython_config.py
 #do not push files from the data folder
 Data-Download-OpenSkyNetwork/
 
+*.csv
+*.xlsx
+
+
+trajectory/Environment/Airports/Airports.csv

@@ -53,23 +53,28 @@ from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 from trajectory.Environment.Constants import Meter2NauticalMiles
 
 '''
-listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
-                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
-                                         "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
-                                         "aircraft_groundspeed_kt_X_at_fuel_start","aircraft_groundspeed_kt_Y_at_fuel_start",
-                                         "aircraft_groundspeed_kt_X_at_fuel_end","aircraft_groundspeed_kt_X_at_fuel_end",
-                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
-                                         "fuel_burnt_end_relative_to_landed_sec",
-                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+#listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
+#                             "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
+
+#                             "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
+
+#                             "aircraft_groundspeed_kt_X_at_fuel_start","aircraft_groundspeed_kt_Y_at_fuel_start",
+#                             "aircraft_groundspeed_kt_X_at_fuel_end","aircraft_groundspeed_kt_X_at_fuel_end",
+
+#                             "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+#                             "fuel_burnt_end_relative_to_landed_sec",
+#                             "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
 
 '''
 ''' clean outliers '''
 listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
-                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
-                                         "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
-                                         "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
-                                         "fuel_burnt_end_relative_to_landed_sec",
-                                         "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+                            "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
+                            
+                            "aircraft_mach_at_fuel_start","aircraft_mach_at_fuel_end",
+                            
+                            "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+                            "fuel_burnt_end_relative_to_landed_sec",
+                            "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
 
 
 class PRCdataChallenge2025Submissions:
@@ -124,7 +129,6 @@ class PRCdataChallenge2025Submissions:
     
     def cappedOutliersGroupedByFlightId(self  , df):
         
-            
         ''' use groupby flight id to clean outliers '''
         df = self.clean_outliers_capping_with_groupby( df , 'flight_id' , listOfColumnsWithOutliers)
         print ( list (df))
@@ -154,16 +158,16 @@ class PRCdataChallenge2025Submissions:
                 #print ( object.object_name )
                 fileName = object.object_name
                 if str(fileName).endswith("parquet"):
-                    print ( fileName )
+                    #print ( fileName )
                     fileVersion = str(fileName.split("_")[1])
-                    print ( fileVersion )
+                    #print ( fileVersion )
                     fileVersion = re.split(regexp_pattern, fileVersion)
                     fileVersion = fileVersion[0]
-                    print ( fileVersion )
+                    #print ( fileVersion )
                     listOfVersions.append(int(str(fileVersion)[1:]))
         
             listOfVersions.sort()
-            print ( listOfVersions)        
+            #print ( listOfVersions)        
             print( " max submitted proposal = "+ max(listOfVersions))   
             
     def scaleDataset( self , df ):
@@ -238,11 +242,14 @@ class PRCdataChallenge2025Submissions:
 
         if train_rank == 'train':
             ''' read flight list '''
-            flightListDatabase.readTrainFlightList()
-            return flightListDatabase.extendedTrainFlightListDataframe
+            flightListDatabase.readTrainFlightListLite()
+            assert flightListDatabase.extendTrainFlightListWithAirportData()
+            return flightListDatabase.getTrainFlightListDataframe()
+        
         else:
-            flightListDatabase.readRankFlightList()
-            return flightListDatabase.extendedRankFlightListDataframe
+            flightListDatabase.readRankFlightListLite()
+            assert flightListDatabase.extendRankFlightListWithAirportData()
+            return flightListDatabase.getRankFlightListDataframe()
             
     ''' compute distance between departure and arrival airport using great circle '''
     def computeFlightDistanceNauticalMiles( self  , row , 
@@ -259,13 +266,15 @@ class PRCdataChallenge2025Submissions:
             destinationLatitudeDeg = max ( float (row[destination_latitude_deg_columnName]) , float(-90.0) + epsilon)
             destinationLatitudeDeg = min ( destinationLatitudeDeg , float(+90.0) - epsilon)
 
+            ''' 2nd November 2025 - airport ZGOW "Jieyang Chaoshan International Airport" has no elevation_ft value -> it is missing '''
+            ''' do not use elevation to compute haversine distance '''
             originGeoPoint = GeographicalPoint ( LatitudeDegrees            = originLatitudeDeg, 
                                                  LongitudeDegrees           = float(row[origin_longitude_deg_columnName]),
-                                                 AltitudeMeanSeaLevelMeters = float(row[origin_elevation_meters_columnName]))
+                                                 AltitudeMeanSeaLevelMeters = float(0.0))
             
             destinationGeoPoint = GeographicalPoint ( LatitudeDegrees              = destinationLatitudeDeg, 
                                                       LongitudeDegrees             = float(row[destination_longitude_deg_columnName]),
-                                                      AltitudeMeanSeaLevelMeters   = float(row[destination_elevation_meters_columnName]))
+                                                      AltitudeMeanSeaLevelMeters   = float(0.0))
         
             computedDistanceNm = abs(originGeoPoint.computeDistanceMetersTo(destinationGeoPoint) * Meter2NauticalMiles)
         except AssertionError as e:
@@ -317,35 +326,37 @@ class PRCdataChallenge2025Submissions:
             train_dataset = train_dataset.fillna(0.0)
                         
             ''' clean outliers '''
-           
+            listOfColumnNamesToKeep = list ( train_dataset)
+
+            ''' merge with flight list data '''
+            flightListExtendedWithAirportsDataFrame = self.getFlightListMergedWithAirports("train")
+            print ( list ( flightListExtendedWithAirportsDataFrame))
+            
+            ''' filter on subset of needed columns '''
+            ''' 3rd November 2025 - aircraft_type is needed to perform outliers corrections based upon a groupby this aircraft type '''
+            flightListColumnsToKeep = ['flight_id' , 'origin_longitude_deg' , 'origin_latitude_deg' , 'origin_elevation_ft' ,
+                                       'destination_longitude_deg', 'destination_latitude_deg', 'destination_elevation_ft']
+            
+            flightListExtendedWithAirportsDataFrame = keepOnlyColumns ( flightListExtendedWithAirportsDataFrame , flightListColumnsToKeep)
+            
+            ''' merge train with flight list extended with airports data '''
+            train_dataset = pd.merge ( train_dataset , flightListExtendedWithAirportsDataFrame , left_on='flight_id', right_on='flight_id', how='inner')
+            #train_dataset = pd.merge( train_dataset )
+            print ( list ( train_dataset))
+            
             ''' use clean outliers with capping quantiles without groupby flight_id '''
             train_dataset = self.clean_outliers_capped( train_dataset , listOfColumnsWithOutliers)
+            #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
             print ( list (train_dataset))
             
             print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
             
-            listOfColumnNamesToKeep = list ( train_dataset)
-
-            ''' merge with flight list data '''
-            flightListExtendedWithAirports = self.getFlightListMergedWithAirports("train")
-            print ( list ( flightListExtendedWithAirports))
-
-            ''' filter on subset of needed columns '''
-            flightListColumnsToKeep = ['flight_id' , 'origin_longitude_deg' , 'origin_latitude_deg' , 'origin_elevation_ft' ,
-                                       'destination_longitude_deg', 'destination_latitude_deg', 'destination_elevation_ft']
-            
-            flightListExtendedWithAirports = keepOnlyColumns ( flightListExtendedWithAirports , flightListColumnsToKeep)
-            
-            train_dataset = pd.merge ( train_dataset , flightListExtendedWithAirports , left_on='flight_id', right_on='flight_id', how='inner')
-            #train_dataset = pd.merge( train_dataset )
-            print ( list ( train_dataset))
-            
             #trainFlightListDataframe 
-            
+            ''' compute distance from airport origin to each aircraft position at fuel start and fuel end '''
             train_dataset = self.computeDistanceBetweenOriginAirportAndAircraftPosition(train_dataset)
             
             ''' drop column flight id '''
-            train_dataset = dropUnusedColumns(train_dataset , ['flight_id'])
+            train_dataset = dropUnusedColumns(train_dataset , ['flight_id','aircraft_type'])
             
             listOfColumnNamesToKeep = listOfColumnNamesToKeep + ['aircraft_distance_origin_to_fuel_start_Nm','aircraft_distance_origin_to_fuel_end_Nm',
                                                                  'aircraft_distance_fuel_end_to_destination_Nm', 'aircraft_distance_fuel_end_to_destination_Nm']
@@ -436,8 +447,8 @@ class PRCdataChallenge2025Submissions:
             print ( list (X_rank ))
             assert X_rank.shape[0] == 24289
             
-            print ( X_rank.describe().transpose() )
- 
+            print(tabulate(X_rank.describe().transpose()[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+
             X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' ,  'fuel_kg' , 'fuel_flow_kg_sec'])
             
             ''' we should not have not a number in the fuel_flow_kg_sec column '''
@@ -445,30 +456,40 @@ class PRCdataChallenge2025Submissions:
             print ( X_rank.info())
             X_rank = X_rank.fillna(0.0)
             
-                       
             ''' DO NOT USE -> do not use groupby flight id to clean outliers '''
             #X_rank = clean_outliers_capping_with_groupby( X_rank , 'flight_id' , listOfColumnsWithOutliers)
             #X_rank = self.clean_outliers_capped( X_rank , listOfColumnsWithOutliers)
             listOfColumnNamesToKeep = list ( X_rank)
 
             ''' merge with flight list data '''
-            flightListExtendedWithAirports = self.getFlightListMergedWithAirports("rank")
-            print ( list ( flightListExtendedWithAirports))
+            flightListExtendedWithAirportsDataframe = self.getFlightListMergedWithAirports("rank")
+            print ( list ( flightListExtendedWithAirportsDataframe))
 
             ''' filter on subset of needed columns '''
             flightListColumnsToKeep = ['flight_id' , 'origin_longitude_deg' , 'origin_latitude_deg' , 'origin_elevation_ft' ,
                                        'destination_longitude_deg', 'destination_latitude_deg', 'destination_elevation_ft']
+            ''' drop unused columns '''
+            flightListExtendedWithAirportsDataframe = keepOnlyColumns ( flightListExtendedWithAirportsDataframe , flightListColumnsToKeep)
             
-            flightListExtendedWithAirports = keepOnlyColumns ( flightListExtendedWithAirports , flightListColumnsToKeep)
-            
-            X_rank = pd.merge ( X_rank , flightListExtendedWithAirports , left_on='flight_id', right_on='flight_id', how='inner')
+            ''' merge rank with flight list extended with airports data '''
+            X_rank = pd.merge ( X_rank , flightListExtendedWithAirportsDataframe , left_on='flight_id', right_on='flight_id', how='inner')
             print ( X_rank.shape )
             assert X_rank.shape[0] == 24289
             #train_dataset = pd.merge( train_dataset )
             print ( list ( X_rank))
             
             print ( X_rank.info())
+            ''' there are null values in the elevation ft feature '''
             assert X_rank.isnull().any(axis=1).sum() == 0
+            
+            ''' 2nd October 2025 - 22h48 - add clean outliers on the rank dataset '''
+            ''' use clean outliers with capping quantiles without groupby flight_id '''
+            X_rank = self.clean_outliers_capped( X_rank , listOfColumnsWithOutliers)
+            #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
+            print ( list (X_rank))
+            
+            print ( tabulate( X_rank.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
+
             
             ''' compute distance between airports and aircraft position at fuel start end '''
             X_rank = self.computeDistanceBetweenOriginAirportAndAircraftPosition(X_rank)
@@ -569,8 +590,7 @@ class PRCdataChallenge2025Submissions:
         return max ( listOfVersions )
 
     def generateTeamSubmissionParquetFile (self , submissionCsvFileName ,  extendedRankFuelDataFileName):
-        pass
-    
+
         logging.info (' -------------- Post Processing to convert fuel flow to fuel kg Fuel -------------')
         
         newSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
@@ -745,15 +765,20 @@ if __name__ == '__main__':
 
     ''' filtering outliers with capped value on whole dataframe not capping with groupby on flight id '''
     #generatedModelFileName = "results_model_2025-11-01-11-20-23.h5"
-    generatedModelFileName = "results_model_2025-11-01-18-34-52.h5"
+    #generatedModelFileName = "results_model_2025-11-01-18-34-52.h5"
+    generatedModelFileName = "results_model_2025-11-02-22-31-35.h5"
+    
     CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , extendedRankFuelDataFileName)
     print("generated CSV results file path = " + CsvPredictionsFilePath)
     
     #CsvPredictionsFilePath = "fuel_rank_submission_2025-11-01-11-57-32.csv"
 
-    generatedTeamSubmissionParquetFileName = prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(CsvPredictionsFilePath , extendedRankFuelDataFileName)
+    generatedTeamSubmissionParquetFileName = \
+        prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(
+            CsvPredictionsFilePath , extendedRankFuelDataFileName)
+        
     print ( generatedTeamSubmissionParquetFileName )
     
     ''' upload parquet to S3 destination '''
-    #prcDataChallenge2025Submissions.uploadTeamParquetFileToS3( )
+    prcDataChallenge2025Submissions.uploadTeamParquetFileToS3( )
         

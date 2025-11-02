@@ -63,8 +63,10 @@ class AirportsDataChallengeDatabase(object):
             self.airportsDataframe = pd.read_parquet ( self.filePath )
             logging.info ( self.className + ": shape = " + str(self.airportsDataframe.shape ) )
             logging.info ( self.className + ": list of headers = " +  str(  list ( self.airportsDataframe)) )
-                        
-            #self.airportsDataframe = df.dropna()
+            
+            ''' warning some airports have missing data '''
+            ''' airport ZGOW has missing elevation '''
+            #self.airportsDataframe = self.airportsDataframe.dropna()
             print ( list ( self.airportsDataframe ))
             ''' rename columns to add a unit such as degrees '''
             self.airportsDataframe = self.airportsDataframe.rename(columns=

@@ -17,7 +17,7 @@ from tabulate import tabulate
 #============================================
 class Test_Main(unittest.TestCase):
 
-    def test_main_one(self):
+    def test_Train_flightlist_not_in_airport_DropNa(self):
         print("------------test_main_one----------------")
 
         logging.basicConfig(level=logging.INFO)
@@ -28,17 +28,19 @@ class Test_Main(unittest.TestCase):
         assert airportsDb.read() == True
         
         airportsDataframe = airportsDb.getAirportsDataframe()
+        airportsDataframe = airportsDataframe.dropna()
         
-        rankFlightList = FlightListDatabase()
-        assert ( rankFlightList.readRankFlightListLite() )
+        ''' flight list '''
+        trainFlightList = FlightListDatabase()
+        assert ( trainFlightList.readTrainFlightListLite() )
         
-        rankFligthListDataframe = rankFlightList.getRankFlightListDataframe()
-        initialFlightListDataframe = rankFlightList.getRankFlightListDataframe()
+        trainFlightListDataframe = trainFlightList.getTrainFlightListDataframe()
+        initialFlightListDataframe = trainFlightList.getTrainFlightListDataframe()
         
-        print ( rankFligthListDataframe.shape )
+        print ( trainFlightListDataframe.shape )
         
         ''' ------------merge on origin icao ----- '''
-        merged_df = pd.merge ( rankFligthListDataframe , airportsDataframe , 
+        merged_df = pd.merge ( trainFlightListDataframe , airportsDataframe , 
                                 left_on='origin_icao', right_on='airport_icao', how='inner' )
         
         print ( merged_df.shape )
@@ -48,7 +50,7 @@ class Test_Main(unittest.TestCase):
         print ( tabulate( result , headers='keys', tablefmt='grid' , showindex=True , ))
 
         ''' ------ merge on destination icao '''
-        merged_df = pd.merge ( rankFligthListDataframe , airportsDataframe , 
+        merged_df = pd.merge ( trainFlightListDataframe , airportsDataframe , 
                                 left_on='destination_icao', right_on='airport_icao', how='inner' )
         
         print ( merged_df.shape )
@@ -56,6 +58,8 @@ class Test_Main(unittest.TestCase):
         # Filter rows not in df2
         result = initialFlightListDataframe[~initialFlightListDataframe.isin(merged_df.to_dict(orient='list')).all(axis=1)]
         print ( tabulate( result , headers='keys', tablefmt='grid' , showindex=True , ))
+
+
 
 
         

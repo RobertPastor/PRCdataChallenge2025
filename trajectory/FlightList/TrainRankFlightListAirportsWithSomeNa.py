@@ -2,8 +2,8 @@
 Created on 2 nov. 2025
 
 @author: robert
-'''
 
+'''
 
 
 import logging
@@ -13,10 +13,13 @@ from trajectory.Environment.AirportsDataChallenge.AirportsDataChallengeDatabaseF
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from tabulate import tabulate
 
+from trajectory.FlightList.FlightListReader import FlightListDatabase
+from tabulate import tabulate
+
 #============================================
 class Test_Main(unittest.TestCase):
 
-    def test_main_one(self):
+    def test_Train_flightlist_not_in_airport_DropNa(self):
         print("------------test_main_one----------------")
 
         logging.basicConfig(level=logging.INFO)
@@ -26,15 +29,24 @@ class Test_Main(unittest.TestCase):
         airportsDb = AirportsDataChallengeDatabase()
         assert airportsDb.read() == True
         
-        missingsAirportsList = ["EGHQ","LTDB","MMSM","OKKK","SEQM","SPJC","ZUTF","ZGOW" ,"VTBS"]
-        #missingsAirportsList = ["ZGOW" ,"VTBS"]
-        for airportICAOcode in missingsAirportsList:
-            print( airportICAOcode )
-            print (airportsDb.isAirportInDatabase(airportICAOcode) )
-            print ( airportsDb.getAirPort(airportICAOcode) )
+        airportsDataframe = airportsDb.getAirportsDataframe()
+        
+        trainRankFlightList = FlightListDatabase()
+        assert ( trainRankFlightList.readTrainFlightListLite() )
+        assert ( trainRankFlightList.readRankFlightListLite() )
+        
+        print ( trainRankFlightList.getTrainFlightListDataframe().shape )
+        print ( trainRankFlightList.getRankFlightListDataframe().shape )
+        
+        df = pd.concat( [ trainRankFlightList.getTrainFlightListDataframe() , trainRankFlightList.getRankFlightListDataframe()] , axis=0)
         
         
+        
+        
+
+
         
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     unittest.main()
+    

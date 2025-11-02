@@ -95,8 +95,8 @@ class AirportsDatabase(object):
         
     def readWithPandas(self):
         self.airportsDataFrame = pd.read_csv(self.FilePath , delimiter=";")
-        print(self.className + ' - ' + str(self.airportsDataFrame.shape))
-        print(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
+        logging.info(self.className + ' - ' + str(self.airportsDataFrame.shape))
+        logging.info(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
         
         ''' add a column with elevation in feet '''
         
@@ -105,7 +105,7 @@ class AirportsDatabase(object):
                                         {'ICAO'            : 'airport_icao', 
                                         'latitude degrees' : 'airport_latitude_deg', 
                                         'longitude degrees': 'airport_longitude_deg' })
-        print(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
+        logging.info(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
 
         return True
     
@@ -235,6 +235,7 @@ class AirportsDatabase(object):
                                 fieldElevationAboveSeaLevelMeters = float(airportInternal["AltitudeFeet"])*feetToMeters,
                                 ICAOcode = ICAOcode,
                                 Country = airportInternal['Country'] )
+                logging.info(self.className + " - "+ str(airport))
                 return airport
         return None
         
