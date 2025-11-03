@@ -9,6 +9,7 @@ from minio.datatypes import Object
 import re
 
 import numpy as np
+eps_single = np.finfo(np.float32).eps
 
 from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
 from pathlib import Path
@@ -105,7 +106,6 @@ class PRCdataChallenge2025Submissions:
             df[columnName] = np.clip(df[columnName], lower_bound, upper_bound)
             return df
         
-        
     def clean_outliers_capping_with_groupby ( self,  df , groupByColumnName, list_of_columnNames_to_clean ):
     
     #grouped = df.groupby( groupByColumnName , axis = 1)
@@ -125,7 +125,6 @@ class PRCdataChallenge2025Submissions:
             df[columnName] = df.apply( self.capped_value , axis = 1 , args = [columnName])
             df = dropUnusedColumns( df , ['q1','q3','IQR','lower_bound','upper_bound'])
         return df
-    
     
     def cappedOutliersGroupedByFlightId(self  , df):
         
@@ -306,7 +305,76 @@ class PRCdataChallenge2025Submissions:
                         args=('aircraft_latitude_deg_at_fuel_end','aircraft_longitude_deg_at_fuel_end', 'destination_elevation_ft' ,
                               'destination_latitude_deg', 'destination_longitude_deg','destination_elevation_ft'))
         return df
-                                              
+    
+    def compute_TAS_KnotsfromMach_atFuelStart(self, row ):
+        from trajectory.aerocalc.airspeed import mach2tas , mach_alt2cas
+        mach = max( row['aircraft_mach_at_fuel_start'], eps_single)
+        if ( row['aircraft_TAS_at_fuel_start'] <= eps_single ) and (mach > 0.0 ):
+            aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
+            return mach2tas ( mach=mach,temp='std',altitude=aircraft_altitude_ft)
+        else:
+            return row['aircraft_TAS_at_fuel_start']
+
+    def compute_TAS_KnotsfromMach_atFuelEnd(self, row ):
+        from trajectory.aerocalc.airspeed import mach2tas , mach_alt2cas
+        mach = max( row['aircraft_mach_at_fuel_end'], eps_single)
+        if ( row['aircraft_TAS_at_fuel_end'] <= eps_single ) and (mach > 0.0 ):
+            aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
+            return mach2tas ( mach=mach,temp='std',altitude=aircraft_altitude_ft)
+        else:
+            return row['aircraft_TAS_at_fuel_end']
+            
+    def compute_CAS_KnotsfromMach_atFuelStart(self, row ):
+        from trajectory.aerocalc.airspeed import mach2tas , mach_alt2cas
+        mach = max( row['aircraft_mach_at_fuel_start'], eps_single)
+        if ( row['aircraft_CAS_at_fuel_start'] < eps_single ) and (mach > 0.0 ):
+            aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
+            return mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
+        else:
+            return row['aircraft_CAS_at_fuel_start']
+        
+    def compute_CAS_KnotsfromMach_atFuelEnd(self, row ):
+        from trajectory.aerocalc.airspeed import mach2tas , mach_alt2cas
+        mach = max( row['aircraft_mach_at_fuel_end'], eps_single)
+        if ( row['aircraft_CAS_at_fuel_end'] < eps_single ) and (mach > 0.0 ):
+            aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
+            return mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
+        else:
+            return row['aircraft_CAS_at_fuel_end']
+    
+    def computeMissingSpeeds(self, df):
+        # Machine epsilon for single precision (32-bit)
+        df['aircraft_TAS_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelStart , axis = 1)
+        df['aircraft_TAS_at_fuel_end'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelEnd , axis = 1)
+        
+        df['aircraft_CAS_at_fuel_start'] = df.apply( self.compute_CAS_KnotsfromMach_atFuelStart , axis = 1)
+        df['aircraft_CAS_at_fuel_end'] = df.apply( self.compute_CAS_KnotsfromMach_atFuelEnd , axis = 1)
+        return df
+    
+    def correctTimeDifferenceFuelBurntStartTakeoff(self , row):
+        if row['fuel_burnt_start_relative_to_takeoff_sec'] < eps_single :
+            return 0.0
+        else:
+            return row['fuel_burnt_start_relative_to_takeoff_sec']
+        
+    def correctTimeDifferenceFuelBurntEndTakeoff(self , row):
+        if row['fuel_burnt_end_relative_to_takeoff_sec'] < eps_single :
+            return 0.0
+        else:
+            return row['fuel_burnt_end_relative_to_takeoff_sec']
+        
+    def correctTimeDifferenceFuelBurntEndLanded(self , row):
+        if row['fuel_burnt_end_relative_to_landed_sec'] < eps_single :
+            return 0.0
+        else:
+            return row['fuel_burnt_end_relative_to_landed_sec']
+            
+    def correctTimeDifferencesFuelBurntStartEnd(self, df):
+        df['fuel_burnt_start_relative_to_takeoff_sec'] = df.apply( self.correctTimeDifferenceFuelBurntStartTakeoff , axis = 1  )
+        df['fuel_burnt_end_relative_to_takeoff_sec'] = df.apply( self.correctTimeDifferenceFuelBurntEndTakeoff , axis = 1  )
+        df['fuel_burnt_end_relative_to_landed_sec'] = df.apply(  self.correctTimeDifferenceFuelBurntEndLanded , axis = 1)
+        return df
+    
     def Build_Model_From_Train(self , extendedFuelTrainDataFileName ):
         
         filePath = os.path.join( self.javaTrainRankfilesFolder , extendedFuelTrainDataFileName)
@@ -323,6 +391,9 @@ class PRCdataChallenge2025Submissions:
             
             #train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
             train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' ])
+            ''' drop column with empty values '''
+            'Wingspan_ft_without_winglets_sharklets'
+            train_dataset = dropUnusedColumns(train_dataset , 'Wingspan_ft_without_winglets_sharklets')
             train_dataset = train_dataset.fillna(0.0)
                         
             ''' clean outliers '''
@@ -349,29 +420,33 @@ class PRCdataChallenge2025Submissions:
             #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
             print ( list (train_dataset))
             
-            print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
             
             #trainFlightListDataframe 
             ''' compute distance from airport origin to each aircraft position at fuel start and fuel end '''
             train_dataset = self.computeDistanceBetweenOriginAirportAndAircraftPosition(train_dataset)
-            
+            ''' compute missing speeds from mach '''
+            train_dataset = self.computeMissingSpeeds(train_dataset)
+            ''' correct time difference between fuel burn start and end from takeoff '''
+            #train_dataset = self.correctTimeDifferencesFuelBurntStartEnd (train_dataset)
+            ''' see the results '''
+
             ''' drop column flight id '''
             train_dataset = dropUnusedColumns(train_dataset , ['flight_id','aircraft_type'])
-            
             listOfColumnNamesToKeep = listOfColumnNamesToKeep + ['aircraft_distance_origin_to_fuel_start_Nm','aircraft_distance_origin_to_fuel_end_Nm',
                                                                  'aircraft_distance_fuel_end_to_destination_Nm', 'aircraft_distance_fuel_end_to_destination_Nm']
             train_dataset = keepOnlyColumns( train_dataset , listOfColumnNamesToKeep)
-            
             print( list ( train_dataset ))
-            print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-            print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            #print(tabulate(train_dataset[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+            #print(tabulate(train_dataset[:10], headers='keys', tablefmt='grid' , showindex=True , ))
 
             ''' do not scale the independent variable Y '''
             y_columnName = 'fuel_flow_kg_sec'
             X = train_dataset.drop( y_columnName , axis = 1)
+            ''' check the stats '''
+            print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
+
             ''' scale only the dependent variables  '''
             X = self.scaleDataset( X )
-            #print ( str ( list (X) ))
             
             #print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
             #print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
@@ -389,7 +464,7 @@ class PRCdataChallenge2025Submissions:
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
             
             ''' split data set in 0% train and 20% test '''
-            epochs = 150
+            epochs = 300
             model_file_path , currentDateTimeAsString = self.tf_model_fit( X_train, y_train , epochs )
             print ( model_file_path )
             
@@ -450,7 +525,9 @@ class PRCdataChallenge2025Submissions:
             print(tabulate(X_rank.describe().transpose()[:10], headers='keys', tablefmt='grid' , showindex=True , ))
 
             X_rank = dropUnusedColumns(X_rank , ['idx' , 'start' , 'end' ,  'fuel_kg' , 'fuel_flow_kg_sec'])
-            
+            'Wingspan_ft_without_winglets_sharklets'
+            X_rank = dropUnusedColumns(X_rank , 'Wingspan_ft_without_winglets_sharklets')
+             
             ''' we should not have not a number in the fuel_flow_kg_sec column '''
             print ( X_rank.isnull().any(axis=1).sum() )
             print ( X_rank.info())
@@ -488,11 +565,14 @@ class PRCdataChallenge2025Submissions:
             #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
             print ( list (X_rank))
             
-            print ( tabulate( X_rank.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
-
-            
             ''' compute distance between airports and aircraft position at fuel start end '''
             X_rank = self.computeDistanceBetweenOriginAirportAndAircraftPosition(X_rank)
+            ''' compute missing speeds from mach '''
+            X_rank = self.computeMissingSpeeds(X_rank)
+            ''' correct time difference between fuel burn start and end from takeoff '''
+            #X_rank = self.correctTimeDifferencesFuelBurntStartEnd (X_rank)
+            ''' see the results '''
+            print ( tabulate( X_rank.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
 
             #trainFlightListDataframe 
             ''' drop column flight id '''
@@ -577,16 +657,16 @@ class PRCdataChallenge2025Submissions:
             #print ( object.object_name )
             fileName = object.object_name
             if str(fileName).endswith("parquet"):
-                print ( fileName )
+                #print ( fileName )
                 fileVersion = str(fileName.split("_")[1])
-                print ( fileVersion )
+                #print ( fileVersion )
                 fileVersion = re.split(regexp_pattern, fileVersion)
                 fileVersion = fileVersion[0]
-                print ( fileVersion )
+                #print ( fileVersion )
                 listOfVersions.append(int(str(fileVersion)[1:]))
             
         listOfVersions.sort()
-        print ( listOfVersions)
+        #print ( listOfVersions)
         return max ( listOfVersions )
 
     def generateTeamSubmissionParquetFile (self , submissionCsvFileName ,  extendedRankFuelDataFileName):
@@ -718,10 +798,6 @@ if __name__ == '__main__':
     print("tensorflow version = " + tf.__version__)
     print("pandas version = " + pd. __version__)
     
-    submissionCsvFile = "fuel_rank_submission_2025-10-21-02-22-14.csv"
-    submissionCsvFile = "fuel_rank_submission_2025-10-26-12-14-25.csv"
-    submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
-    submissionCsvFile = "fuel_rank_submission_2025-10-27-20-01-19.csv"
     submissionCsvFile = "fuel_rank_submission_2025-10-31-17-43-04-with-outliers.csv"
     submissionCsvFile = "fuel_rank_submission_2025-10-31-17-54-39-without-outliers-median.csv"
     submissionCsvFile = "fuel_rank_submission_2025-10-31-18-03-47-without-outliers-capping.csv"
@@ -746,28 +822,10 @@ if __name__ == '__main__':
     #generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train(extendedFuelTrainDataFileName )
     #print (" generated model name = " + generatedModelFileName)
     # Load the model
-    model_file_name = "results_model_2025-10-16-06-46-23.h5"
-    model_file_name = "results_model_2025-10-16-06-46-23.h5"
-    model_file_name = "results_model_2025-10-16-23-49-37.h5"
-    model_file_name = "results_model_2025-10-17-14-33-54.h5"
-    model_file_name = "results_model_2025-10-20-18-33-11.h5"
-    model_file_name = "results_model_2025-10-20-18-33-11.h5"
-    ''' from java parquet file '''
-    model_file_name = "results_model_2025-10-25-16-58-04.h5"
-    model_file_name = "results_model_2025-10-25-18-08-44.h5"
-    model_file_name = "results_model_2025-10-26-11-56-15.h5"
-    model_file_name = "results_model_2025-10-27-19-42-31.h5"
-    model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
-    model_file_name = "results_model_2025-10-31-14-50-56-with-outliers.h5"
-    model_file_name = "results_model_2025-10-31-16-25-19-without-outliers-median.h5"
-    model_file_name = "results_model_2025-10-31-17-35-29-without-outliers-capping.h5"
-    model_file_name = "results_model_2025-11-01-09-51-00-capped-outliers-groupby-flightId.h5"
 
     ''' filtering outliers with capped value on whole dataframe not capping with groupby on flight id '''
-    #generatedModelFileName = "results_model_2025-11-01-11-20-23.h5"
-    #generatedModelFileName = "results_model_2025-11-01-18-34-52.h5"
-    generatedModelFileName = "results_model_2025-11-02-22-31-35.h5"
     
+    generatedModelFileName = "results_model_2025-11-03-10-42-30.h5"
     CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , extendedRankFuelDataFileName)
     print("generated CSV results file path = " + CsvPredictionsFilePath)
     

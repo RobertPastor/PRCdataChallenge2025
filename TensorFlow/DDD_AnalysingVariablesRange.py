@@ -43,16 +43,19 @@ import unittest
 from pathlib import Path
 from tabulate import tabulate
 
+import pandas as pd
+import numpy as np
+from scipy import stats
 
 #============================================
 class Test_Main(unittest.TestCase):
-
 
     def test_a_Train(self):
         
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-25-16-29-19.parquet"
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
+        extendedFuelDataFileName = "ExtendedFuel_train_2025-10-31-12-44-23.parquet"
         
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
         
@@ -76,6 +79,9 @@ class Test_Main(unittest.TestCase):
                 df.drop( columnName , axis = 1 , inplace = True)
             for columnName in ["flight_date_day_of_the_year"]:
                 df.drop( columnName , axis = 1 , inplace = True)
+                
+            # 'idx', 'flight_id', 'start', 'end', 'time_diff_seconds', 'fuel_flow_kg_sec', 'aircraft_latitude_deg_at_fuel_start'
+            
             
             print( df.shape )
 
