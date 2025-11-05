@@ -472,21 +472,23 @@ class PRCdataChallenge2025Submissions:
         assert train_dataset.shape[0] == TrainDataSetRowCount
         
         #train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
-        listOfColumnsToDrop = ['idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type']
+        listOfColumnsToDrop = ['idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank']
         train_dataset = dropUnusedColumns(train_dataset , listOfColumnsToDrop)
         print ( list (train_dataset))
         
-        ''' use clean outliers with capping quantiles without groupby flight_id '''
+        ''' use clean outliers with capped quantiles without groupby flight_id nor groupby on aircraft code '''
         train_dataset = self.clean_outliers_capped( train_dataset , listOfColumnsWithOutliers)
         #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
         print ( list (train_dataset))
+        train_dataset = train_dataset.fillna(0.0)
         
         y_columnName = 'fuel_flow_kg_sec'
         X = train_dataset.drop( y_columnName , axis = 1)
         ''' check the stats '''
         print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
+        
 
-        ''' scale only the dependent variables  '''
+        ''' scale only the dependent variables - there must be only floats or double not categorical columns - nor absolute DateTime '''
         X = self.scaleDataset( X )
             
         #print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
