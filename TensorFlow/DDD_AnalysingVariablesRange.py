@@ -56,10 +56,11 @@ class Test_Main(unittest.TestCase):
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-26-10-44-58.parquet"
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-27-18-08-12.parquet"
         extendedFuelDataFileName = "ExtendedFuel_train_2025-10-31-12-44-23.parquet"
-        
+        extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-05-02-26-18.parquet"
+
         filesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents"
         
-        filePath = os.path.join( filesFolder , extendedFuelDataFileName)
+        filePath = os.path.join( filesFolder , extendedFuelTrainDataFileName)
         file = Path(filePath )
         
         directory = Path(filesFolder)
@@ -73,7 +74,7 @@ class Test_Main(unittest.TestCase):
             
             for columnName in ["idx","Tail_Height_at_OEW_ft","Wheelbase_ft","Cockpit_to_Main_Gear_ft","Main_Gear_Width_ft"]:
                 df.drop( columnName , axis = 1 , inplace = True)
-            for columnName in ["Num_Engines","Approach_Speed_knot","Wingspan_ft_without_winglets_sharklets","Length_ft"]:
+            for columnName in ["Num_Engines","Approach_Speed_knot","Length_ft"]:
                 df.drop( columnName , axis = 1 , inplace = True)
             for columnName in ["MTOW_kg","MALW_kg","Parking_Area_ft2","flight_date_year","flight_date_month"]:
                 df.drop( columnName , axis = 1 , inplace = True)
@@ -82,10 +83,11 @@ class Test_Main(unittest.TestCase):
                 
             # 'idx', 'flight_id', 'start', 'end', 'time_diff_seconds', 'fuel_flow_kg_sec', 'aircraft_latitude_deg_at_fuel_start'
             
-            
             print( df.shape )
 
-            print(tabulate(df.describe().transpose()[-32:], headers='keys', tablefmt='grid' , showindex=True , ))
+            print(tabulate(df.describe().transpose(), headers='keys', tablefmt='grid' , showindex=True , ))
+            
+            #print(tabulate(df.isnull(), headers='keys', tablefmt='grid' , showindex=True , ))
             
             
 

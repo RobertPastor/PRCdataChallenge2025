@@ -127,7 +127,6 @@ class FlightListDatabase(object):
         logging.info(directory)
         
         file = Path(self.filePathFlightListTrain)
-        
         if directory.is_dir() and file.is_file():
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
@@ -147,7 +146,6 @@ class FlightListDatabase(object):
         logging.info(directory)
         
         file = Path(self.filePathFlightListRank)
-        
         if directory.is_dir() and file.is_file():
             
             logging.info (self.className + "it is a directory - {0}".format(self.filesFolder))
