@@ -487,12 +487,8 @@ class PRCdataChallenge2025Submissions:
         ''' check the stats '''
         print ( tabulate( train_dataset.describe().transpose() , headers='keys', tablefmt='grid' , showindex=True , ))
         
-
         ''' scale only the dependent variables - there must be only floats or double not categorical columns - nor absolute DateTime '''
         X = self.scaleDataset( X )
-            
-        #print(tabulate(X[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-        #print(tabulate(X[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         
         ''' pandas series with only one column -> the y '''
         y = train_dataset[[y_columnName]]
@@ -516,7 +512,7 @@ class PRCdataChallenge2025Submissions:
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
         
-        with CustomObjectScope({'rmse': self.rmse}):
+        with CustomObjectScope({'rmse': self.rmse},{'loss':self.meanAbsoluteError}):
             model = load_model(model_file_path)
             
         ''' evaluate the model '''
@@ -540,8 +536,6 @@ class PRCdataChallenge2025Submissions:
             file.write(f"Test Accuracy: {accuracy}")
             
         return model_file_path
-
-
 
 
     def Build_Model_From_Train_old(self , extendedFuelTrainDataFileName ):
@@ -666,6 +660,70 @@ class PRCdataChallenge2025Submissions:
             
             return model_file_path
         
+    def predictFromRankAndModel(self , modelFilePath , X_rank): 
+        
+        logging.basicConfig(level=logging.INFO)
+        logging.info (' -------------- Rank Fuel -------------')
+        
+        # Save and load a model with the custom activation
+        with CustomObjectScope({'loss' : self.meanAbsoluteError }, {'rmse': self.rmse}):
+            model = load_model(modelFilePath)
+            
+        listOfColumnsToDrop = ['idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank']
+        X_rank = dropUnusedColumns(X_rank , listOfColumnsToDrop)
+
+        print ( X_rank.isnull().any(axis=1).sum() )
+        print ( X_rank.info())
+        X_rank = X_rank.fillna(0.0)
+        
+        ''' DO NOT USE -> do not use groupby flight id to clean outliers '''
+        #X_rank = clean_outliers_capping_with_groupby( X_rank , 'flight_id' , listOfColumnsWithOutliers)
+        #X_rank = self.clean_outliers_capped( X_rank , listOfColumnsWithOutliers)
+        assert X_rank.shape[0] == RankDataSetRowCount
+        
+        print ( list (X_rank ))
+        X_rank = self.scaleDataset( X_rank )
+
+        ''' convert True False to float '''
+        X_rank = np.asarray(X_rank).astype(np.float32)
+            
+        ''' generate predictions '''            #predictions = model.predict(X_rank[np.newaxis, ...])
+        predictions = model.predict(X_rank)
+        print ( predictions.shape )
+
+        # Convert predictions to a Pandas DataFrame
+        y_columnName = 'fuel_flow_kg_sec'
+        df_predictions = pd.DataFrame(predictions, columns=[y_columnName])
+        print ( df_predictions.shape )
+        assert df_predictions.shape[0] == RankDataSetRowCount
+        
+        print ("number of null values in the predictions = " +  str(df_predictions.isnull().any(axis=1).sum()) )
+        ''' empty or N/A submissions are rejected '''
+        assert df_predictions.isnull().any(axis=1).sum() == 0
+
+        ''' make all predictions greater than zero '''
+        df_predictions = df_predictions.abs()
+        
+        print(tabulate(df_predictions[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        assert df_predictions.shape[0] == RankDataSetRowCount
+        # Name the index column -> starting zero
+        df_predictions.index.name = 'idx'
+        
+        # Write DataFrame to a CSV file
+        filesFolder = os.path.dirname(__file__)
+        currentDateTimeAsStr = getCurrentDateTimeAsStr( )
+        rankSubmissionfileName = 'fuel_rank_submission' +'_' + currentDateTimeAsStr +'.csv'
+        rankSubmissionFilePath = os.path.join(filesFolder , rankSubmissionfileName)
+        
+        df_predictions.to_csv(rankSubmissionFilePath, na_rep='N/A', sep=';',  index=True)  
+        
+        end_time = time.time
+        #time_difference = end_time - start_time
+        #print(f"Execution Time: {end_time - start_time} seconds")
+        return rankSubmissionFilePath
+
+ 
     def predictFromRankAndModel_old(self , model_file_name , extendedRankFuelDataFileName ):
         logging.basicConfig(level=logging.INFO)
         
