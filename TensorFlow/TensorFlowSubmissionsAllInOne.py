@@ -217,11 +217,6 @@ class PRCdataChallenge2025Submissions:
                                               
     def tf_model_fit( self, X_train, y_train, epochs):
     
-        print(tabulate(X_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-        print ( X_train.shape )
-        print(tabulate(y_train[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-        print ( y_train.shape )
-    
         ''' declare the model '''
         #tf.random.set_seed ( 42 )
         model = Sequential ( [ Dense( 256 , activation = 'relu' ),
@@ -229,7 +224,7 @@ class PRCdataChallenge2025Submissions:
                                   Dense( 128 , activation = 'relu' ),
                                   Dense(1)])
         ''' use Mean Absolute Error because it is less sensible to outliers '''
-        model.compile(loss = self.meanAbsoluteError , optimizer = 'adam' , metrics = [self.rmse])
+        model.compile(loss = 'mean_absolute_error' , optimizer = 'adam' , metrics = 'mean_absolute_error')
         history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2 , verbose=1)
         
         # Save the entire model to a file
@@ -512,7 +507,7 @@ class PRCdataChallenge2025Submissions:
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
         
-        with CustomObjectScope({'rmse': self.rmse},{'loss':self.meanAbsoluteError}):
+        with CustomObjectScope({'rmse': 'mean_absolute_error'},{'loss':'mean_absolute_error'}):
             model = load_model(model_file_path)
             
         ''' evaluate the model '''
@@ -635,7 +630,7 @@ class PRCdataChallenge2025Submissions:
             elapsed_time = end_time - start_time
             print(f"Elapsed time: {elapsed_time:.2f} seconds")
             
-            with CustomObjectScope({'rmse': self.rmse}):
+            with CustomObjectScope({'rmse': 'mean_absolute_error'}):
                 model = load_model(model_file_path)
             
             ''' evaluate the model '''
@@ -666,7 +661,7 @@ class PRCdataChallenge2025Submissions:
         logging.info (' -------------- Rank Fuel -------------')
         
         # Save and load a model with the custom activation
-        with CustomObjectScope({'loss' : self.meanAbsoluteError }, {'rmse': self.rmse}):
+        with CustomObjectScope({'loss' :  'mean_absolute_error'}, {'rmse': 'mean_absolute_error'}):
             model = load_model(modelFilePath)
             
         listOfColumnsToDrop = ['idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank']
@@ -722,7 +717,6 @@ class PRCdataChallenge2025Submissions:
         #time_difference = end_time - start_time
         #print(f"Execution Time: {end_time - start_time} seconds")
         return rankSubmissionFilePath
-
  
     def predictFromRankAndModel_old(self , model_file_name , extendedRankFuelDataFileName ):
         logging.basicConfig(level=logging.INFO)
@@ -1014,6 +1008,33 @@ class PRCdataChallenge2025Submissions:
             fileName_to_upload, "successfully uploaded as object",
             fileName_to_upload, "to bucket", bucket_name,
         )
+        
+    def extendCorrectTrainRankDataframe(self , concatenatedTrainRankDataset):
+        
+        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount 
+    
+        print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+    
+        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount 
+        
+        ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
+        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingSpeeds(concatenatedTrainRankDataset)
+        print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+ 
+        concatenatedTrainRankDataset['hasSharklets'] = np.where ( concatenatedTrainRankDataset['Wingspan_ft_without_winglets_sharklets'].isnull() , 0 , 1)
+        print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+    
+        ''' transform aircraft_type into 0/1 category '''
+        concatenatedTrainRankDataset = pd.get_dummies( concatenatedTrainRankDataset , columns=['aircraft_type'], dtype = int)
+        print ( list ( concatenatedTrainRankDataset ) )
+    
+        listOfColumnsToDrop = ['idx','aircraft_type','start','end']
+        concatenatedTrainRankDataset = dropUnusedColumns(concatenatedTrainRankDataset, listOfColumnsToDrop)
+        
+        return concatenatedTrainRankDataset
     
 if __name__ == '__main__':
     import platform
@@ -1038,57 +1059,40 @@ if __name__ == '__main__':
     prcDataChallenge2025Submissions = PRCdataChallenge2025Submissions(extendedFuelTrainDataFileName , 
                                                                       extendedRankFuelDataFileName, 
                                                                       javaTrainRankfilesFolder)
+    
     ''' in order to apply the same transformations - first concatenate train and rank '''
-    concatenatedTrainRankDataset = prcDataChallenge2025Submissions.concatenateTrainRank()
-    print ( concatenatedTrainRankDataset.shape )
-    print ( list ( concatenatedTrainRankDataset ) )
-    assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount 
+    #concatenatedTrainRankDataset = prcDataChallenge2025Submissions.concatenateTrainRank()
     
-    print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
-    print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-
-    assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount 
-    
-    ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
-    concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingSpeeds(concatenatedTrainRankDataset)
-    print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
-    print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
- 
-    concatenatedTrainRankDataset['hasSharklets'] = np.where ( concatenatedTrainRankDataset['Wingspan_ft_without_winglets_sharklets'].isnull() , 0 , 1)
-    print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
-    print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-    
-    ''' transform aircraft_type into 0/1 category '''
-    concatenatedTrainRankDataset = pd.get_dummies( concatenatedTrainRankDataset , columns=['aircraft_type'], dtype = int)
-    print ( list ( concatenatedTrainRankDataset ) )
-
-    listOfColumnsToDrop = ['idx','aircraft_type','start','end']
-    concatenatedTrainRankDataset = dropUnusedColumns(concatenatedTrainRankDataset, listOfColumnsToDrop)
+    #concatenatedTrainRankDataset = prcDataChallenge2025Submissions.extendCorrectTrainRankDataframe ( concatenatedTrainRankDataset )
     
     ''' df['train_rank'] = train_rank_str '''
-    trainDataSet = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'train']
-    print ( trainDataSet.shape )
-    assert trainDataSet.shape[0] == TrainDataSetRowCount
-
-    model_path = prcDataChallenge2025Submissions.Build_Model_From_Train (trainDataSet)
-    '''
-    generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train(extendedFuelTrainDataFileName )
-    #print (" generated model name = " + generatedModelFileName)
-    # Load the model
-    '''
-    ''' filtering outliers with capped value on whole dataframe not capping with groupby on flight id '''
-    '''
-    generatedModelFileName = "results_model_2025-11-03-10-42-30.h5"
-    CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , extendedRankFuelDataFileName)
-    print("generated CSV results file path = " + CsvPredictionsFilePath)
+    ''' filter again the merged dataset to focus on train only '''
+    #trainDataSet = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'train']
+    #print ( trainDataSet.shape)
+    ''' build the model '''
+    #generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train (trainDataSet)
     
-    #CsvPredictionsFilePath = "fuel_rank_submission_2025-11-01-11-57-32.csv"
+    ''' extract the ranking dataset '''
+    #rankingDataset = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'rank']
+    #print ( rankingDataset.shape )
+    
+    #listOfColumnsToDrop = ['idx','flight_id','start','end','idx-train','idx-rank','train_rank']
+    #listOfColumnsToDrop = ['idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank',
+    #                       'Wingspan_ft_without_winglets_sharklets']
+    #rankingDataset = dropUnusedColumns(rankingDataset, listOfColumnsToDrop)
+    
+    #generatedModelFileName = "results_model_2025-11-06-08-09-53.h5"
+    #CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
+    #print("generated CSV results file path = " + CsvPredictionsFilePath)
+    
+    CsvPredictionsFilePath = "fuel_rank_submission_2025-11-01-11-57-32.csv"
+    CsvPredictionsFilePath = "fuel_rank_submission_2025-11-06-08-52-18.csv"
 
     generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(
             CsvPredictionsFilePath , extendedRankFuelDataFileName)
         
     print ( generatedTeamSubmissionParquetFileName )
-    '''
+    
     ''' upload parquet to S3 destination '''
-    #prcDataChallenge2025Submissions.uploadTeamParquetFileToS3( )
+    prcDataChallenge2025Submissions.uploadTeamParquetFileToS3( )
         
