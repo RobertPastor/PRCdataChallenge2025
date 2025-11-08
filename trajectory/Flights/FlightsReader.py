@@ -66,7 +66,7 @@ class FlightsDatabase(object):
         max_time_value = df_flight['timestamp'].max()
         
         df_flight['start'] = df_flight['timestamp'].min()
-        df_flight['end'] = df_flight['timestamp'].max()
+        df_flight['end']   = df_flight['timestamp'].max()
         #print("flight shape = " , df_flight.shape)
         
         #time_intervals = pd.interval_range(start=min_time_value, end=max_time_value , freq=3 , )
