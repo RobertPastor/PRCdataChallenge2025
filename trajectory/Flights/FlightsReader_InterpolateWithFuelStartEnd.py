@@ -64,8 +64,11 @@ class Test_Main(unittest.TestCase):
         print ( fuelTrainDataframe.shape )
         print ( list ( fuelTrainDataframe ) )
         
-        print(tabulate(fuelTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        ''' filter on one flight id '''
+        fuelTrainDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == "prc770864956"]
+        fuelTrainDataframe = fuelTrainDataframe.sort_values(by='timestamp')
 
+        print(tabulate(fuelTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         '''loop through the files '''
         flightsDatabase = FlightsDatabase()
@@ -79,21 +82,35 @@ class Test_Main(unittest.TestCase):
                     filePath = os.path.join(directory, fileName)
                     print ( filePath )
                     
-                    flight_id = fileName.split("\\.")[0]
+                    flight_id = fileName.split(".")[0]
                     print("flight_id = " + flight_id)
+                    if ( flight_id == "prc770864956"):
                     
-                    flightTrainDataframe = flightsDatabase.readOneTrainFileLite(fileName)
-                    print ( flightTrainDataframe.shape )
-                    
-                    ''' filter fuel on flight id and perform concat '''
-                    ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
-                    filteredFuelDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == flight_id]
-                    print ( filteredFuelDataframe.shape )
+                        flightTrainDataframe = flightsDatabase.readOneTrainFileLite(fileName)
+                        print ( flightTrainDataframe.shape )
+                        
+                        ''' filter fuel on flight id and perform concat '''
+                        ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
+                        filteredFuelDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == flight_id]
+                        print ( filteredFuelDataframe.shape )
+    
+                        ''' concat the dataframe '''
+                        flightTrainDataframe = pd.concat ( [flightTrainDataframe , filteredFuelDataframe])
+                        print ( flightTrainDataframe.shape )
+                        
+                        flightTrainDataframe = flightTrainDataframe.sort_values(by='timestamp')
+                        
+                        print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+                        #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
+    
+                        #null_rows = flightTrainDataframe[flightTrainDataframe['typecode'].isnull()]
+                        #print(tabulate(null_rows, headers='keys', tablefmt='grid' , showindex=False , ))
+                        
+                        flightTrainDataframe = flightTrainDataframe.interpolate(limit_direction='both')
+                        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+                        print(tabulate(flightTrainDataframe[10:], headers='keys', tablefmt='grid' , showindex=False , ))
 
-                    ''' concat the dataframe '''
-                    flightTrainDataframe = pd.concat ( [flightTrainDataframe , filteredFuelDataframe])
-                    print ( flightTrainDataframe.shape )
-                    #print ( list ( flightTrainDataframe ) )
+                        print ( "-"*80 )
                     
                     
             count = count + 1
