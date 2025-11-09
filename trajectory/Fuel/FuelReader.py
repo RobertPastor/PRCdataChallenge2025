@@ -263,6 +263,22 @@ class FuelDatabase(object):
             self.FuelRankDataframe = None
             return False
         
+    def readFuelTrainLite(self): 
+        
+        logging.basicConfig(level=logging.INFO)
+
+        #logging.info(self.filePathFuelTrain)
+        directory = Path(self.filesFolder)
+        #logging.info(directory)
+        file = Path(self.filePathFuelTrain)
+        
+        if directory.is_dir() and file.is_file():
+            
+            self.FuelTrainDataframe = pd.read_parquet ( self.filePathFuelTrain )
+            return self.FuelTrainDataframe
+        
+        return None
+        
     def readFuelTrain(self):
         logging.basicConfig(level=logging.INFO)
 

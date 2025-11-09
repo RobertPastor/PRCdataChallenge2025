@@ -126,18 +126,33 @@ class TensorFlowBaseClass(object):
         
         print ( df.shape )
         return df
+    
+    def generateAccuracyTextResults(self , model_file_path , X_test, y_test, currentDateTimeAsString):
         
-    def clean_outliers_capped(self , df , list_of_columnNames_to_clean):
-        for columnName in list_of_columnNames_to_clean:
-            Q1 = df[columnName].quantile(0.25)
-            Q3 = df[columnName].quantile(0.75)
-            IQR = Q3 - Q1
+        # 5 November after v24 - use rmse again
+        with CustomObjectScope({'rmse': self.rmse},{'loss':self.rmse}):
+            model = load_model(model_file_path)
             
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            
-            df[columnName] = np.clip(df[columnName], lower_bound, upper_bound)
-            return df
+        ''' evaluate the model '''
+        loss, accuracy = model.evaluate(X_test, y_test)
+        #The loss function quantifies the difference between the predicted outputs and the actual target values.
+        #It is a continuous value that the model tries to minimize during training.
+        # Common loss functions in CNNs include Cross-Entropy Loss for classification tasks and Mean Squared Error (MSE) for regression tasks.
+        print(f"Test Loss: {loss}")
+        #Accuracy measures the percentage of correct predictions made by the model out of all predictions. It is a discrete metric
+        # and is often used to evaluate the model's performance after training. 
+        #For example, if a CNN classifies 95 out of 100 test samples correctly, its accuracy is 95%
+        print(f"Test Accuracy: {accuracy}")
+        
+        # Using a context manager to create and write to a file
+        accuracyfileName = "results_accuracy_results" + "_" + currentDateTimeAsString + ".txt"
+        filesFolder = os.path.dirname(__file__)
+        accuracyFilePath = os.path.join(filesFolder , accuracyfileName)
+     
+        with open(accuracyFilePath, "w") as file:
+            file.write(f"Test Loss: {loss}\n")
+            file.write(f"Test Accuracy: {accuracy}")
+
     
     ''' 6th November 2025 - common method to make predictions from ranking dataframe '''
     def predictFromRankAndModel(self , modelFilePath , X_rank): 
@@ -151,7 +166,11 @@ class TensorFlowBaseClass(object):
         with CustomObjectScope({'loss' :  self.rmse}, {'rmse': self.rmse}):
             model = load_model(modelFilePath)
             
-        listOfColumnsToDrop = [ 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank', 'aircraft_icao_code']
+        listOfColumnsToDrop = ['idx', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank', 'aircraft_icao_code']
+        X_rank = dropUnusedColumns(X_rank , listOfColumnsToDrop)
+        
+        #y_columnName = 'fuel_flow_kg_sec'
+        listOfColumnsToDrop = ['fuel_flow_kg_sec']
         X_rank = dropUnusedColumns(X_rank , listOfColumnsToDrop)
 
         print ( X_rank.isnull().any(axis=1).sum() )
@@ -161,7 +180,6 @@ class TensorFlowBaseClass(object):
         ''' DO NOT USE -> do not use groupby flight id to clean outliers '''
         ''' 6th November 2025- not clear if outliers capping is usefull on the ranking dataframe '''
         #X_rank = clean_outliers_capping_with_groupby( X_rank , 'flight_id' , listOfColumnsWithOutliers)
-        X_rank = self.clean_outliers_capped( X_rank , self.listOfColumnsWithOutliers)
         assert X_rank.shape[0] == self.RankDataSetRowCount
         
         print ( list (X_rank ))
@@ -208,6 +226,18 @@ class TensorFlowBaseClass(object):
         print(f"Execution Time: {end_time} - {start_time} seconds")
         return rankSubmissionFilePath
     
+    ''' this operation reduces the count of rows '''
+    def clean_with_z_score(self , df , list_of_columnNames_to_clean):
+        for columnName in list_of_columnNames_to_clean:
+            zscoreColumnName = columnName + "_zscore"
+            df[zscoreColumnName] = ( df[columnName] - df[columnName].mean() ) / df[columnName].std()
+            
+            df = df[(df[zscoreColumnName] < 3.0) & (df[zscoreColumnName] > -3.0)]
+            ''' drop the created column '''
+            df = df.drop ( zscoreColumnName , axis=1)
+            
+        return df 
+    
     ''' call model_fit '''
     def Build_Model_From_Train(self , train_dataset ):
         
@@ -215,12 +245,13 @@ class TensorFlowBaseClass(object):
         assert train_dataset.shape[0] == self.TrainDataSetRowCount
         
         #train_dataset = dropUnusedColumns(train_dataset , ['idx', 'fuel_kg', 'start' , 'end' , 'flight_id'])
-        listOfColumnsToDrop = ['idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank']
+        listOfColumnsToDrop = ['idx','idx-train', 'idx-rank', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank']
         train_dataset = dropUnusedColumns(train_dataset , listOfColumnsToDrop)
         print ( list (train_dataset))
         
-        ''' use clean outliers with capped quantiles without groupby flight_id nor groupby on aircraft code '''
-        train_dataset = self.clean_outliers_capped( train_dataset , self.listOfColumnsWithOutliers)
+        ''' clean with zscore -> this operation reduces the number of rows '''
+        train_dataset = self.clean_with_z_score ( train_dataset , self.listOfColumnsWithOutliers)
+        
         #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
         print ( list (train_dataset))
         train_dataset = train_dataset.fillna(0.0)
@@ -236,7 +267,8 @@ class TensorFlowBaseClass(object):
         ''' pandas series with only one column -> the y '''
         y = train_dataset[[y_columnName]]
         print ( str ( list (y) ))
-        y.shape[0] = self.RankDataSetRowCount
+        ''' zscore cleaning leads to deleted erroneous rows in the train dataset '''
+        #assert len(y) == self.RankDataSetRowCount
         
         ''' whole array must contain only floats no any string '''
         y = np.asarray(y).astype(np.float32)
@@ -245,12 +277,12 @@ class TensorFlowBaseClass(object):
         #scaling the target variable is often necessary to ensure that the loss function operates within a manageable range.
         #y = np.asarray(y).astype(np.float32)
         '''  Split the data (70% train, 20% test)'''
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2 , random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3 , random_state=42)
             
         ''' split data set in 0% train and 20% test '''
         ''' after v25 try to reduce epochs to 200 '''
         ''' after v26 -> set epochs again to 300 '''
-        epochs = 300
+        epochs = 200
         model_file_path , currentDateTimeAsString = self.tf_model_fit( X_train, y_train , epochs )
         print ( model_file_path )
             
@@ -260,4 +292,167 @@ class TensorFlowBaseClass(object):
         
         ''' generate accuracy text file '''
         self.generateAccuracyTextResults(model_file_path , X_test, y_test, currentDateTimeAsString)
-        return model_file_path
+        return model_file_path    
+    
+    ''' 6th November 2025 - use in all scenarios '''
+    ''' read the S3 storage to extract all team paruet submissions and find the latest submitted version '''
+    def getLatestTeamSubmittedVersion(self):
+        # create a client
+        client = Minio( endpoint = "s3.opensky-network.org" ,
+                        access_key = "HertaMoschenPastor" ,
+                        secret_key = "HertaMoschenPastor1&&&xxx" ,
+                        secure = True)
+                        
+        
+        print("total buckets : " , len ( client.list_buckets() ) )
+        for bucket in client.list_buckets():
+            print ( bucket.name , bucket.creation_date )
+    
+        regexp_pattern = r"[.]"
+        listOfVersions = []
+        for obj in client.list_objects(bucket_name="prc-2025-understated-zucchini", prefix="understated-zucchini"):
+            #print ( object.object_name )
+            fileName = obj.object_name
+            if str(fileName).endswith("parquet"):
+                #print ( fileName )
+                fileVersion = str(fileName.split("_")[1])
+                #print ( fileVersion )
+                fileVersion = re.split(regexp_pattern, fileVersion)
+                fileVersion = fileVersion[0]
+                #print ( fileVersion )
+                listOfVersions.append(int(str(fileVersion)[1:]))
+            
+        listOfVersions.sort()
+        #print ( listOfVersions)
+        return max ( listOfVersions )
+
+    ''' compute fuel kg from fuel flow '''
+    def computeFuelKg( self , row ):
+        return (abs( row['fuel_flow_kg_sec'] ) * row['time_diff_seconds'])
+    
+    def suppressUTC ( self, row , columnName ):
+        from datetime import timezone
+        return row[columnName].replace(tzinfo=timezone.utc).astimezone(tz=None)
+    
+    def uploadTeamParquetFileToS3(self ):
+        
+        # and secret key.
+        client = Minio("s3.opensky-network.org",
+            access_key="HertaMoschenPastor",
+            secret_key="HertaMoschenPastor1&&&xxx",
+        )
+        # The file to upload, change this path if needed
+        filesFolder = os.path.dirname(__file__)
+        
+        ''' compute file name to upload '''
+        newVersionInt = self.getLatestTeamSubmittedVersion()+1
+        fileName_to_upload = "understated-zucchini_v" + str(newVersionInt) + ".parquet"
+
+        filePath_to_upload = os.path.join(filesFolder , fileName_to_upload)
+    
+        # The destination bucket and filename on the MinIO server
+        bucket_name = "prc-2025-understated-zucchini"
+        
+        # Make the bucket if it doesn't exist.
+        found = client.bucket_exists(bucket_name)
+        if found:
+            print("Bucket", bucket_name, "already exists")
+
+        # Upload the file, renaming it in the process
+        client.fput_object(
+            bucket_name, fileName_to_upload, filePath_to_upload,
+        )
+        print(
+            fileName_to_upload, "successfully uploaded as object",
+            fileName_to_upload, "to bucket", bucket_name,
+        )
+
+    ''' generate Team submission parquet file '''
+    ''' from a CSV input computed before hand ''' 
+    def generateTeamSubmissionParquetFile (self , submissionCsvFileName ,  extendedRankFuelDataFileName):
+        logging.info (' -------------- Post Processing to convert fuel flow to fuel kg Fuel -------------')
+        
+        newSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
+        targetTeamParquetFileName = 'understated-zucchini_v' + str(newSubmissionVersion) + ".parquet"
+        print ( targetTeamParquetFileName )
+            
+        filePath = os.path.join( self.javaTrainRankfilesFolder  , extendedRankFuelDataFileName)
+        file = Path(filePath )
+        print( file.absolute())
+        directory = Path(self.javaTrainRankfilesFolder)
+        if directory.is_dir() and file.is_file():
+            
+            print("---- start post processing of CSV predictions -- ")
+            
+            start_time = time.time()
+            X_rank = pd.read_parquet ( filePath )
+            
+            print ("final shape = " +  str (  X_rank .shape ) ) 
+            #assert df.shape[0] == fuelDatabase.getFuelRankDataframeNbRows()
+            
+            ''' list of columns to keep only '''
+            listOfColumnsToKeep = ['idx', 'flight_id', 'start', 'end','time_diff_seconds']
+            X_rank =  keepOnlyColumns ( X_rank , listOfColumnsToKeep )
+             
+            print ( str ( X_rank.shape ))
+            assert X_rank.shape[0] == self.RankDataSetRowCount
+            
+            print ( list ( X_rank ))
+            #assert X_train.shape[0] == Count_of_FlightsFiles_to_read
+            #print(tabulate(X_rank[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+            
+            print("input CSV file Warning - with fuel flow = " , submissionCsvFileName)
+            filesFolder = os.path.dirname(__file__)
+            submissionCsvFilePath  = os.path.join(filesFolder , submissionCsvFileName)
+            
+            if Path(submissionCsvFilePath).exists() and Path(submissionCsvFilePath).is_file():
+                ''' read computed submissions '''
+                df_predictions = pd.read_csv(submissionCsvFilePath , sep=';')
+    
+                # Affichage des 5 premières lignes
+                #print(df_predictions.head())
+                print(df_predictions.shape)
+                assert df_predictions.shape[0] == self.RankDataSetRowCount
+                ''' ensure that count of NA is 0 '''
+                assert pd.DataFrame(df_predictions).shape[0] == pd.DataFrame(df_predictions).dropna().shape[0]
+                
+                # Join on index idx 
+                df_result = pd.merge(X_rank, df_predictions, left_index=True, right_index=True)
+                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+                
+                ''' compute absolute consumption for the time difference '''
+                df_result['fuel_kg'] = df_result.apply ( self.computeFuelKg , axis = 1)
+                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+                
+                df_result = df_result.rename( columns= {'fuel_burn_start':'start','fuel_burn_end':'end' ,'idx_x':'idx'} )
+                df_result = df_result.drop ( ['idx_y', 'fuel_flow_kg_sec' , 'time_diff_seconds' ], axis = 1)
+                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+               
+                df_result['start_no_utc'] = df_result.apply ( self.suppressUTC , args = { 'start' }, axis = 1)
+                df_result['end_no_utc'] = df_result.apply ( self.suppressUTC , args = { 'end' }, axis = 1)
+                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+                
+                df_result = df_result.drop ( ['start', 'end'  ], axis = 1)
+                df_result = df_result.rename( columns= {'start_no_utc':'start','end_no_utc':'end' } )
+                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+               
+                # Rearrange columns order 
+                new_order = ['idx', 'flight_id', 'start', 'end','fuel_kg']
+                df_result = df_result[new_order]
+                
+                #print(tabulate(df_result[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+                
+                ''' write to parquet '''
+                
+                filesFolder = os.path.dirname(__file__)
+                targetTeamParquetFilePath = os.path.join(filesFolder , targetTeamParquetFileName)
+                
+                print("final submission parquet file = " + targetTeamParquetFilePath)
+                df_result.to_parquet(targetTeamParquetFileName)
+                
+                end_time = time.time()  # Record the end time
+                elapsed_time = end_time - start_time
+                print(f"Elapsed time: {elapsed_time:.2f} seconds")
+                
+                print(" submission parquet file <<" + targetTeamParquetFilePath +">> generated correctly")

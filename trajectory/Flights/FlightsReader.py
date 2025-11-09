@@ -169,8 +169,21 @@ class FlightsDatabase(object):
         return self.FlightsRankDataframe
     
     ''' extend timestamp series to one minute interval '''
-
+    
+    def readOneTrainFileLite(self, fileName ):
         
+        if str(fileName).endswith("parquet") == False:
+            fileName = fileName + ".parquet"
+        
+        #logging.info(self.className + ": file name = " + fileName)
+        filePath = os.path.join( self.filesFolderTrain , fileName)
+        file = Path(filePath)
+        
+        assert file.is_file() == True
+        
+        self.FlightsTrainDataframe = pd.read_parquet(filePath)
+        return self.FlightsTrainDataframe
+
     def readOneTrainFile(self, fileName):
         
         if str(fileName).endswith("parquet") == False:

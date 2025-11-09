@@ -9,7 +9,7 @@ Created on 8 nov. 2025
 from minio import Minio
 from minio.datatypes import Object
 import re
-
+import math
 import numpy as np
 eps_single = np.finfo(np.float32).eps
 
@@ -77,9 +77,20 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         self.extendedFuelTrainDataFileName = extendedFuelTrainDataFileName
         self.extendedRankFuelDataFileName = extendedRankFuelDataFileName
         self.javaTrainRankfilesFolder = javaTrainRankfilesFolder
-        
         super(PRCdataChallenge2025Submissions, self).__init__(TrainDataSetRowCount , RankDataSetRowCount , listOfColumnsWithOutliers )
-        pass
+        
+    def clean_outliers_capped(self , df , list_of_columnNames_to_clean):
+        for columnName in list_of_columnNames_to_clean:
+            Q1 = df[columnName].quantile(0.25)
+            Q3 = df[columnName].quantile(0.75)
+            IQR = Q3 - Q1
+            
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            df[columnName] = np.clip(df[columnName], lower_bound, upper_bound)
+            
+        return df
 
     ''' used to filter part of the big dataframe containing the train records or the rank records '''
     def addTrainRankUseDifferenciatorColumns(self , df , train_rank_str  ):
@@ -93,7 +104,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
 
         TAS = row['aircraft_TAS_at_fuel_start']
-        if TAS != np.nan:
+        if not math.isnan(TAS):
             return TAS
         else:
             #TAS is empty
@@ -108,7 +119,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
 
         TAS = row['aircraft_TAS_at_fuel_end']
-        if TAS != np.nan:
+        if not math.isnan(TAS):
             return TAS
         else:
             # TAS is empty            
@@ -124,7 +135,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
         
         CAS = row['aircraft_CAS_at_fuel_start']
-        if (CAS != np.nan):
+        if not math.isnan(CAS):
             return CAS
         else:
             if (mach is not None) and (mach != np.nan):
@@ -139,7 +150,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
 
         CAS = row['aircraft_CAS_at_fuel_end']
-        if (CAS != np.nan):
+        if not math.isnan(CAS):
             return CAS
         else:
             if (mach is not None) and (mach != np.nan):
@@ -157,23 +168,37 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         df['aircraft_CAS_at_fuel_start'] = df.apply( self.compute_CAS_KnotsfromMach_atFuelStart , axis = 1)
         df['aircraft_CAS_at_fuel_end']   = df.apply( self.compute_CAS_KnotsfromMach_atFuelEnd , axis = 1)
         return df
-
     
     ''' latest version where all transformations are applied to both train and rank dataframes'''
     def extendCorrectTrainRankDataframe(self , concatenatedTrainRankDataset):
         
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
         concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingSpeeds(concatenatedTrainRankDataset)
+        
+        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
+
         #print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         #print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         ''' set info discriminating whether aircraft has or not winglets or sharklets '''
         concatenatedTrainRankDataset['hasSharklets'] = np.where ( concatenatedTrainRankDataset['Wingspan_ft_without_winglets_sharklets'].isnull() , 0 , 1)
+        
+        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
+
+        ''' use clean outliers with capped quantiles without groupby flight_id nor groupby on aircraft code '''
+        concatenatedTrainRankDataset = self.clean_outliers_capped( concatenatedTrainRankDataset , self.listOfColumnsWithOutliers)
+        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
+        
+        listOfColumnsToDrop = ['idx','flight_id', 'start', 'end' , 'aircraft_ICAO_Code', 'train_rank']
+        df_temp = dropUnusedColumns ( concatenatedTrainRankDataset , listOfColumnsToDrop )
+        print ( tabulate ( df_temp.describe(include='all'), headers='keys', tablefmt='grid' , showindex=False , ) )
         
         ''' 6th November 2025 - v25 -> v26 -> test without dummies '''
         ''' after v26- add dummies again '''
         concatenatedTrainRankDataset = pd.get_dummies( concatenatedTrainRankDataset , columns=['aircraft_ICAO_Code'], dtype = int)
         print ( concatenatedTrainRankDataset.shape )
         print ( list ( concatenatedTrainRankDataset ) )
+        
+        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
         
         return concatenatedTrainRankDataset
     
@@ -245,25 +270,33 @@ if __name__ == '__main__':
     ''' 8 November 2025 - temporary useful because Java activities are not dealing correctly TAS and CAS '''
     concatenatedTrainRankDataset = prcDataChallenge2025Submissions.extendCorrectTrainRankDataframe ( concatenatedTrainRankDataset )
     print ( concatenatedTrainRankDataset.shape )
+    
     assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
     
-    ''' df['train_rank'] = train_rank_str '''
+    print ( tabulate ( concatenatedTrainRankDataset.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
+    
     ''' filter again the merged dataset to focus on train only '''
     trainDataSet = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'train']
+
     #print ( trainDataSet.shape)
-    
     ''' build the model '''
     #generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train (trainDataSet)
     
-    generatedModelFileName = "results_model_2025-11-08-17-39-43.h5"
+    generatedModelFileName = "results_model_2025-11-09-07-43-24.h5"
     print ( generatedModelFileName )
     
     rankingDataset = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'rank']
 
     CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
+    print ( CsvPredictionsFilePath )
 
-    #generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(
-    #        CsvPredictionsFilePath , extendedRankFuelDataFileName)
+    generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(
+            CsvPredictionsFilePath , extendedRankFuelDataFileName)
         
-    #print ( generatedTeamSubmissionParquetFileName )
+    print ( generatedTeamSubmissionParquetFileName )
+    
+    ''' upload parquet to S3 destination '''
+    ''' no need to provide a version , the version is computed on the fly '''
+    prcDataChallenge2025Submissions.uploadTeamParquetFileToS3( )
+
 
