@@ -1355,10 +1355,9 @@ def mach2tas(
 
     if temp == 'std':
         if altitude != 'blank':
-            temp = SA.alt2temp(altitude, temp_units=temp_units,
-                               alt_units=alt_units)
+            temp = SA.alt2temp(altitude, temp_units=temp_units, alt_units=alt_units)
         else:
-            raise ValueError (                'At least one of the temperature or altitude must be specified.')
+            raise ValueError ('At least one of the temperature or altitude must be specified.')
 
     tas = mach * SA.temp2speed_of_sound(temp, temp_units, speed_units)
 

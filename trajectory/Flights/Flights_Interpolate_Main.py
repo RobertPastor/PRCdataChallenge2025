@@ -9,7 +9,10 @@ import platform
 import logging
 import pandas as pd
 import os
+import math
 import numpy as np
+from trajectory.aerocalc.airspeed import mach2tas , mach_alt2cas
+
 from trajectory.Flights.FlightsReader import FlightsDatabase
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.Guidance.WayPointFile import WayPoint , Airport
@@ -205,6 +208,47 @@ class FlightsInterpolated(object):
     def getFlightIdDestinationICAO(self, flight_id):
         return self.DestinationICAODict[flight_id]
     
+    def compute_TAS_Knots_from_Mach(self , row):
+        mach = row['mach']
+        aircraft_altitude_ft = row['altitude']
+
+        TAS = row['TAS']
+        if not math.isnan(TAS):
+            return TAS
+        else:
+            #TAS is empty
+            if (mach is not None) and (mach != np.nan):
+                try:
+                    return  mach2tas ( mach = mach , altitude = aircraft_altitude_ft , alt_units = 'ft')
+                except ValueError:
+                    return np.nan
+            else:
+                return np.nan
+            
+    def compute_CAS_Knots_from_Mach(self, row):
+        mach = row['mach']
+        aircraft_altitude_ft = row['altitude']
+        
+        CAS = row['CAS']
+        if not math.isnan(CAS):
+            return CAS
+        else:
+            #CAS is empty
+            if (mach is not None) and (mach != np.nan):
+                try:
+                    return  mach_alt2cas ( mach=mach , altitude=aircraft_altitude_ft , alt_units='ft')
+                except ValueError:
+                    return np.nan
+            else:
+                return np.nan
+        
+    ''' use python aerocal method to compute TAS and CAS from mach when TAS or CAS are null '''
+    def computeMissingSpeeds(self, df):
+        # Machine epsilon for single precision (32-bit)
+        df['TAS'] = df.apply( self.compute_TAS_Knots_from_Mach, axis = 1)
+        df['CAS'] = df.apply( self.compute_CAS_Knots_from_Mach , axis = 1)
+        return df
+    
     def interpolate_one_flight_data(self , flight_id, flightsDatabase, filePath):
         
         if self.train_rank == "train":
@@ -284,7 +328,6 @@ class FlightsInterpolated(object):
             flightTrainDataframe = pd.concat( [ flightTrainDataframe , landedRow])
             flightTrainDataframe.reset_index(drop=True, inplace=True)
             
-
             ''' sort values acording to increasing timestamps '''
             flightTrainDataframe = flightTrainDataframe.sort_values(by='timestamp')
             flightTrainDataframe.reset_index(drop=True, inplace=True)
@@ -292,8 +335,9 @@ class FlightsInterpolated(object):
             print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
             print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
 
+            self.computeMissingSpeeds(flightTrainDataframe)
             ''' main interpolation '''
-            flightTrainDataframe = flightTrainDataframe.interpolate(limit_direction='both')
+            flightTrainDataframe = flightTrainDataframe.interpolate(limit_direction='forward')
             
             flightTrainDataframe = flightTrainDataframe.drop( ['index'] , axis=1 )
  
