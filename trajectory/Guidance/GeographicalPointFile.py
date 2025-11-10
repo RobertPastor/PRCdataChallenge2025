@@ -8,9 +8,9 @@ import math
 from methodtools import lru_cache
 
 from trajectory.Guidance.Haversine import  LatitudeLongitudeAtDistanceBearing
-
 from trajectory.Environment.Earth.EarthFile import EarthRadiusMeters
 from trajectory.Guidance.Haversine import points2distanceMeters
+from trajectory.Environment.Constants import Meter2Feet
 
 class GeographicalPoint(object):
     className = ""
@@ -104,6 +104,9 @@ class GeographicalPoint(object):
     def getAltitudeMeanSeaLevelMeters(self):
         return self.AltitudeMeanSeaLevelMeters
     
+    def getElevationMSLFeet(self):
+        return self.AltitudeMeanSeaLevelMeters * Meter2Feet
+ 
     def setAltitudeMeanSeaLevelMeters(self, levelMeters):
         self.AltitudeMeanSeaLevelMeters = levelMeters
         

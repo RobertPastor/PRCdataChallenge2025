@@ -108,7 +108,7 @@ class Test_Main(unittest.TestCase):
                         
                         flightTrainDataframe = flightTrainDataframe.interpolate(limit_direction='both')
                         #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-                        print(tabulate(flightTrainDataframe[10:], headers='keys', tablefmt='grid' , showindex=False , ))
+                        print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
 
                         print ( "-"*80 )
                     

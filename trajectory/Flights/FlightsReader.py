@@ -38,6 +38,16 @@ class FlightsDatabase(object):
         assert Path(self.filesFolderTrain).is_dir() == True
         assert Path(self.filesFolderRank).is_dir() == True
         
+    ''' assumption : there is at least one row with a non null value in the typecode column '''
+    def getFirstNonNullValueInColumn(self , df, columnName):
+        # Get the first valid non-null value from a specific column
+        assert columnName in initialHeaders
+        first_valid_index = df[columnName].first_valid_index()
+        first_valid_value = df.loc[first_valid_index, columnName]
+
+        print(f"First valid non-null value in column : {columnName} : {first_valid_value}")
+        return first_valid_value
+            
     def getTrainFlightsFolderPathStr(self):
         return self.filesFolderTrain
     
@@ -169,6 +179,17 @@ class FlightsDatabase(object):
         return self.FlightsRankDataframe
     
     ''' extend timestamp series to one minute interval '''
+   
+    ''' read flight parquet file and return a dataframe , either a train or a rank flight dataframe '''
+    def readOneFlightFileLite(self , flightfilePath ):
+        
+        #logging.info(self.className + ": file name = " + fileName)
+        #filePath = os.path.join( self.filesFolderTrain , fileName)
+        file = Path(flightfilePath)
+        assert file.is_file() == True
+        
+        self.FlightsDataframe = pd.read_parquet(flightfilePath)
+        return self.FlightsDataframe
     
     def readOneTrainFileLite(self, fileName ):
         

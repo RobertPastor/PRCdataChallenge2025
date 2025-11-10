@@ -1,14 +1,13 @@
 '''
 Created on 5 oct. 2025
 
-@author: rober
+@author: robert
 '''
 
 
 import logging
 import unittest
 from trajectory.Guidance.WayPointFile import Airport
-
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 
 #============================================
@@ -29,8 +28,7 @@ class Test_Main(unittest.TestCase):
         ret = airportsDatabase.readAsDict()
         print ( ret )
         #for country in airportsDatabase.getCountries():
-        #    print ( country )
-            
+        
         ICAOcode = "LFPG"
         airport = airportsDatabase.getAirportFromICAOCode(ICAOcode)
         

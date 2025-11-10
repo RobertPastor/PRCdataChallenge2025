@@ -106,7 +106,6 @@ class AirportsDatabase(object):
                                         'latitude degrees' : 'airport_latitude_deg', 
                                         'longitude degrees': 'airport_longitude_deg' })
         logging.info(self.className + ' - ' + str( list(self.airportsDataFrame) ) )
-
         return True
     
     def getAirportsDataframe(self):
@@ -168,18 +167,24 @@ class AirportsDatabase(object):
             logging.info ( "{0} - {1}".format(self.className , row ))
     
     def getNumberOfAirports(self):
-        if self.airportsDb is None: return 0
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
+
         return len(self.airportsDb.keys())
     
     def dumpCountry(self, Country="France"):
-        if self.airportsDb is None: return
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
+
         for key , airport in self.airportsDb.items():
             if str(key).startswith('LF') and airport['Country'] == Country :
                 logging.info (  airport )
                
                 
     def getICAOCode(self, airportName = ''):
-        if self.airportsDb is None: return ""
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
+
         airportsIcaoCodeList = []
         for key, airport in self.airportsDb.items():
             if str(airportName).lower() in str(airport["Airport Name"]).lower():
@@ -187,8 +192,19 @@ class AirportsDatabase(object):
         if len(airportsIcaoCodeList)==1: return airportsIcaoCodeList[0]
         return airportsIcaoCodeList
     
+    def getAirportElevationFeet(self , ICAOcode = ""):
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
+
+        ''' internal airport is a dictionary '''
+        for key, airportInternal in self.airportsDb.items():
+            if key == ICAOcode:
+                return float(airportInternal["AltitudeFeet"])
+        return 0.0
+    
     def getAirportElevationMeters(self, ICAOcode = ""):
-        if self.airportsDb is None: return 0.0
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
         
         ''' internal airport is a dictionary '''
         for key, airportInternal in self.airportsDb.items():
@@ -197,7 +213,8 @@ class AirportsDatabase(object):
         return 0.0
     
     def getAirportLatitudeDegrees(self, ICAOcode = ""):
-        if self.airportsDb is None: return 0.0
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
         
         ''' internal airport is a dictionary '''
         for key, airportInternal in self.airportsDb.items():
@@ -206,7 +223,8 @@ class AirportsDatabase(object):
         return 0.0
                  
     def getAirportLongitudeDegrees(self, ICAOcode = ""):
-        if self.airportsDb is None: return 0.0
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
         
         ''' internal airport is a dictionary '''
         for key, airportInternal in self.airportsDb.items():
@@ -215,7 +233,9 @@ class AirportsDatabase(object):
         return 0.0
     
     def isAirportICAOcodeInDB(self , ICAOcode = ""):
-        if self.airportsDb is None: return None
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
+
         for key, airportInternal in self.airportsDb.items():
             if key == ICAOcode:
                 return True
@@ -223,7 +243,9 @@ class AirportsDatabase(object):
                
     def getAirportFromICAOCode(self, ICAOcode=""):
         logging.info(ICAOcode)
-        if self.airportsDb is None: return None
+        if self.airportsDb is None:
+            raise ValueError(self.className + " -> airports database is not correctly created")
+
         airport = None
         ''' internal airport is a dictionary '''
         for key, airportInternal in self.airportsDb.items():

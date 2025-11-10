@@ -28,12 +28,11 @@ Created on 13 juil. 2014
 import math
 import logging
 
-
-from trajectory.Guidance.Haversine import points2distanceMeters, points2bearingDegrees, LatitudeLongitudeAtDistanceBearing
+from trajectory.Guidance.Haversine import points2distanceMeters, points2bearingDegrees
+from trajectory.Guidance.Haversine import  LatitudeLongitudeAtDistanceBearing
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 
 from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
-
 
 def to_positive_angle(angleDegrees):
     angleDegrees = math.fmod(angleDegrees, 360);
@@ -64,11 +63,13 @@ class WayPoint(GeographicalPoint):
         self.isFlyBy = True
         
     def __str__(self):
-        return  "{0} - {1} - latitude = {2:.2f} degrees - longitude = {3:.2f} degrees - altitude MSL = {4:.2f} meters".format(self.className, 
-                                                                                                                              self.Name, 
-                                                                                                                              self.LatitudeDegrees, 
-                                                                                                                              self.LongitudeDegrees,
-                                                                                                                              self.getAltitudeMeanSeaLevelMeters())
+        return  "{0} - {1} - latitude = {2:.2f} degrees - \
+        longitude = {3:.2f} degrees - \
+        altitude MSL = {4:.2f} meters".format(self.className,
+                                            self.Name, 
+                                            self.LatitudeDegrees, 
+                                            self.LongitudeDegrees,
+                                            self.getAltitudeMeanSeaLevelMeters())
     
     def setElapsedTimeSeconds(self, elapsedTimeSeconds):
         self.elapsedTimeSeconds = elapsedTimeSeconds

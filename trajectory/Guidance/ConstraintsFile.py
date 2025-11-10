@@ -51,7 +51,7 @@ import logging
 feet2Meters = 0.3048 #meters
 Meters2Feet = 3.2808399
 
-from trajectory.Guidance.WayPointFile  import WayPoint 
+from trajectory.Guidance.WayPointFile import WayPoint 
 
 def mayBeKnotsSpeedConstraint(fixIndex, fix):
     constraintFound = False
