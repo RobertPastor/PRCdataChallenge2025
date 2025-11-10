@@ -4,7 +4,7 @@ Created on 9 nov. 2025
 @author: rober
 '''
 
-
+import sys
 import platform
 import logging
 import pandas as pd
@@ -214,45 +214,50 @@ class FlightsInterpolated(object):
     
     def compute_TAS_Knots_from_Mach(self , row):
         mach = row['mach']
+        if ( mach is None) or math.isnan ( mach ) or ( mach == np.nan) or (mach < sys.float_info.epsilon):
+            return row['TAS']
+ 
         aircraft_altitude_ft = row['altitude']
-
+        if ( aircraft_altitude_ft is None) or math.isnan(aircraft_altitude_ft) or ( aircraft_altitude_ft == np.nan) or (aircraft_altitude_ft < sys.float_info.epsilon):
+            return row['TAS']
+        
         TAS = row['TAS']
-        if not math.isnan(TAS):
+        if not ( math.isnan(TAS) ) and ( TAS != np.nan) and (TAS > sys.float_info.epsilon):
             return TAS
         else:
             #TAS is empty
-            if (mach is not None) and not math.isnan(mach) and not math.isnan(aircraft_altitude_ft):
-                try:
-                    return  mach2tas ( mach = mach , altitude = aircraft_altitude_ft , alt_units = 'ft')
-                except ValueError:
-                    return np.nan
-            else:
+            try:
+                return  mach2tas ( mach = mach , altitude = aircraft_altitude_ft , alt_units = 'ft')
+            except ValueError:
                 return np.nan
             
     def compute_CAS_Knots_from_Mach(self, row):
         mach = row['mach']
+        if ( mach is None) or math.isnan ( mach ) or ( mach == np.nan) or (mach < sys.float_info.epsilon):
+            return row['CAS']
+        
         aircraft_altitude_ft = row['altitude']
+        if ( aircraft_altitude_ft is None) or math.isnan(aircraft_altitude_ft) or ( aircraft_altitude_ft == np.nan) or (aircraft_altitude_ft < sys.float_info.epsilon):
+            return row['CAS']
         
         CAS = row['CAS']
-        if not math.isnan(CAS):
+        if not ( math.isnan(CAS) ) and ( CAS != np.nan) and (CAS > sys.float_info.epsilon):
             return CAS
         else:
             #CAS is empty
-            if (mach is not None) and not math.isnan(mach) and not math.isnan(aircraft_altitude_ft):
-                try:
-                    return  mach_alt2cas ( mach=mach , altitude=aircraft_altitude_ft , alt_units='ft')
-                except ValueError:
-                    return np.nan
-            else:
+            try:
+                return  mach_alt2cas ( mach=mach , altitude=aircraft_altitude_ft , alt_units='ft')
+            except ValueError:
                 return np.nan
+
         
     ''' use python aerocal method to compute TAS and CAS from mach when TAS or CAS are null '''
     def computeMissingSpeeds(self, df):
+        print("=========== compute missing speeds ===============")
         # Machine epsilon for single precision (32-bit)
         df['TAS'] = df.apply( self.compute_TAS_Knots_from_Mach, axis = 1)
         df['CAS'] = df.apply( self.compute_CAS_Knots_from_Mach , axis = 1)
         return df
-    
     
     def interpolate_one_flight_data(self , flight_id, flightsDatabase):
         
@@ -279,12 +284,6 @@ class FlightsInterpolated(object):
         ''' set hard code values for type code and for source '''
         flightDataframe['typecode'] = firstNonNullTypeCode
         flightDataframe['source'] = 'interpolated'
-            
-        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-        #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
-        #print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-        
-        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         ''' show rows with nan in typecode column '''
         df_with_nan_in_typecode = flightDataframe[flightDataframe['typecode'].isna()]
@@ -308,8 +307,8 @@ class FlightsInterpolated(object):
                                         "track"         : [bearingAngleFromOrigin2DestinationDegrees],
                                         "vertical_rate" : [(0.0)],
                                         "mach"          : [(0.0)],
-                                        "TAS"           : [(0.0)],
-                                        "CAS"           : [(0.0)],
+                                        "TAS"           : [(np.nan)],
+                                        "CAS"           : [(np.nan)],
                                         "source"        : ["interpolated"]
                                         } )
         #print ( flightTrainDataframe.info() )
@@ -328,8 +327,8 @@ class FlightsInterpolated(object):
                                         "track"         : [bearingAngleFromOrigin2DestinationDegrees],
                                         "vertical_rate" : [(0.0)],
                                         "mach"          : [(0.0)],
-                                        "TAS"           : [(0.0)],
-                                        "CAS"           : [(0.0)],
+                                        "TAS"           : [(np.nan)],
+                                        "CAS"           : [(np.nan)],
                                         "source"        : ["interpolated"]
                                         } )
         #print ( flightTrainDataframe.info() )
@@ -348,19 +347,27 @@ class FlightsInterpolated(object):
         #print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
         
         print ( flightDataframe.info() )
+        
+        listOfColumnsToInterpolate = ['latitude','longitude','altitude','groundspeed','track','vertical_rate','mach','TAS','CAS']
+        for columnToInterpolate in listOfColumnsToInterpolate:
+            countOfNulls = flightDataframe[columnToInterpolate].isna().sum()
+            print ( "column = " + columnToInterpolate + " count of nulls = " + 
+                    str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
 
-        self.computeMissingSpeeds(flightDataframe)
+        flightDataframe = self.computeMissingSpeeds(flightDataframe)
         
         ''' show dataframe informations '''
         print ( flightDataframe.shape )
         print ( flightDataframe.info() )
             
         ''' main interpolation '''
-        flightDataframe = flightDataframe.interpolate(limit_direction='forward')
-        listOfColumnsToInterpolate = ['latitude','longitude','altitude','groundspeed','track','vertical_rate','mach','TAS','CAS']
         for columnToInterpolate in listOfColumnsToInterpolate:
-            print ( "column = " + columnToInterpolate + " count not null = " + 
-                    str(flightDataframe[columnToInterpolate].count()) + " - versus = " + str(flightDataframe.shape[0]))
+            countOfNulls = flightDataframe[columnToInterpolate].isna().sum()
+            print ( "column = " + columnToInterpolate + " count of nulls = " + 
+                    str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
+            
+        print("=========================== interpolate ========================")
+        flightDataframe = flightDataframe.interpolate(limit_direction='forward')
         
         flightDataframe = flightDataframe.drop( ['index'] , axis=1 )
  
