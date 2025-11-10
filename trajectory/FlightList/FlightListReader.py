@@ -94,7 +94,6 @@ class FlightListDatabase(object):
         return airport.getLongitudeDegrees()
         
     def getDestinationAirportElevationFeet(self , train_rank, flight_id ):
-        from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
         airportsDatabase = AirportsDatabase()
         assert airportsDatabase.readAsDict()
         

@@ -34,6 +34,7 @@ class FlightsDatabase(object):
         self.filesFolder = os.path.dirname(__file__)
         self.filesFolderTrain = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data")
         self.filesFolderRank = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data")
+        self.filesFolderFinal = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-final-data")
         
         assert Path(self.filesFolderTrain).is_dir() == True
         assert Path(self.filesFolderRank).is_dir() == True
@@ -53,7 +54,15 @@ class FlightsDatabase(object):
     
     def getRankFlightsFolderPathStr(self):
         return self.filesFolderRank
-        
+    
+    def getTrainRankFinalFlightsFolderPathStr(self, train_rank_final):
+        if train_rank_final == "train":
+            return self.filesFolderTrain
+        elif train_rank_final == "rank":
+            return self.filesFolderRank
+        else:
+            return self.filesFolderFinal
+
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))
     
@@ -181,14 +190,23 @@ class FlightsDatabase(object):
     ''' extend timestamp series to one minute interval '''
    
     ''' read flight parquet file and return a dataframe , either a train or a rank flight dataframe '''
-    def readOneFlightFileLite(self , flightfilePath ):
-        
+    def readOneFlightFileLite(self , train_rank_final , flightfileName ):
+        folderPathStr = ""
+        if train_rank_final == "train":
+            folderPathStr = self.filesFolderTrain 
+
+        elif train_rank_final == "rank":
+            folderPathStr = self.filesFolderRank 
+
+        else:
+            folderPathStr = self.filesFolderFinal 
+
         #logging.info(self.className + ": file name = " + fileName)
-        #filePath = os.path.join( self.filesFolderTrain , fileName)
-        file = Path(flightfilePath)
+        flightFilePath = os.path.join( folderPathStr , flightfileName)
+        file = Path(flightFilePath)
         assert file.is_file() == True
         
-        self.FlightsDataframe = pd.read_parquet(flightfilePath)
+        self.FlightsDataframe = pd.read_parquet(flightFilePath)
         return self.FlightsDataframe
     
     def readOneTrainFileLite(self, fileName ):

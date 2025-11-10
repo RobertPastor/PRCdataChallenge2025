@@ -62,23 +62,28 @@ class FlightsInterpolated(object):
 
     def build_Fuel_Dataframe_with_start_end_timestamps( self, fuelTrainDataframe ):
         
-        fuelStartDataframe = fuelTrainDataframe.copy()
-        listOfColumnNamesToKeep = ['flight_id', 'start']
-        fuelStartDataframe = keepOnlyColumns( fuelStartDataframe, listOfColumnNamesToKeep)
-        fuelStartDataframe = fuelStartDataframe.rename(columns={'start': 'timestamp'})
-        print ( list ( fuelStartDataframe ))
-        print ( fuelStartDataframe.shape  )
+        print ("-----focusing on the training flights data files -----")
+        print ("-----extend fuel dataframe timestamps with fuel start and end timestamps  -----")
+        print ("-----prepare for interpolating flights timestamps added from fuel start and end timestamps  -----")
+        
+        if ( self.train_rank == 'train'):
+            fuelStartDataframe = fuelTrainDataframe.copy()
+            listOfColumnNamesToKeep = ['flight_id', 'start']
+            fuelStartDataframe = keepOnlyColumns( fuelStartDataframe, listOfColumnNamesToKeep)
+            fuelStartDataframe = fuelStartDataframe.rename(columns={'start': 'timestamp'})
+            print ( list ( fuelStartDataframe ))
+            print ( fuelStartDataframe.shape  )
         #print ( tabulate( fuelStartDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
         
-        fuelEndDataframe = fuelTrainDataframe.copy()
-        listOfColumnNamesToKeep = ['flight_id', 'end']
-        fuelEndDataframe = keepOnlyColumns( fuelEndDataframe, listOfColumnNamesToKeep)
-        fuelEndDataframe = fuelEndDataframe.rename(columns={'end': 'timestamp'})
-        print ( list ( fuelEndDataframe ))
-        print ( fuelEndDataframe.shape  )
-        #print ( tabulate( fuelEndDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
-        ''' concat start wit end '''
-        return pd.concat( [fuelStartDataframe , fuelEndDataframe] )
+            fuelEndDataframe = fuelTrainDataframe.copy()
+            listOfColumnNamesToKeep = ['flight_id', 'end']
+            fuelEndDataframe = keepOnlyColumns( fuelEndDataframe, listOfColumnNamesToKeep)
+            fuelEndDataframe = fuelEndDataframe.rename(columns={'end': 'timestamp'})
+            print ( list ( fuelEndDataframe ))
+            print ( fuelEndDataframe.shape  )
+            #print ( tabulate( fuelEndDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
+            ''' concat start wit end '''
+            return pd.concat( [fuelStartDataframe , fuelEndDataframe] )
     
     def prepare_Fuel_for_interpolation(self ):
 
@@ -93,7 +98,7 @@ class FlightsInterpolated(object):
             fuelTrainDataframe = fuelTrainDataframe.drop_duplicates()
             print ( fuelTrainDataframe.shape )
             print ( list ( fuelTrainDataframe ) )
-        
+            
             ''' filter on one flight id '''
             if self.flight_id_filtered:
                 print("--------- filtering on flight_id -----------")
@@ -105,8 +110,7 @@ class FlightsInterpolated(object):
             #print(tabulate(fuelTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
             
             print("="*90)
-
-            self.fuelTrainDataframe = fuelTrainDataframe
+            return fuelTrainDataframe
             
     def append_TakeOff_Landed_to_Fuel(self , flight_id):
         takeOffRow = pd.DataFrame ( { "flight_id" : flight_id , "timestamp" : self.TakeOffInstant})
@@ -217,7 +221,7 @@ class FlightsInterpolated(object):
             return TAS
         else:
             #TAS is empty
-            if (mach is not None) and (mach != np.nan):
+            if (mach is not None) and not math.isnan(mach) and not math.isnan(aircraft_altitude_ft):
                 try:
                     return  mach2tas ( mach = mach , altitude = aircraft_altitude_ft , alt_units = 'ft')
                 except ValueError:
@@ -234,7 +238,7 @@ class FlightsInterpolated(object):
             return CAS
         else:
             #CAS is empty
-            if (mach is not None) and (mach != np.nan):
+            if (mach is not None) and not math.isnan(mach) and not math.isnan(aircraft_altitude_ft):
                 try:
                     return  mach_alt2cas ( mach=mach , altitude=aircraft_altitude_ft , alt_units='ft')
                 except ValueError:
@@ -249,47 +253,52 @@ class FlightsInterpolated(object):
         df['CAS'] = df.apply( self.compute_CAS_Knots_from_Mach , axis = 1)
         return df
     
-    def interpolate_one_flight_data(self , flight_id, flightsDatabase, filePath):
+    
+    def interpolate_one_flight_data(self , flight_id, flightsDatabase):
         
-        if self.train_rank == "train":
-            flightTrainDataframe = flightsDatabase.readOneFlightFileLite(filePath)
-            print ( flightTrainDataframe.shape )
+        fileName = flight_id + ".parquet"
+        
+        flightDataframe = flightsDatabase.readOneFlightFileLite(self.train_rank, fileName)
+        print ( flightDataframe.shape )
             
-            ''' in the newly inserted records, need to add the aircraft ICAO code '''
-            firstNonNullTypeCode = flightsDatabase.getFirstNonNullValueInColumn(flightTrainDataframe, 'typecode')
-            print(" ----> first non null Aircraft ICAO code value = " + firstNonNullTypeCode)
+        ''' filter fuel on flight id and perform concat '''
+        fuelDataframe = self.prepare_Fuel_for_interpolation( )
+        
+        ''' in the newly inserted records, need to add the aircraft ICAO code '''
+        firstNonNullTypeCode = flightsDatabase.getFirstNonNullValueInColumn(flightDataframe, 'typecode')
+        print(" ----> first non null Aircraft ICAO code value = " + firstNonNullTypeCode)
             
-            ''' filter fuel on flight id and perform concat '''
-            ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
-            filteredFuelDataframe = self.fuelTrainDataframe[self.fuelTrainDataframe['flight_id'] == flight_id]
-            print ( filteredFuelDataframe.shape )
+        
+        ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
+        print ( fuelDataframe.shape )
             
-            ''' concat the dataframe '''
-            flightTrainDataframe = pd.concat ( [flightTrainDataframe , filteredFuelDataframe])
-            print ( flightTrainDataframe.shape )
+        ''' concat the dataframe '''
+        flightDataframe = pd.concat ( [flightDataframe , fuelDataframe])
+        print ( flightDataframe.shape )
             
-            ''' set hard code values for type code and for source '''
-            flightTrainDataframe['typecode'] = firstNonNullTypeCode
-            flightTrainDataframe['source'] = 'interpolated'
+        ''' set hard code values for type code and for source '''
+        flightDataframe['typecode'] = firstNonNullTypeCode
+        flightDataframe['source'] = 'interpolated'
             
-            #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-            #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
-            #print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
-            
-            #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-            
-            ''' show rows with nan in typecode column '''
-            df_with_nan_in_typecode = flightTrainDataframe[flightTrainDataframe['typecode'].isna()]
-            #print(tabulate(df_with_nan_in_typecode[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-            assert df_with_nan_in_typecode.shape[0] == 0
-            
-            df_with_not_nan_in_mach = flightTrainDataframe[flightTrainDataframe['mach'].notna()]
-            print(tabulate(df_with_not_nan_in_mach[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-            
-            ''' track is equivalent to heading if there is no wind '''
-            bearingAngleFromOrigin2DestinationDegrees = self.computeOrigin2DestinationTrackAngleDegrees(flight_id)
-            ''' append the takeoff and landed records '''
-            takeOffRow = pd.DataFrame ( { "timestamp"   : [self.TakeOffInstantDict[flight_id]] , 
+        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        ''' show rows with nan in typecode column '''
+        df_with_nan_in_typecode = flightDataframe[flightDataframe['typecode'].isna()]
+        #print(tabulate(df_with_nan_in_typecode[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        assert df_with_nan_in_typecode.shape[0] == 0
+        
+        df_with_not_nan_in_mach = flightDataframe[flightDataframe['mach'].notna()]
+        print(tabulate(df_with_not_nan_in_mach[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        ''' track is equivalent to heading if there is no wind '''
+        bearingAngleFromOrigin2DestinationDegrees = self.computeOrigin2DestinationTrackAngleDegrees(flight_id)
+        
+        ''' append the takeoff and landed records '''
+        takeOffRow = pd.DataFrame ( { "timestamp"   : [self.TakeOffInstantDict[flight_id]] , 
                                         "flight_id"     : [flight_id] , 
                                         "typecode"      : [firstNonNullTypeCode] , 
                                         "latitude"      : [self.OriginLatitudeDegreesDict[flight_id]] ,
@@ -303,13 +312,13 @@ class FlightsInterpolated(object):
                                         "CAS"           : [(0.0)],
                                         "source"        : ["interpolated"]
                                         } )
-            #print ( flightTrainDataframe.info() )
-            #print ( takeOffRow.info() )
-            ''' insert at the end index of dataframe '''
-            flightTrainDataframe = pd.concat( [ flightTrainDataframe , takeOffRow])
-            flightTrainDataframe.reset_index(inplace=True)
-            ''' track is equivalent to heading if there is no wind '''
-            landedRow = pd.DataFrame ( { "timestamp"    : [self.LandedInstantDict[flight_id]] , 
+        #print ( flightTrainDataframe.info() )
+        #print ( takeOffRow.info() )
+        ''' insert at the end index of dataframe '''
+        flightDataframe = pd.concat( [ flightDataframe , takeOffRow])
+        flightDataframe.reset_index(inplace=True)
+        ''' track is equivalent to heading if there is no wind '''
+        landedRow = pd.DataFrame ( { "timestamp"    : [self.LandedInstantDict[flight_id]] , 
                                         "flight_id"     : [flight_id] , 
                                         "typecode"      : [firstNonNullTypeCode] , 
                                         "latitude"      : [self.DestinationLatitudeDegreesDict[flight_id]] ,
@@ -323,47 +332,60 @@ class FlightsInterpolated(object):
                                         "CAS"           : [(0.0)],
                                         "source"        : ["interpolated"]
                                         } )
-            #print ( flightTrainDataframe.info() )
-            #print ( landedRow.info() )
-            flightTrainDataframe = pd.concat( [ flightTrainDataframe , landedRow])
-            flightTrainDataframe.reset_index(drop=True, inplace=True)
+        #print ( flightTrainDataframe.info() )
+        #print ( landedRow.info() )
+        flightDataframe = pd.concat( [ flightDataframe , landedRow])
+        flightDataframe.reset_index(drop=True, inplace=True)
             
-            ''' sort values acording to increasing timestamps '''
-            flightTrainDataframe = flightTrainDataframe.sort_values(by='timestamp')
-            flightTrainDataframe.reset_index(drop=True, inplace=True)
+        ''' convert timestamps to UTC '''
+        flightDataframe['timestamp'] = pd.to_datetime(flightDataframe['timestamp'], utc=True)
             
-            print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-            print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        ''' sort values acording to increasing timestamps '''
+        flightDataframe = flightDataframe.sort_values(by='timestamp')
+        flightDataframe.reset_index(drop=True, inplace=True)
+            
+        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        #print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        print ( flightDataframe.info() )
 
-            self.computeMissingSpeeds(flightTrainDataframe)
-            ''' main interpolation '''
-            flightTrainDataframe = flightTrainDataframe.interpolate(limit_direction='forward')
+        self.computeMissingSpeeds(flightDataframe)
+        
+        ''' show dataframe informations '''
+        print ( flightDataframe.shape )
+        print ( flightDataframe.info() )
             
-            flightTrainDataframe = flightTrainDataframe.drop( ['index'] , axis=1 )
+        ''' main interpolation '''
+        flightDataframe = flightDataframe.interpolate(limit_direction='forward')
+        listOfColumnsToInterpolate = ['latitude','longitude','altitude','groundspeed','track','vertical_rate','mach','TAS','CAS']
+        for columnToInterpolate in listOfColumnsToInterpolate:
+            print ( "column = " + columnToInterpolate + " count not null = " + 
+                    str(flightDataframe[columnToInterpolate].count()) + " - versus = " + str(flightDataframe.shape[0]))
+        
+        flightDataframe = flightDataframe.drop( ['index'] , axis=1 )
  
-            print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-            #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
-            print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        print(tabulate(flightDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(flightDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
 
-            print ( "-"*80 )
+        print ( "-"*80 )
 
     def interpolate_all_flights_data(self):
         '''loop through the files '''
         flightsDatabase = FlightsDatabase()
         
-        directory = flightsDatabase.getTrainFlightsFolderPathStr()
+        directory = flightsDatabase.getTrainRankFinalFlightsFolderPathStr( self.train_rank)
         count = 0
         for fileName in os.listdir(directory):
             if count < self.nbFlights:
                 if fileName.endswith(".parquet"): # Filter specific file types
                     filePath = os.path.join(directory, fileName)
                     #print ( filePath )
-                    
                     flight_id = fileName.split(".")[0]
                     #print("flight_id = " + flight_id)
                     if flight_id and ( flight_id == self.flight_id_filtered):
                         ''' there is a filtered flight_id condition '''
-                        self.interpolate_one_flight_data( flight_id , flightsDatabase , filePath)
+                        self.interpolate_one_flight_data( flight_id , flightsDatabase )
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
@@ -374,7 +396,7 @@ if __name__ == '__main__':
     flight_id = "prc770864956"
     nbFlights = 10
     flightsInterpolated = FlightsInterpolated( train_rank, nbFlights , flight_id)
-    flightsInterpolated.prepare_Fuel_for_interpolation()
+    #flightsInterpolated.prepare_Fuel_for_interpolation()
     
     assert flightsInterpolated.retrieve_FlightList_TakeOff_Landed(flight_id) == True
     ''' add takeoff and landed to the fuel start end dataframe '''
