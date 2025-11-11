@@ -95,8 +95,8 @@ class AirportsDatabase(object):
         
     def readWithPandas(self):
         self.airportsDataFrame = pd.read_csv(self.FilePath , delimiter=";")
-        logging.info(self.className + ' read CSV with pandas - shape = ' + str(self.airportsDataFrame.shape))
-        logging.info(self.className + ' read CSV with pandas - columns = ' + str( list(self.airportsDataFrame) ) )
+        #logging.info(self.className + ' read CSV with pandas - shape = ' + str(self.airportsDataFrame.shape))
+        #logging.info(self.className + ' read CSV with pandas - columns = ' + str( list(self.airportsDataFrame) ) )
         
         ''' add a column with elevation in feet '''
         
@@ -242,7 +242,7 @@ class AirportsDatabase(object):
         return False
                
     def getAirportFromICAOCode(self, ICAOcode=""):
-        logging.info(ICAOcode)
+        #logging.info(ICAOcode)
         if self.airportsDb is None:
             raise ValueError(self.className + " -> airports database is not correctly created")
 
@@ -257,7 +257,7 @@ class AirportsDatabase(object):
                                 fieldElevationAboveSeaLevelMeters = float(airportInternal["AltitudeFeet"])*feetToMeters,
                                 ICAOcode = ICAOcode,
                                 Country = airportInternal['Country'] )
-                logging.info(self.className + " - "+ str(airport))
+                #logging.info(self.className + " - "+ str(airport))
                 return airport
         return None
         
@@ -277,4 +277,3 @@ class AirportsDatabase(object):
         
         return points2distanceMeters( [adepLatitudeDegrees,adepLongitudeDegrees], [adesLatitudeDegrees, adesLongitudeDegrees])*Meter2NauticalMiles
 
-        

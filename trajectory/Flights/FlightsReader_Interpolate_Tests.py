@@ -193,8 +193,7 @@ class Test_Main(unittest.TestCase):
         print( df.shape )
         print( list ( df ) )
         
-        ''' check if there are null values '''
-        
+        print('------------ check if there are null values ------------')
         print( str ( df.isnull().sum() ))
         
         #print ( df.describe().transpose())

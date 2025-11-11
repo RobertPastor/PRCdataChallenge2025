@@ -22,6 +22,7 @@ from tabulate import tabulate
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 
 from trajectory.utils import keepOnlyColumns
+import matplotlib.pyplot as plt
 
 class FlightsInterpolated(object):
     
@@ -49,6 +50,30 @@ class FlightsInterpolated(object):
         
         self.airports = AirportsDatabase()
         assert self.airports.readWithPandas() == True
+        
+        
+    def plot ( self , timeSeries, valuesToPlot , columnName ):
+        pass
+        plt.figure(figsize=(8, 5))
+        plt.plot(timeSeries, valuesToPlot, label=columnName , color="blue", linewidth=2)
+        plt.legend()
+        plt.xlabel("Time")
+        plt.ylabel("Value")
+        plt.title(columnName)
+        plt.show()
+        
+        
+    def plotFeaturesVersusTime(self , df):
+        
+        df['start'] = df['timestamp'].min()
+        df['end'] = df['timestamp'].max()
+        df['time_diff_seconds'] = (df['timestamp'] - df['start']).dt.total_seconds()
+
+        listOfColumns = ['latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS']
+        timeSeries = df['time_diff_seconds']
+        for columnName in listOfColumns:
+            seriesToPlot = df[columnName]
+            self.plot( timeSeries , seriesToPlot , columnName)
  
 
     def fill_Fuel_Frame_with_empty_columns_for_interpolation(self, df ):
@@ -71,16 +96,16 @@ class FlightsInterpolated(object):
             listOfColumnNamesToKeep = ['flight_id', 'start']
             fuelStartDataframe = keepOnlyColumns( fuelStartDataframe, listOfColumnNamesToKeep)
             fuelStartDataframe = fuelStartDataframe.rename(columns={'start': 'timestamp'})
-            print ( list ( fuelStartDataframe ))
-            print ( fuelStartDataframe.shape  )
+            #print ( list ( fuelStartDataframe ))
+            #print ( fuelStartDataframe.shape  )
         #print ( tabulate( fuelStartDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
         
             fuelEndDataframe = fuelTrainDataframe.copy()
             listOfColumnNamesToKeep = ['flight_id', 'end']
             fuelEndDataframe = keepOnlyColumns( fuelEndDataframe, listOfColumnNamesToKeep)
             fuelEndDataframe = fuelEndDataframe.rename(columns={'end': 'timestamp'})
-            print ( list ( fuelEndDataframe ))
-            print ( fuelEndDataframe.shape  )
+            #print ( list ( fuelEndDataframe ))
+            #print ( fuelEndDataframe.shape  )
             #print ( tabulate( fuelEndDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
             ''' concat start wit end '''
             return pd.concat( [fuelStartDataframe , fuelEndDataframe] )
@@ -91,17 +116,17 @@ class FlightsInterpolated(object):
 
             fuelDatabase = FuelDatabase(self.nbFlights)
             fuelTrainDataframe = fuelDatabase.readFuelTrainLite()
-            print ( list ( fuelTrainDataframe ))
+            #print ( list ( fuelTrainDataframe ))
             ''' retreve fuel with only start end timestamp '''
             fuelTrainDataframe = self.build_Fuel_Dataframe_with_start_end_timestamps (fuelTrainDataframe)
             ''' drop duplicates ''' 
             fuelTrainDataframe = fuelTrainDataframe.drop_duplicates()
-            print ( fuelTrainDataframe.shape )
-            print ( list ( fuelTrainDataframe ) )
+            #print ( fuelTrainDataframe.shape )
+            #print ( list ( fuelTrainDataframe ) )
             
             ''' filter on one flight id '''
             if self.flight_id_filtered:
-                print("--------- filtering on flight_id -----------")
+                print("----- filtering on flight_id -----------")
                 fuelTrainDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == self.flight_id_filtered]
             ''' sort using timestamps '''
             fuelTrainDataframe = fuelTrainDataframe.sort_values(by='timestamp')
@@ -113,11 +138,12 @@ class FlightsInterpolated(object):
             return fuelTrainDataframe
             
     def append_TakeOff_Landed_to_Fuel(self , flight_id):
+        ''' takeoff short row with flight id and timestamp only '''
         takeOffRow = pd.DataFrame ( { "flight_id" : flight_id , "timestamp" : self.TakeOffInstant})
         df = pd.concat( [self.fuelTrainDataframe , takeOffRow] , ignore_index=True) 
         landedRow = pd.DataFrame ( { "flight_id" : flight_id , "timestamp" : self.LandedInstant})
         df = pd.concat( [df , landedRow] , ignore_index=True)
-        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         self.fuelTrainDataframe = df
         return True
     
@@ -130,12 +156,12 @@ class FlightsInterpolated(object):
             origin_icao = self.flightList.getOriginICAOairport(self.train_rank, flight_id)
             origin_airport = self.airports.getAirportFromICAOCode(origin_icao)
             assert (isinstance(origin_airport, Airport))
-            print ( str ( origin_airport))
+            #print ( str ( origin_airport))
         
             destination_icao = self.flightList.getDestinationICAOairport(self.train_rank, flight_id)
             destination_airport = self.airports.getAirportFromICAOCode(destination_icao)
             assert (isinstance(destination_airport, Airport))
-            print ( str ( destination_airport ) )
+            #print ( str ( destination_airport ) )
 
             bearing_angle_degrees = origin_airport.getBearingDegreesTo(destination_airport)
             print("from origin = " + origin_icao + " -> to destination = " + 
@@ -251,7 +277,7 @@ class FlightsInterpolated(object):
                 return np.nan
 
         
-    ''' use python aerocal method to compute TAS and CAS from mach when TAS or CAS are null '''
+    ''' use python aerocalc methods to compute TAS and CAS from mach when TAS or CAS are null '''
     def computeMissingSpeeds(self, df):
         print("=========== compute missing speeds ===============")
         # Machine epsilon for single precision (32-bit)
@@ -265,19 +291,20 @@ class FlightsInterpolated(object):
         
         flightDataframe = flightsDatabase.readOneFlightFileLite(self.train_rank, fileName)
         print ( flightDataframe.shape )
-            
+        
+        self.plotFeaturesVersusTime(flightDataframe)
+        
         ''' filter fuel on flight id and perform concat '''
-        fuelDataframe = self.prepare_Fuel_for_interpolation( )
+        fuelDataframe = self.prepare_Fuel_for_interpolation()
         
         ''' in the newly inserted records, need to add the aircraft ICAO code '''
         firstNonNullTypeCode = flightsDatabase.getFirstNonNullValueInColumn(flightDataframe, 'typecode')
         print(" ----> first non null Aircraft ICAO code value = " + firstNonNullTypeCode)
-            
         
         ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
         print ( fuelDataframe.shape )
             
-        ''' concat the dataframe '''
+        ''' concat the flight dataframe and the fuel dataframe to add the fuel start end instants '''
         flightDataframe = pd.concat ( [flightDataframe , fuelDataframe])
         print ( flightDataframe.shape )
             
@@ -290,6 +317,7 @@ class FlightsInterpolated(object):
         #print(tabulate(df_with_nan_in_typecode[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         assert df_with_nan_in_typecode.shape[0] == 0
         
+        print("----------------- not a number in mach ---------------------")
         df_with_not_nan_in_mach = flightDataframe[flightDataframe['mach'].notna()]
         print(tabulate(df_with_not_nan_in_mach[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         

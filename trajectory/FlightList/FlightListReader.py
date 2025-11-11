@@ -63,71 +63,60 @@ class FlightListDatabase(object):
         #logging.info(self.filePathFlightListRank)
         self.flightListExtendedWithAircraftData = False
         
+        self.airportsDatabase = AirportsDatabase()
+        assert self.airportsDatabase.readAsDict()
+        
     def getOriginAirportElevationFeet(self , train_rank, flight_id ):
-        airportsDatabase = AirportsDatabase()
-        assert airportsDatabase.readAsDict()
         
         origin_icao = self.getOriginAirportICAOcode(train_rank, flight_id)
-        airport = airportsDatabase.getAirportFromICAOCode(origin_icao)
+        airport = self.airportsDatabase.getAirportFromICAOCode(origin_icao)
         assert (isinstance(airport, Airport))
 
         return airport.getElevationMSLFeet()
     
     def getOriginAirportLatitudeDegrees(self , train_rank, flight_id ):
-        airportsDatabase = AirportsDatabase()
-        assert airportsDatabase.readAsDict()
         
         origin_icao = self.getOriginAirportICAOcode(train_rank, flight_id)
-        airport = airportsDatabase.getAirportFromICAOCode(origin_icao)
+        airport = self.airportsDatabase.getAirportFromICAOCode(origin_icao)
         assert (isinstance(airport, Airport))
         
         return airport.getLatitudeDegrees()
         
     def getOriginAirportLongitudeDegrees(self , train_rank, flight_id ):
-        airportsDatabase = AirportsDatabase()
-        assert airportsDatabase.readAsDict()
         
         origin_icao = self.getOriginAirportICAOcode(train_rank, flight_id)
-        airport = airportsDatabase.getAirportFromICAOCode(origin_icao)
+        airport = self.airportsDatabase.getAirportFromICAOCode(origin_icao)
         assert (isinstance(airport, Airport))
         
         return airport.getLongitudeDegrees()
         
     def getDestinationAirportElevationFeet(self , train_rank, flight_id ):
-        airportsDatabase = AirportsDatabase()
-        assert airportsDatabase.readAsDict()
         
         destination_icao = self.getDestinationICAOairport(train_rank, flight_id)
-        airport = airportsDatabase.getAirportFromICAOCode(destination_icao)
+        airport = self.airportsDatabase.getAirportFromICAOCode(destination_icao)
         assert (isinstance(airport, Airport))
 
         return airport.getElevationMSLFeet()
 
     def getDestinationAirportLatitudeDegrees(self , train_rank, flight_id ):
-        airportsDatabase = AirportsDatabase()
-        assert airportsDatabase.readAsDict()
         
         destination_icao = self.getDestinationICAOairport(train_rank, flight_id)
-        airport = airportsDatabase.getAirportFromICAOCode(destination_icao)
+        airport = self.airportsDatabase.getAirportFromICAOCode(destination_icao)
         assert (isinstance(airport, Airport))
         
         return airport.getLatitudeDegrees()
         
     def getDestinationAirportLongitudeDegrees(self , train_rank, flight_id ):
-        airportsDatabase = AirportsDatabase()
-        assert airportsDatabase.readAsDict()
         
         destination_icao = self.getDestinationICAOairport(train_rank, flight_id)
-        airport = airportsDatabase.getAirportFromICAOCode(destination_icao)
+        airport = self.airportsDatabase.getAirportFromICAOCode(destination_icao)
         assert (isinstance(airport, Airport))
-
         return airport.getLongitudeDegrees()
         
     def getOriginAirportICAOcode(self , train_rank, flight_id ):
         pass
         if train_rank == 'train':
             origin_icao = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
-            print ( str ( origin_icao ) )
             return origin_icao
         else:
             origin_icao = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
@@ -137,42 +126,42 @@ class FlightListDatabase(object):
         
         if train_rank == 'train':
             origin_icao = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
-            print ( str ( origin_icao ) )
+            logging.info ( str ( origin_icao ) )
             return origin_icao
         else:
             origin_icao = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
-            print ( str ( origin_icao ) )
+            logging.info ( str ( origin_icao ) )
             return origin_icao
     
     def getDestinationICAOairport(self , train_rank, flight_id):
         if train_rank == 'train':
             destination_icao = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["destination_icao"].iloc[0]
-            print ( str ( destination_icao ) )
+            logging.info ( str ( destination_icao ) )
             return destination_icao
         else:
             destination_icao = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["destination_icao"].iloc[0]
-            print ( str ( destination_icao ) )
+            logging.info ( str ( destination_icao ) )
             return destination_icao
         
 
     def getTakeOffInstant(self , train_rank, flight_id):
         if train_rank == 'train':
             takeoff = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["takeoff"].iloc[0]
-            print ( str ( takeoff ) )
+            logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
             return takeoff
         else:
             takeoff = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["takeoff"].iloc[0]
-            print ( str ( takeoff ) )
+            logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
             return takeoff
         
     def getLandedInstant(self , train_rank, flight_id):
         if train_rank == 'train':
             landed = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["landed"].iloc[0]
-            print ( str ( landed ) )
+            logging.info (self.className + " - landed instant " + str ( landed ) )
             return landed
         else:
             landed = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["landed"].iloc[0]
-            print ( str ( landed ) )
+            logging.info (self.className + " - landed instant " + str ( landed ) )
             return landed
             
         
