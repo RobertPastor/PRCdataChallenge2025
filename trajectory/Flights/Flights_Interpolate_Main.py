@@ -285,49 +285,15 @@ class FlightsInterpolated(object):
         df['CAS'] = df.apply( self.compute_CAS_Knots_from_Mach , axis = 1)
         return df
     
-    def interpolate_one_flight_data(self , flight_id, flightsDatabase):
-        
-        fileName = flight_id + ".parquet"
-        
-        flightDataframe = flightsDatabase.readOneFlightFileLite(self.train_rank, fileName)
-        print ( flightDataframe.shape )
-        
-        self.plotFeaturesVersusTime(flightDataframe)
-        
-        ''' filter fuel on flight id and perform concat '''
-        fuelDataframe = self.prepare_Fuel_for_interpolation()
-        
-        ''' in the newly inserted records, need to add the aircraft ICAO code '''
-        firstNonNullTypeCode = flightsDatabase.getFirstNonNullValueInColumn(flightDataframe, 'typecode')
-        print(" ----> first non null Aircraft ICAO code value = " + firstNonNullTypeCode)
-        
-        ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
-        print ( fuelDataframe.shape )
-            
-        ''' concat the flight dataframe and the fuel dataframe to add the fuel start end instants '''
-        flightDataframe = pd.concat ( [flightDataframe , fuelDataframe])
-        print ( flightDataframe.shape )
-            
-        ''' set hard code values for type code and for source '''
-        flightDataframe['typecode'] = firstNonNullTypeCode
-        flightDataframe['source'] = 'interpolated'
-        
-        ''' show rows with nan in typecode column '''
-        df_with_nan_in_typecode = flightDataframe[flightDataframe['typecode'].isna()]
-        #print(tabulate(df_with_nan_in_typecode[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-        assert df_with_nan_in_typecode.shape[0] == 0
-        
-        print("----------------- not a number in mach ---------------------")
-        df_with_not_nan_in_mach = flightDataframe[flightDataframe['mach'].notna()]
-        print(tabulate(df_with_not_nan_in_mach[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-        
+    def prepareTakeOffRow(self , flight_id , aircraft_type_code):
+        pass
         ''' track is equivalent to heading if there is no wind '''
         bearingAngleFromOrigin2DestinationDegrees = self.computeOrigin2DestinationTrackAngleDegrees(flight_id)
         
         ''' append the takeoff and landed records '''
         takeOffRow = pd.DataFrame ( { "timestamp"   : [self.TakeOffInstantDict[flight_id]] , 
                                         "flight_id"     : [flight_id] , 
-                                        "typecode"      : [firstNonNullTypeCode] , 
+                                        "typecode"      : [aircraft_type_code] , 
                                         "latitude"      : [self.OriginLatitudeDegreesDict[flight_id]] ,
                                         "longitude"     : [self.OriginLongitudeDegreesDict[flight_id]] ,
                                         "altitude"      : [self.OriginElevationFeetDict[flight_id]]  ,
@@ -339,15 +305,16 @@ class FlightsInterpolated(object):
                                         "CAS"           : [(np.nan)],
                                         "source"        : ["interpolated"]
                                         } )
-        #print ( flightTrainDataframe.info() )
-        #print ( takeOffRow.info() )
-        ''' insert at the end index of dataframe '''
-        flightDataframe = pd.concat( [ flightDataframe , takeOffRow])
-        flightDataframe.reset_index(inplace=True)
+        return takeOffRow
+    
+    def prepareLandedRow(self , flight_id , aircraft_type_code):
+        pass
         ''' track is equivalent to heading if there is no wind '''
+        bearingAngleFromOrigin2DestinationDegrees = self.computeOrigin2DestinationTrackAngleDegrees(flight_id)
+
         landedRow = pd.DataFrame ( { "timestamp"    : [self.LandedInstantDict[flight_id]] , 
                                         "flight_id"     : [flight_id] , 
-                                        "typecode"      : [firstNonNullTypeCode] , 
+                                        "typecode"      : [aircraft_type_code] , 
                                         "latitude"      : [self.DestinationLatitudeDegreesDict[flight_id]] ,
                                         "longitude"     : [self.DestinationLongitudeDegreesDict[flight_id]] ,
                                         "altitude"      : [self.DestinationElevationFeetDict[flight_id]]  ,
@@ -359,8 +326,56 @@ class FlightsInterpolated(object):
                                         "CAS"           : [(np.nan)],
                                         "source"        : ["interpolated"]
                                         } )
+        return landedRow
+    
+    def interpolate_one_flight_data(self , flight_id, flightsDatabase):
+        
+        fileName = flight_id + ".parquet"
+        
+        flightDataframe = flightsDatabase.readOneFlightFileLite(self.train_rank, fileName)
+        print ( flightDataframe.shape )
+        
+        '''plot featires '''
+        self.plotFeaturesVersusTime(flightDataframe)
+        
+        ''' filter fuel on flight id and perform concat '''
+        fuelDataframe = self.prepare_Fuel_for_interpolation()
+        
+        ''' in the newly inserted records, need to add the aircraft ICAO code '''
+        aircraftICAOTypeCode = flightsDatabase.getFirstNonNullValueInColumn(flightDataframe, 'typecode')
+        print(" ----> first non null Aircraft ICAO code value = " + aircraftICAOTypeCode)
+        
+        ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
+        print ( fuelDataframe.shape )
+            
+        ''' concat the flight dataframe and the fuel dataframe to add the fuel start end instants '''
+        flightDataframe = pd.concat ( [flightDataframe , fuelDataframe])
+        print ( flightDataframe.shape )
+            
+        ''' set hard code values for type code and for source '''
+        flightDataframe['typecode'] = aircraftICAOTypeCode
+        flightDataframe['source'] = 'interpolated'
+        
+        ''' show rows with nan in typecode column '''
+        df_with_nan_in_typecode = flightDataframe[flightDataframe['typecode'].isna()]
+        #print(tabulate(df_with_nan_in_typecode[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        assert df_with_nan_in_typecode.shape[0] == 0
+        
+        print("----------------- not a number in mach ---------------------")
+        df_with_not_nan_in_mach = flightDataframe[flightDataframe['mach'].notna()]
+        print(tabulate(df_with_not_nan_in_mach[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        #print ( flightTrainDataframe.info() )
+        #print ( takeOffRow.info() )
+        ''' insert at the end index of dataframe '''
+        takeOffRow = self.prepareTakeOffRow( flight_id , aircraftICAOTypeCode)
+        flightDataframe = pd.concat( [ flightDataframe , takeOffRow])
+        flightDataframe.reset_index(inplace=True)
+        ''' track is equivalent to heading if there is no wind '''
+        
         #print ( flightTrainDataframe.info() )
         #print ( landedRow.info() )
+        landedRow = self.prepareLandedRow( flight_id, aircraftICAOTypeCode )
         flightDataframe = pd.concat( [ flightDataframe , landedRow])
         flightDataframe.reset_index(drop=True, inplace=True)
             
@@ -395,7 +410,14 @@ class FlightsInterpolated(object):
                     str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
             
         print("=========================== interpolate ========================")
-        flightDataframe = flightDataframe.interpolate(limit_direction='forward')
+        columnsToInterpolate = ['latitude', 'longitude' , 'altitude' , 'groundspeed' , 'track', 'vertical_rate']
+        ''' interpolate track if all degrees lower to 360 otherwise use modulo 360 '''
+        ''' interpolate latitude and longitude if aircraft does not overfly the south/north pole or the greenwich meridian '''
+        for columnNameToInterpolate in columnsToInterpolate:
+            flightDataframe[columnNameToInterpolate] = flightDataframe[columnNameToInterpolate].interpolate(method="linear", 
+                                                                limit_direction='both')
+
+        self.plotFeaturesVersusTime(flightDataframe)
         
         flightDataframe = flightDataframe.drop( ['index'] , axis=1 )
  
