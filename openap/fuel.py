@@ -184,11 +184,11 @@ class FuelFlow(object):
 
         return fuelflow
 
-    def plot_model(self, plot=True):
+    def plot_model(self, plotFlightFeatureVersusTime=True):
         """Plot the engine fuel model, or return the pyplot object.
 
         Args:
-            plot (bool): Display the plot or return an object.
+            plotFlightFeatureVersusTime (bool): Display the plotFlightFeatureVersusTime or return an object.
 
         Returns:
             None or pyplot object.
@@ -207,9 +207,9 @@ class FuelFlow(object):
 
         xx = self.np.linspace(0, 1, 50)
         yy = self.polyfuel(xx)
-        plt.plot(xx, yy, "--", color="gray")
+        plt.plotFlightFeatureVersusTime(xx, yy, "--", color="gray")
 
-        if plot:
+        if plotFlightFeatureVersusTime:
             plt.show()
         else:
             return plt

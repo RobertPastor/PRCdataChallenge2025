@@ -78,7 +78,7 @@ def fitplot(data, model, **kwargs):
     data = np.array(data)
     data = data[np.isfinite(data)]
     plt.hist(data, bins=bins, normed=True, color="gray", edgecolor="none", alpha=0.3)
-    plt.plot(
+    plt.plotFlightFeatureVersusTime(
         fitresults[model]["pdfx"], fitresults[model]["pdfy"], label=model, **kwargs
     )
     # plt.legend(loc='best')

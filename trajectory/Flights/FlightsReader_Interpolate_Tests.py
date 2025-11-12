@@ -30,10 +30,10 @@ def datetime_range(start, end, delta):
         current += delta
 
 
-def plot ( timeSeries, valuesToPlot , columnName ):
+def plotFlightFeatureVersusTime ( timeSeries, valuesToPlot , columnName ):
     pass
     plt.figure(figsize=(8, 5))
-    plt.plot(timeSeries, valuesToPlot, label=columnName , color="blue", linewidth=2)
+    plt.plotFlightFeatureVersusTime(timeSeries, valuesToPlot, label=columnName , color="blue", linewidth=2)
     plt.legend()
     plt.xlabel("Time")
     plt.ylabel("Value")
@@ -119,7 +119,7 @@ class Test_Main(unittest.TestCase):
         timeSeries = df['time_diff_seconds']
         for columnName in ['latitude', 'longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']:
             seriesToPlot = df[columnName]
-            plot( timeSeries , seriesToPlot , columnName)
+            plotFlightFeatureVersusTime( timeSeries , seriesToPlot , columnName)
 
         ''' drop added columns '''
         df = dropUnusedColumns( df , ['start','end','time_diff_seconds'] ) 
@@ -184,7 +184,7 @@ class Test_Main(unittest.TestCase):
     def test_main_one(self):
         logging.basicConfig(level=logging.INFO)
 
-        print("---------------- plot  ----------------")
+        print("---------------- plot  -------plotFlightFeatureVersusTime-----")
         
         fileName = "prc806725776.parquet"
         flightsDatabase = FlightsDatabase()
@@ -204,8 +204,8 @@ class Test_Main(unittest.TestCase):
         dates = df['timestamp']
         altitudes = df['altitude']
         # Create the plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(dates, altitudes, marker='o', linestyle='-', color='b', label='Altitude')
+       plotFlightFeatureVersusTime.figure(figsize=(10, 6))
+        plt.plot(dates, aplotFlightFeatureVersusTimeudes, marker='o', linestyle='-', color='b', label='Altitude')
         
         # Format the x-axis to show readable dates
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
@@ -220,7 +220,7 @@ class Test_Main(unittest.TestCase):
         plt.grid(True)
         
         # Show the plot
-        plt.show()
+       plotFlightFeatureVersusTime.show()
         
 
 

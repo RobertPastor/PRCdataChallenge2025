@@ -55,8 +55,8 @@ transformer = make_column_transformer(
 '''
 
 def plot_loss(history , y_limit , currentDateTimeAsString):
-    plt.plot(history.history['loss'], label='training_loss')
-    plt.plot(history.history['val_loss'], label='validation_loss')
+    plt.plotFlightFeatureVersusTime(history.history['loss'], label='training_loss')
+    plt.plotFlightFeatureVersusTime(history.history['val_loss'], label='validation_loss')
     plt.title("convergence versus epochs")
     plt.ylim([0,y_limit])
     plt.xlabel('Epoch')
@@ -64,14 +64,14 @@ def plot_loss(history , y_limit , currentDateTimeAsString):
     plt.legend()
     plt.grid(True)
     
-    # Save the plot to a file
+    # Save the plotFlightFeatureVersusTime to a file
     plotFileName = 'results_training_loss_vs_validation_loss' + '_'+ currentDateTimeAsString + '.png'
     filesFolder = os.path.dirname(__file__)
     plotFilePath = os.path.join(filesFolder , plotFileName)
  
     plt.savefig(plotFilePath)  # Save as PNG
     
-    # Close the plot to free memory
+    # Close the plotFlightFeatureVersusTime to free memory
     plt.close()
     #plt.show()
 

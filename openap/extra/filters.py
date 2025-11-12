@@ -39,8 +39,8 @@ class BaseFilter(object):
         return np.array(Xfull), np.array(Yfull)
 
     def filterplot(self, x, y, xf, yf):
-        plt.plot(x, y, ".", color="blue", alpha=0.5)
-        plt.plot(xf, yf, "-", color="red")
+        plt.plotFlightFeatureVersusTime(x, y, ".", color="blue", alpha=0.5)
+        plt.plotFlightFeatureVersusTime(xf, yf, "-", color="red")
 
 
 class SavitzkyGolay(BaseFilter):
