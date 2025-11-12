@@ -481,22 +481,27 @@ class FlightsInterpolated(object):
         print ( "-"*180 )
 
     def interpolate_all_flights_data(self):
-        '''loop through the files '''
-        
-        directory = self.flightsDatabase.getTrainRankFinalFlightsFolderPathStr( self.train_rank)
+        '''loop through the files - create only non already existing files '''
+        targetFolderPath = self.flightsDatabase.getFlightsInterpolatedFolderPathStr ( self.train_rank)
+
+        sourceDirectory = self.flightsDatabase.getTrainRankFinalFlightsFolderPathStr( self.train_rank)
         count = 0
-        for fileName in os.listdir(directory):
+        for fileName in os.listdir(sourceDirectory):
             if count < self.nbFlights:
                 if fileName.endswith(".parquet"): # Filter specific file types
-                    filePath = os.path.join(directory, fileName)
+                    sourceFilePath = os.path.join(sourceDirectory, fileName)
+                    targetFilePath = os.path.join(targetFolderPath , fileName)
+                    print("------ check if target file already existing ------")
                     #print ( filePath )
                     flight_id = fileName.split(".")[0]
                     #print("flight_id = " + flight_id)
                     '''if flight_id and ( flight_id == self.flight_id_filtered):'''
-                    if flight_id:
+                    if flight_id and not os.path.exists(targetFilePath):
                         ''' there is a filtered flight_id condition '''
-                        self.retrieve_FlightList_TakeOff_Landed(flight_id)
+                        self.retrieve_FlightList_TakeOff_Landed( flight_id )
                         self.interpolate_one_flight_data( flight_id  )
+                    else:
+                        print("file already existing = " + targetFilePath)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
@@ -506,7 +511,7 @@ if __name__ == '__main__':
     train_rank = "train"
     flight_id = "prc770864956"
     flight_id = None
-    nbFlights = 10
+    nbFlights = 1000000
     flightsInterpolated = FlightsInterpolated( train_rank, nbFlights , flight_id)
     #flightsInterpolated.prepare_Fuel_for_interpolation()
     
