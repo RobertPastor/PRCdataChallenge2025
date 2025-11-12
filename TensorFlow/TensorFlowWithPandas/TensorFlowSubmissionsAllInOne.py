@@ -386,7 +386,7 @@ class PRCdataChallenge2025Submissions:
             return row['aircraft_CAS_at_fuel_end']
         '''
     
-    def computeMissingSpeeds(self, df):
+    def computeMissingTASCASfromMach(self, df):
         # Machine epsilon for single precision (32-bit)
         df['aircraft_TAS_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelStart , axis = 1)
         df['aircraft_TAS_at_fuel_end']   = df.apply( self.compute_TAS_KnotsfromMach_atFuelEnd , axis = 1)
@@ -562,7 +562,7 @@ class PRCdataChallenge2025Submissions:
             ''' compute distance from airport origin to each aircraft position at fuel start and fuel end '''
             train_dataset = self.computeDistanceBetweenOriginAirportAndAircraftPosition(train_dataset)
             ''' compute missing speeds from mach '''
-            train_dataset = self.computeMissingSpeeds(train_dataset)
+            train_dataset = self.computeMissingTASCASfromMach(train_dataset)
             ''' correct time difference between fuel burn start and end from takeoff '''
             #train_dataset = self.correctTimeDifferencesFuelBurntStartEnd (train_dataset)
             ''' see the results '''
@@ -775,7 +775,7 @@ class PRCdataChallenge2025Submissions:
             ''' compute distance between airports and aircraft position at fuel start end '''
             X_rank = self.computeDistanceBetweenOriginAirportAndAircraftPosition(X_rank)
             ''' compute missing speeds from mach '''
-            X_rank = self.computeMissingSpeeds(X_rank)
+            X_rank = self.computeMissingTASCASfromMach(X_rank)
             ''' correct time difference between fuel burn start and end from takeoff '''
             #X_rank = self.correctTimeDifferencesFuelBurntStartEnd (X_rank)
             ''' see the results '''
@@ -1010,7 +1010,7 @@ class PRCdataChallenge2025Submissions:
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount 
         
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
-        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingSpeeds(concatenatedTrainRankDataset)
+        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.ccomputeMissingTASCASfromMachconcatenatedTrainRankDataset)
         #print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         #print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
  

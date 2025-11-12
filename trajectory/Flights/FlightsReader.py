@@ -36,6 +36,11 @@ class FlightsDatabase(object):
         self.filesFolderRank = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data")
         self.filesFolderFinal = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-final-data")
         
+        
+        self.filesFolderTrainInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data-interpolated")
+        self.filesFolderRankInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data-interpolated")
+        self.filesFolderFinalInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-final-data-interpolated")
+        
         assert Path(self.filesFolderTrain).is_dir() == True
         assert Path(self.filesFolderRank).is_dir() == True
         
@@ -62,6 +67,14 @@ class FlightsDatabase(object):
             return self.filesFolderRank
         else:
             return self.filesFolderFinal
+        
+    def getFlightsInterpolatedFolderPathStr(self , train_rank_final):
+        if train_rank_final == "train":
+            return self.filesFolderTrainInterpolated
+        elif train_rank_final == "rank":
+            return self.filesFolderRankInterpolated
+        else:
+            return self.filesFolderFinalInterpolated
 
     def checkFlightsTrainHeaders(self):
         return (set(self.FlightsTrainDataframe) == set(expectedHeaders))

@@ -160,7 +160,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
                 return np.nan
     
     ''' use python aerocal method to compute TAS and CAS from mach when TAS or CAS are null '''
-    def computeMissingSpeeds(self, df):
+    def computeMissingTASCASfromMach(self, df):
         # Machine epsilon for single precision (32-bit)
         df['aircraft_TAS_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelStart , axis = 1)
         df['aircraft_TAS_at_fuel_end']   = df.apply( self.compute_TAS_KnotsfromMach_atFuelEnd , axis = 1)
@@ -173,7 +173,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
     def extendCorrectTrainRankDataframe(self , concatenatedTrainRankDataset):
         
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
-        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingSpeeds(concatenatedTrainRankDataset)
+        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingTASCASfromMach(concatenatedTrainRankDataset)
         
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
 

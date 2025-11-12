@@ -87,9 +87,9 @@ class AirportsDatabase(object):
         
         self.airportsFilesFolder = os.path.dirname(__file__)
 
-        logging.info ( self.className + ': file folder= {0}'.format(self.airportsFilesFolder) )
+        #logging.info ( self.className + ': file folder= {0}'.format(self.airportsFilesFolder) )
         self.FilePath = os.path.join(self.airportsFilesFolder , self.FileName)
-        logging.info ( self.className + ': file path= {0}'.format(self.FilePath) )
+        #logging.info ( self.className + ': file path= {0}'.format(self.FilePath) )
         
         self.airportsDataFrame = None
         
@@ -99,7 +99,6 @@ class AirportsDatabase(object):
         #logging.info(self.className + ' read CSV with pandas - columns = ' + str( list(self.airportsDataFrame) ) )
         
         ''' add a column with elevation in feet '''
-        
         self.airportsDataFrame['airport_elevation_ft']  = self.airportsDataFrame['elevation meters'] * Feet2Meter
         self.airportsDataFrame = self.airportsDataFrame.rename(columns=
                                         {'ICAO'            : 'airport_icao', 
@@ -236,7 +235,7 @@ class AirportsDatabase(object):
         if self.airportsDb is None:
             raise ValueError(self.className + " -> airports database is not correctly created")
 
-        for key, airportInternal in self.airportsDb.items():
+        for key in self.airportsDb:
             if key == ICAOcode:
                 return True
         return False
@@ -266,7 +265,7 @@ class AirportsDatabase(object):
         for country in self.countriesDb:
             yield country
             
-    def computeDistanceNm(self, adepICAOcode, adesICAOcode):
+    def computeDistanceNmAdepAdes(self, adepICAOcode, adesICAOcode):
         if self.airportsDb is None: return 0.0
         
         adepLatitudeDegrees = self.getAirportLatitudeDegrees(adepICAOcode)

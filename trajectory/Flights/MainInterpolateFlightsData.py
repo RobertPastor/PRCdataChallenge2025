@@ -23,6 +23,38 @@ from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 
 from trajectory.utils import keepOnlyColumns
 import matplotlib.pyplot as plt
+from pathlib import Path
+
+
+class CountOfNullsNonNulls(object):
+    
+    ''' dictionnary to store count of nulls before and after interpolation '''
+    countOfNullsBeforeInterpolation = {}
+    countOfNullsAfterInterpolation = {}
+        
+    def __init__(self , columnsToInterpolateList):
+        pass
+        ''' dictionnary to store count of nulls before and after interpolation '''
+        self.countOfNullsBeforeInterpolation = {}
+        self.countOfNullsAfterInterpolation = {}
+        
+        self.listOfColumnsToInterpolate = columnsToInterpolateList
+        
+    def setDataframeNumberOfRows(self , dataframeNumberOfRows):
+        self.dataframeNumberOfRows = dataframeNumberOfRows
+    
+    def setColumnNullsBeforeInterpolation(self , columnToInterpolate, countOfNulls, countOfNonNulls):
+        self.countOfNullsBeforeInterpolation[columnToInterpolate] = { "countOfNulls" : countOfNulls , "countOfNonNulls" : countOfNonNulls}
+        
+    def setColumnNullsAfterInterpolation(self , columnToInterpolate, countOfNulls, countOfNonNulls):
+        self.countOfNullsAfterInterpolation[columnToInterpolate] = { "countOfNulls" : countOfNulls , "countOfNonNulls" : countOfNonNulls}
+
+    def generatedInterpolatedFlightParquetFile(self):
+        sumOfNullsBeforeInterpolation = 0
+        sumOfNullsAfterInterpolation = 0
+        for columnToInterpolate in self.listOfColumnsToInterpolate:
+            sumOfNullsBeforeInterpolation = sumOfNullsBeforeInterpolation + self.countOfNullsBeforeInterpolation[columnToInterpolate]["countOfNulls"]
+            sumOfNullsAfterInterpolation = sumOfNullsAfterInterpolation + self.countOfNullsBeforeInterpolation[columnToInterpolate]["countOfNulls"]
 
 class FlightsInterpolated(object):
     
@@ -33,6 +65,9 @@ class FlightsInterpolated(object):
         self.nbFlights = nbFlights
         self.flight_id_filtered = flight_id_filtered
         
+        self.flightList = FlightListDatabase()
+        self.flightsDatabase = FlightsDatabase()
+
         ''' dictionnary with takeoff and landed instant for each flight id '''
         self.TakeOffInstantDict = {}
         self.LandedInstantDict = {}
@@ -51,6 +86,9 @@ class FlightsInterpolated(object):
         self.airports = AirportsDatabase()
         assert self.airports.readWithPandas() == True
         
+        ''' tooling class to decide to generate an interpolated parquet file or only write the orginal one - not interpolated '''
+        self.listOfColumnsToInterpolate = ['latitude','longitude','altitude','groundspeed','track','vertical_rate','mach','TAS','CAS']
+        self.countOfNullsNonNulls = CountOfNullsNonNulls(self.listOfColumnsToInterpolate)
         
     def plot ( self , timeSeries, valuesToPlot , columnName ):
         pass
@@ -62,8 +100,7 @@ class FlightsInterpolated(object):
         plt.title(columnName)
         plt.show()
         
-        
-    def plotFeaturesVersusTime(self , df):
+    def plotFeaturesVersusTime(self , df , flight_id ):
         
         df['start'] = df['timestamp'].min()
         df['end'] = df['timestamp'].max()
@@ -73,9 +110,8 @@ class FlightsInterpolated(object):
         timeSeries = df['time_diff_seconds']
         for columnName in listOfColumns:
             seriesToPlot = df[columnName]
-            self.plot( timeSeries , seriesToPlot , columnName)
+            self.plot( timeSeries = timeSeries , valuesToPlot = seriesToPlot , columnName = columnName + "_" + flight_id)
  
-
     def fill_Fuel_Frame_with_empty_columns_for_interpolation(self, df ):
     
         listOfColumns = ['latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS']
@@ -87,9 +123,9 @@ class FlightsInterpolated(object):
 
     def build_Fuel_Dataframe_with_start_end_timestamps( self, fuelTrainDataframe ):
         
-        print ("-----focusing on the training flights data files -----")
-        print ("-----extend fuel dataframe timestamps with fuel start and end timestamps  -----")
-        print ("-----prepare for interpolating flights timestamps added from fuel start and end timestamps  -----")
+        print ("----- focusing on the training flights data files -----")
+        print ("----- extend fuel dataframe timestamps with fuel start and end timestamps  -----")
+        print ("----- prepare for interpolating flights timestamps added from fuel start and end timestamps  -----")
         
         if ( self.train_rank == 'train'):
             fuelStartDataframe = fuelTrainDataframe.copy()
@@ -130,9 +166,6 @@ class FlightsInterpolated(object):
                 fuelTrainDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == self.flight_id_filtered]
             ''' sort using timestamps '''
             fuelTrainDataframe = fuelTrainDataframe.sort_values(by='timestamp')
-
-            #print(tabulate(fuelTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-            #print(tabulate(fuelTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
             
             print("="*90)
             return fuelTrainDataframe
@@ -147,22 +180,20 @@ class FlightsInterpolated(object):
         self.fuelTrainDataframe = df
         return True
     
+    ''' this function is used to compute the track angle at takeoff and at landing time '''
     def computeOrigin2DestinationTrackAngleDegrees(self , flight_id ):
         if flight_id:
             
-            self.flightList = FlightListDatabase()
             assert self.flightList.readTrainRankFlightListLite(self.train_rank) == True
             
             origin_icao = self.flightList.getOriginICAOairport(self.train_rank, flight_id)
             origin_airport = self.airports.getAirportFromICAOCode(origin_icao)
             assert (isinstance(origin_airport, Airport))
             #print ( str ( origin_airport))
-        
             destination_icao = self.flightList.getDestinationICAOairport(self.train_rank, flight_id)
             destination_airport = self.airports.getAirportFromICAOCode(destination_icao)
             assert (isinstance(destination_airport, Airport))
             #print ( str ( destination_airport ) )
-
             bearing_angle_degrees = origin_airport.getBearingDegreesTo(destination_airport)
             print("from origin = " + origin_icao + " -> to destination = " + 
                   destination_icao + " -> bearing angle = " + str(bearing_angle_degrees) + " degrees")
@@ -172,14 +203,12 @@ class FlightsInterpolated(object):
 
     def retrieve_FlightList_TakeOff_Landed(self , flight_id):
         
-        self.flightList = FlightListDatabase()
         assert self.flightList.readTrainRankFlightListLite(self.train_rank) == True
  
         assert flight_id != None
         if flight_id:
             
-            ''' origin ''' 
-            
+            ''' origin - take off instant ''' 
             takeOffInstant = self.flightList.getTakeOffInstant(self.train_rank , flight_id)
             self.TakeOffInstantDict [flight_id] = takeOffInstant
             #print("flight id = " + flight_id + " -> takeoff = " + str( takeOffInstant ) )
@@ -275,10 +304,9 @@ class FlightsInterpolated(object):
                 return  mach_alt2cas ( mach=mach , altitude=aircraft_altitude_ft , alt_units='ft')
             except ValueError:
                 return np.nan
-
         
     ''' use python aerocalc methods to compute TAS and CAS from mach when TAS or CAS are null '''
-    def computeMissingSpeeds(self, df):
+    def computeMissingTASCASfromMach(self, df):
         print("=========== compute missing speeds ===============")
         # Machine epsilon for single precision (32-bit)
         df['TAS'] = df.apply( self.compute_TAS_Knots_from_Mach, axis = 1)
@@ -301,8 +329,8 @@ class FlightsInterpolated(object):
                                         "track"         : [bearingAngleFromOrigin2DestinationDegrees],
                                         "vertical_rate" : [(0.0)],
                                         "mach"          : [(0.0)],
-                                        "TAS"           : [(np.nan)],
-                                        "CAS"           : [(np.nan)],
+                                        "TAS"           : [(0.0)],
+                                        "CAS"           : [(0.0)],
                                         "source"        : ["interpolated"]
                                         } )
         return takeOffRow
@@ -322,27 +350,28 @@ class FlightsInterpolated(object):
                                         "track"         : [bearingAngleFromOrigin2DestinationDegrees],
                                         "vertical_rate" : [(0.0)],
                                         "mach"          : [(0.0)],
-                                        "TAS"           : [(np.nan)],
-                                        "CAS"           : [(np.nan)],
+                                        "TAS"           : [(0.0)],
+                                        "CAS"           : [(0.0)],
                                         "source"        : ["interpolated"]
                                         } )
         return landedRow
     
-    def interpolate_one_flight_data(self , flight_id, flightsDatabase):
+    def interpolate_one_flight_data(self , flight_id):
         
         fileName = flight_id + ".parquet"
+        print (" Flights file name = " + fileName)
         
-        flightDataframe = flightsDatabase.readOneFlightFileLite(self.train_rank, fileName)
+        flightDataframe = self.flightsDatabase.readOneFlightFileLite(self.train_rank, fileName)
         print ( flightDataframe.shape )
         
-        '''plot featires '''
-        self.plotFeaturesVersusTime(flightDataframe)
+        '''plot features '''
+        #self.plotFeaturesVersusTime(flightDataframe , flight_id)
         
         ''' filter fuel on flight id and perform concat '''
         fuelDataframe = self.prepare_Fuel_for_interpolation()
         
         ''' in the newly inserted records, need to add the aircraft ICAO code '''
-        aircraftICAOTypeCode = flightsDatabase.getFirstNonNullValueInColumn(flightDataframe, 'typecode')
+        aircraftICAOTypeCode = self.flightsDatabase.getFirstNonNullValueInColumn(flightDataframe, 'typecode')
         print(" ----> first non null Aircraft ICAO code value = " + aircraftICAOTypeCode)
         
         ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''                    
@@ -367,12 +396,15 @@ class FlightsInterpolated(object):
         
         #print ( flightTrainDataframe.info() )
         #print ( takeOffRow.info() )
-        ''' insert at the end index of dataframe '''
+        ''' insert at the takeoff instant '''
         takeOffRow = self.prepareTakeOffRow( flight_id , aircraftICAOTypeCode)
         flightDataframe = pd.concat( [ flightDataframe , takeOffRow])
         flightDataframe.reset_index(inplace=True)
+        flightDataframe = flightDataframe.sort_values(by='timestamp')
+
         ''' track is equivalent to heading if there is no wind '''
-        
+        print(tabulate(flightDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
         #print ( flightTrainDataframe.info() )
         #print ( landedRow.info() )
         landedRow = self.prepareLandedRow( flight_id, aircraftICAOTypeCode )
@@ -385,53 +417,73 @@ class FlightsInterpolated(object):
         ''' sort values acording to increasing timestamps '''
         flightDataframe = flightDataframe.sort_values(by='timestamp')
         flightDataframe.reset_index(drop=True, inplace=True)
-            
-        #print(tabulate(flightTrainDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
-        #print(tabulate(flightTrainDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
         
         print ( flightDataframe.info() )
         
-        listOfColumnsToInterpolate = ['latitude','longitude','altitude','groundspeed','track','vertical_rate','mach','TAS','CAS']
-        for columnToInterpolate in listOfColumnsToInterpolate:
+        for columnToInterpolate in self.listOfColumnsToInterpolate:
             countOfNulls = flightDataframe[columnToInterpolate].isna().sum()
             print ( "column = " + columnToInterpolate + " count of nulls = " + 
                     str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
 
-        flightDataframe = self.computeMissingSpeeds(flightDataframe)
+        flightDataframe = self.computeMissingTASCASfromMach(flightDataframe)
         
         ''' show dataframe informations '''
         print ( flightDataframe.shape )
         print ( flightDataframe.info() )
             
-        ''' main interpolation '''
-        for columnToInterpolate in listOfColumnsToInterpolate:
+        self.countOfNullsNonNulls.setDataframeNumberOfRows(flightDataframe.shape[0])
+        print("--------------------------- count of nulls before interpolation --------------")
+        ''' main interpolation pre interpolate status '''
+        for columnToInterpolate in self.listOfColumnsToInterpolate:
             countOfNulls = flightDataframe[columnToInterpolate].isna().sum()
-            print ( "column = " + columnToInterpolate + " count of nulls = " + 
-                    str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
+            print ( "column = " + columnToInterpolate + " count of nulls = " + str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
+            print ( "column = " + columnToInterpolate + " count of non nulls = " + str(flightDataframe.shape[0]-countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
+            self.countOfNullsNonNulls.setColumnNullsBeforeInterpolation( columnToInterpolate , countOfNulls , (flightDataframe.shape[0]-countOfNulls) )
             
         print("=========================== interpolate ========================")
+        
         columnsToInterpolate = ['latitude', 'longitude' , 'altitude' , 'groundspeed' , 'track', 'vertical_rate']
         ''' interpolate track if all degrees lower to 360 otherwise use modulo 360 '''
         ''' interpolate latitude and longitude if aircraft does not overfly the south/north pole or the greenwich meridian '''
+        flightDataframeCopy = flightDataframe.copy(deep = True)
         for columnNameToInterpolate in columnsToInterpolate:
-            flightDataframe[columnNameToInterpolate] = flightDataframe[columnNameToInterpolate].interpolate(method="linear", 
-                                                                limit_direction='both')
+            flightDataframeCopy[columnNameToInterpolate] = flightDataframeCopy[columnNameToInterpolate].interpolate(method="linear", limit_direction='both')
+            
+        print("--------------------------- count of nulls after interpolation --------------")
 
-        self.plotFeaturesVersusTime(flightDataframe)
+        ''' main interpolation post interpolate status '''
+        for columnToInterpolate in self.listOfColumnsToInterpolate:
+            countOfNulls = flightDataframe[columnToInterpolate].isna().sum()
+            print ( "column = " + columnToInterpolate + " count of nulls = " + str(countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
+            print ( "column = " + columnToInterpolate + " count of non nulls = " + str(flightDataframe.shape[0]-countOfNulls) + " - versus = " + str(flightDataframe.shape[0]))
+            self.countOfNullsNonNulls.setColumnNullsAfterInterpolation( columnToInterpolate , countOfNulls , (flightDataframe.shape[0]-countOfNulls) )
+
+        #self.plotFeaturesVersusTime(flightDataframe , flight_id)
         
-        flightDataframe = flightDataframe.drop( ['index'] , axis=1 )
+        flightDataframeCopy = flightDataframeCopy.drop( ['index'] , axis=1 )
  
-        print(tabulate(flightDataframe[:10], headers='keys', tablefmt='grid' , showindex=True , ))
+        print(tabulate(flightDataframeCopy[:10], headers='keys', tablefmt='grid' , showindex=True , ))
         #print(tabulate(flightTrainDataframe.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
-        print(tabulate(flightDataframe[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        print(tabulate(flightDataframeCopy[-10:], headers='keys', tablefmt='grid' , showindex=True , ))
+        
+        ''' write parquet '''
+        targetFolderPath = self.flightsDatabase.getFlightsInterpolatedFolderPathStr ( self.train_rank)
+        print ( targetFolderPath  )
+        print ( fileName )
+        filePath = os.path.join( targetFolderPath , fileName)
+        directory = Path(targetFolderPath)
+        assert directory.is_dir()
+        flightDataframeCopy.to_parquet( path = filePath , engine = 'auto' , index = None)
+        
+        print ( "-"*180 )
+        print ("========== " + fileName + " end =================")
 
-        print ( "-"*80 )
+        print ( "-"*180 )
 
     def interpolate_all_flights_data(self):
         '''loop through the files '''
-        flightsDatabase = FlightsDatabase()
         
-        directory = flightsDatabase.getTrainRankFinalFlightsFolderPathStr( self.train_rank)
+        directory = self.flightsDatabase.getTrainRankFinalFlightsFolderPathStr( self.train_rank)
         count = 0
         for fileName in os.listdir(directory):
             if count < self.nbFlights:
@@ -440,9 +492,11 @@ class FlightsInterpolated(object):
                     #print ( filePath )
                     flight_id = fileName.split(".")[0]
                     #print("flight_id = " + flight_id)
-                    if flight_id and ( flight_id == self.flight_id_filtered):
+                    '''if flight_id and ( flight_id == self.flight_id_filtered):'''
+                    if flight_id:
                         ''' there is a filtered flight_id condition '''
-                        self.interpolate_one_flight_data( flight_id , flightsDatabase )
+                        self.retrieve_FlightList_TakeOff_Landed(flight_id)
+                        self.interpolate_one_flight_data( flight_id  )
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
@@ -451,13 +505,12 @@ if __name__ == '__main__':
     
     train_rank = "train"
     flight_id = "prc770864956"
+    flight_id = None
     nbFlights = 10
     flightsInterpolated = FlightsInterpolated( train_rank, nbFlights , flight_id)
     #flightsInterpolated.prepare_Fuel_for_interpolation()
     
-    assert flightsInterpolated.retrieve_FlightList_TakeOff_Landed(flight_id) == True
     ''' add takeoff and landed to the fuel start end dataframe '''
-    
     fuelTrainDataframe = flightsInterpolated.interpolate_all_flights_data()
 
 
