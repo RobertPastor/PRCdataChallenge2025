@@ -161,13 +161,12 @@ class FuelDatabase(object):
         self.count_of_files_to_read = count_of_files_to_read
         
         self.fileNameFuelTrain = "fuel_train.parquet"
-        #logging.info(self.fileNameFuelTrain)
         self.fileNameFuelRank =  "fuel_rank_submission.parquet"
         #logging.info(self.fileNameFuelRank)
         self.filesFolder = os.path.dirname(__file__)
         self.filePathFuelTrain = os.path.join(self.filesFolder , self.fileNameFuelTrain)
-        #logging.info(self.filePathFuelTrain)
         self.filePathFuelRank = os.path.join(self.filesFolder , self.fileNameFuelRank)
+        self.filePathFuelFinal = os.path.join(self.filesFolder , self.fileNameFuelFinal)
         #logging.info(self.filePathFuelRank)
         self.FuelRankDataframeNbRows = 0
         
@@ -189,6 +188,9 @@ class FuelDatabase(object):
     
     def getFuelRankDataframe(self):
         return self.FuelRankDataframe
+    
+    def getFuelFinalDataframe(self):
+        return self.FuelFinalDataframe
     
         ''' compute difference in seconds between end and start '''
     def addTimeDiffSeconds(self , df):
@@ -263,7 +265,7 @@ class FuelDatabase(object):
             self.FuelRankDataframe = None
             return False
         
-    def readFuelTrainLite(self): 
+    def readFuelLite(self , train_rank_final): 
         
         logging.basicConfig(level=logging.INFO)
 
@@ -271,11 +273,19 @@ class FuelDatabase(object):
         directory = Path(self.filesFolder)
         #logging.info(directory)
         file = Path(self.filePathFuelTrain)
-        
         if directory.is_dir() and file.is_file():
             
-            self.FuelTrainDataframe = pd.read_parquet ( self.filePathFuelTrain )
-            return self.FuelTrainDataframe
+            if train_rank_final == 'train':
+                self.FuelDataframe = pd.read_parquet ( self.filePathFuelTrain )
+                return self.FuelDataframe
+            
+            elif train_rank_final == 'rank':
+                self.FuelDataframe = pd.read_parquet ( self.filePathFuelRank )
+                return self.FuelDataframe
+            else:
+                self.FuelDataframe = pd.read_parquet ( self.filePathFuelFinal )
+                return self.FuelDataframe
+               
         
         return None
         

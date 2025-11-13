@@ -121,55 +121,53 @@ class FlightsInterpolated(object):
         
         return df
 
-    def buildFuelDataframeWithStartEndTimestamps( self, fuelTrainDataframe ):
+    def buildFuelDataframeWithStartEndTimestamps( self, fuelDataframe ):
         
         print ("----- focusing on the training flights data files -----")
         print ("----- extend fuel dataframe timestamps with fuel start and end timestamps  -----")
         print ("----- prepare for interpolating flights timestamps added from fuel start and end timestamps  -----")
         
-        if ( self.train_rank == 'train'):
-            fuelStartDataframe = fuelTrainDataframe.copy()
-            listOfColumnNamesToKeep = ['flight_id', 'start']
-            fuelStartDataframe = keepOnlyColumns( fuelStartDataframe, listOfColumnNamesToKeep)
-            fuelStartDataframe = fuelStartDataframe.rename(columns={'start': 'timestamp'})
-            #print ( list ( fuelStartDataframe ))
-            #print ( fuelStartDataframe.shape  )
+        fuelStartDataframe = fuelDataframe.copy()
+        listOfColumnNamesToKeep = ['flight_id', 'start']
+        fuelStartDataframe = keepOnlyColumns( fuelStartDataframe, listOfColumnNamesToKeep)
+        fuelStartDataframe = fuelStartDataframe.rename(columns={'start': 'timestamp'})
+        #print ( list ( fuelStartDataframe ))
+        #print ( fuelStartDataframe.shape  )
         #print ( tabulate( fuelStartDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
         
-            fuelEndDataframe = fuelTrainDataframe.copy()
-            listOfColumnNamesToKeep = ['flight_id', 'end']
-            fuelEndDataframe = keepOnlyColumns( fuelEndDataframe, listOfColumnNamesToKeep)
-            fuelEndDataframe = fuelEndDataframe.rename(columns={'end': 'timestamp'})
-            #print ( list ( fuelEndDataframe ))
-            #print ( fuelEndDataframe.shape  )
-            #print ( tabulate( fuelEndDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
-            ''' concat start wit end '''
-            return pd.concat( [fuelStartDataframe , fuelEndDataframe] )
+        fuelEndDataframe = fuelDataframe.copy()
+        listOfColumnNamesToKeep = ['flight_id', 'end']
+        fuelEndDataframe = keepOnlyColumns( fuelEndDataframe, listOfColumnNamesToKeep)
+        fuelEndDataframe = fuelEndDataframe.rename(columns={'end': 'timestamp'})
+        #print ( list ( fuelEndDataframe ))
+        #print ( fuelEndDataframe.shape  )
+        #print ( tabulate( fuelEndDataframe[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
+        ''' concat start wit end '''
+        return pd.concat( [fuelStartDataframe , fuelEndDataframe] )
     
     def prepareFuelForInterpolation(self ):
 
-        if self.train_rank ==  'train':
-
-            fuelDatabase = FuelDatabase(self.nbFlights)
-            fuelTrainDataframe = fuelDatabase.readFuelTrainLite()
-            
-            #print ( list ( fuelTrainDataframe ))
-            ''' retreve fuel with only start end timestamp '''
-            fuelTrainDataframe = self.buildFuelDataframeWithStartEndTimestamps (fuelTrainDataframe)
-            ''' drop duplicates ''' 
-            fuelTrainDataframe = fuelTrainDataframe.drop_duplicates()
-            #print ( fuelTrainDataframe.shape )
-            #print ( list ( fuelTrainDataframe ) )
-            
-            ''' filter on one flight id '''
-            if self.flight_id_filtered:
-                print("----- filtering on flight_id -----------")
-                fuelTrainDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == self.flight_id_filtered]
-            ''' sort using timestamps '''
-            fuelTrainDataframe = fuelTrainDataframe.sort_values(by='timestamp')
-            
-            print("="*90)
-            return fuelTrainDataframe
+        fuelDatabase = FuelDatabase(self.nbFlights)
+        fuelDataframe = fuelDatabase.readFuelTrainLite(self.train_rank)
+        
+        #print ( list ( fuelTrainDataframe ))
+        ''' retreve fuel with only start end timestamp '''
+        fuelDataframe = self.buildFuelDataframeWithStartEndTimestamps (fuelDataframe)
+        ''' drop duplicates ''' 
+        fuelDataframe = fuelDataframe.drop_duplicates()
+        #print ( fuelTrainDataframe.shape )
+        #print ( list ( fuelTrainDataframe ) )
+        
+        ''' filter on one flight id '''
+        if self.flight_id_filtered:
+            print("----- filtering on flight_id -----------")
+            fuelDataframe = fuelDataframe[fuelTrainDataframe['flight_id'] == self.flight_id_filtered]
+        ''' sort using timestamps '''
+        fuelDataframe = fuelDataframe.sort_values(by='timestamp')
+        
+        print("="*90)
+        return fuelDataframe
+    
             
     def retrieveTakeOffLandedDataframe(self , flight_id):
         ''' takeoff short row with flight id and timestamp only '''
