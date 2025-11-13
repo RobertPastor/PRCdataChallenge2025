@@ -1010,7 +1010,7 @@ class PRCdataChallenge2025Submissions:
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount 
         
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
-        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.ccomputeMissingTASCASfromMachconcatenatedTrainRankDataset)
+        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.ccomputeMissingTASCASfromMach(concatenatedTrainRankDataset)
         #print(tabulate(concatenatedTrainRankDataset[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         #print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
  

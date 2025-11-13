@@ -204,7 +204,7 @@ class Test_Main(unittest.TestCase):
         dates = df['timestamp']
         altitudes = df['altitude']
         # Create the plot
-       plotFlightFeatureVersusTime.figure(figsize=(10, 6))
+        plotFlightFeatureVersusTime.figure(figsize=(10, 6))
         plt.plot(dates, aplotFlightFeatureVersusTimeudes, marker='o', linestyle='-', color='b', label='Altitude')
         
         # Format the x-axis to show readable dates
@@ -220,7 +220,7 @@ class Test_Main(unittest.TestCase):
         plt.grid(True)
         
         # Show the plot
-       plotFlightFeatureVersusTime.show()
+        plotFlightFeatureVersusTime.show()
         
 
 
