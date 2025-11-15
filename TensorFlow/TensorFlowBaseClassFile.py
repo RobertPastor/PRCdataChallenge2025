@@ -61,8 +61,8 @@ class TensorFlowBaseClass(object):
         
     def plot_loss(self, history , y_limit , currentDateTimeAsString):
         
-        plt.plotFlightFeatureVersusTime(history.history['loss'], label='training_loss')
-        plt.plotFlightFeatureVersusTime(history.history['val_loss'], label='validation_loss')
+        plt.plot(history.history['loss'], label='training_loss')
+        plt.plot(history.history['val_loss'], label='validation_loss')
         plt.title("convergence versus ")
         plt.ylim([0,y_limit])
         plt.xlabel('Epoch')

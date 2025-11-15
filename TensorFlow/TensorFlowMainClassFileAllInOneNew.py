@@ -109,7 +109,10 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         else:
             #TAS is empty
             if (mach is not None) and (mach != np.nan):
-                return  mach2tas ( mach=mach,altitude=aircraft_altitude_ft)
+                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
+                    return  mach2tas ( mach=mach, altitude=aircraft_altitude_ft)
+                else:
+                    return np.nan
             else:
                 return np.nan
 
@@ -124,7 +127,10 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         else:
             # TAS is empty            
             if (mach is not None) and (mach != np.nan):
-                return  mach2tas ( mach=mach,altitude=aircraft_altitude_ft)
+                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
+                    return  mach2tas ( mach=mach,altitude=aircraft_altitude_ft)
+                else:
+                    return np.nan
             else:
                 return np.nan
 
@@ -139,8 +145,11 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
             return CAS
         else:
             if (mach is not None) and (mach != np.nan):
-                ''' assumption is that altitude is always provided -> no altitude missings content '''
-                return  mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
+                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
+                    ''' assumption is that altitude is always provided -> no altitude missings content '''
+                    return  mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
+                else:
+                    return np.nan
             else:
                 return np.nan
     
@@ -154,8 +163,12 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
             return CAS
         else:
             if (mach is not None) and (mach != np.nan):
-                ''' assumption is that altitude is always provided -> no altitude missings content '''
-                return  mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
+                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
+
+                    ''' assumption is that altitude is always provided -> no altitude missings content '''
+                    return  mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
+                else:
+                    return np.nan
             else:
                 return np.nan
     
@@ -251,14 +264,16 @@ if __name__ == '__main__':
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-10-31-12-44-23.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-05-02-26-18.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-08-13-48-02.parquet"
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-15-22-22-08.parquet"
     
     #extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
     #extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-31-17-36-58.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-05-03-09-31.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-08-14-38-59.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-15-23-20-10.parquet"
 
-    javaTrainRankfilesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents/11-08-2025-November-08"
+    javaTrainRankfilesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents/"
     ''' common class instance '''
     prcDataChallenge2025Submissions = PRCdataChallenge2025Submissions(extendedFuelTrainDataFileName , extendedRankFuelDataFileName, javaTrainRankfilesFolder)
     
@@ -282,16 +297,16 @@ if __name__ == '__main__':
     ''' build the model '''
     #generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train (trainDataSet)
     
-    generatedModelFileName = "results_model_2025-11-09-07-43-24.h5"
+    generatedModelFileName = "results_model_2025-11-15-23-53-24.h5"
     print ( generatedModelFileName )
     
     rankingDataset = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'rank']
 
-    CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
+    #CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
+    CsvPredictionsFilePath = "fuel_rank_submission_2025-11-15-23-53-28.csv"
     print ( CsvPredictionsFilePath )
 
-    generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(
-            CsvPredictionsFilePath , extendedRankFuelDataFileName)
+    generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(CsvPredictionsFilePath , extendedRankFuelDataFileName)
         
     print ( generatedTeamSubmissionParquetFileName )
     
