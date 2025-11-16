@@ -271,7 +271,6 @@ if __name__ == '__main__':
     print ("generated CSV predictions file = " + CsvPredictionsFilePath )
 
     generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(CsvPredictionsFilePath , extendedRankFuelDataFileName)
-        
     print ( generatedTeamSubmissionParquetFileName )
     
     ''' upload parquet to S3 destination '''

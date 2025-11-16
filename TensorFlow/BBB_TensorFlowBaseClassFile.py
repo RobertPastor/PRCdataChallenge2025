@@ -80,7 +80,8 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         return backend.mean ( abs ( y_true - y_pred ))
     
     def loss_function(self ):
-        return self.rmse
+        #return self.rmse
+        return 'mean_absolute_error'
 
     ''' used by all activitities '''
     def tf_model_fit( self, X_train, y_train, epochs):
@@ -451,3 +452,4 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
                 print(f"Elapsed time: {elapsed_time:.2f} seconds")
                 
                 print("---> submission parquet file <<" + targetTeamParquetFilePath +">> generated correctly")
+                return targetTeamParquetFilePath

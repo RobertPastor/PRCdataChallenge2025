@@ -5,14 +5,11 @@ Created on 27 oct. 2025
 
 '''
 
-
 import matplotlib.pyplot as plt
 
 import pandas as pd
 import time
 import os
-from sklearn.preprocessing import OneHotEncoder
-from tensorflow.python.ops import inplace_ops
 # Set the option to display all columns
 pd.options.display.max_columns = None
 
