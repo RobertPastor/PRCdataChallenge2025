@@ -15,6 +15,8 @@ Meter2Feet = 3.2808399 # one meter equals 3.28 feet
 Feet2Meter = 0.3048 # one feet equals 0.3048 meters
 
 Meter2NauticalMiles = 0.000539956803 # One Meter = 0.0005 nautical miles
+Meters2NauticalMiles = 0.000539956803 # One Meter = 0.0005 nautical miles
+MetersToNauticalMiles = 0.000539956803 # One Meter = 0.0005 nautical miles
 
 NauticalMiles2Meter = 1852.0 # in meters
 NauticalMiles2Meters = 1852.0 # in meters

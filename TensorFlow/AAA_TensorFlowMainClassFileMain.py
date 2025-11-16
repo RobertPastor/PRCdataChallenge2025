@@ -54,20 +54,66 @@ from tabulate import tabulate
 
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 from trajectory.Environment.Constants import Meter2NauticalMiles
-from TensorFlow.TensorFlowBaseClassFile import TensorFlowBaseClass
+from TensorFlow.BBB_TensorFlowBaseClassFile import TensorFlowBaseClass
 
 TrainDataSetRowCount = 131530
 RankDataSetRowCount = 24289
 
 ''' clean outliers '''
 ''' specific deal for mach TAS and CAS '''
-listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start","aircraft_altitude_ft_at_fuel_end" , 
-                            "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end",
-                            "aircraft_computed_vertical_rate_ft_min",
+listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start",
+                             "aircraft_altitude_ft_at_fuel_end" , 
+                             
+                            "aircraft_CAS_at_fuel_end" , 
+                            "aircraft_CAS_at_fuel_start",
                             
-                            "fuel_burnt_start_relative_to_takeoff_sec","fuel_burnt_end_relative_to_takeoff_sec",
+                            "aircraft_computed_vertical_rate_ft_min",
+                              
+                            "aircraft_delta_altitude_ft_end_destination",
+                            
+                             "aircraft_delta_altitude_ft_origin_end_start",
+                             "aircraft_delta_altitude_ft_origin_fuel_start",
+                             "aircraft_delta_altitude_ft_start_destination",
+
+                             "aircraft_distance_flown_origin_end_Nm",
+                             "aircraft_distance_flown_origin_start_Nm",
+                             "aircraft_distance_flown_start_end_Nm",
+                             
+                             "aircraft_distance_to_be_flown_end_destination_Nm",
+                             "aircraft_distance_to_be_flown_start_destination_Nm",
+
+                             "aircraft_groundspeed_kt_at_fuel_end",
+                             "aircraft_groundspeed_kt_at_fuel_start",
+                             
+                             "aircraft_groundspeed_kt_X_at_fuel_end",
+                             "aircraft_groundspeed_kt_X_at_fuel_start",
+                             "aircraft_groundspeed_kt_Y_at_fuel_end",
+                             "aircraft_groundspeed_kt_Y_at_fuel_start",
+
+                             "aircraft_mach_at_fuel_end",
+                             "aircraft_mach_at_fuel_start",
+                             
+                             "aircraft_TAS_at_fuel_end",
+                             "aircraft_TAS_at_fuel_start",
+                             
+                            "aircraft_track_angle_deg_at_fuel_end",
+                            "aircraft_track_angle_deg_at_fuel_start",
+                            "aircraft_track_angle_rad_at_fuel_end",
+                            "aircraft_track_angle_rad_at_fuel_start",
+                             
+                            "aircraft_vertical_rate_ft_min_at_fuel_end",
+                            "aircraft_vertical_rate_ft_min_at_fuel_start",
+
                             "fuel_burnt_end_relative_to_landed_sec",
-                            "aircraft_vertical_rate_ft_min_at_fuel_start","aircraft_vertical_rate_ft_min_at_fuel_end"]
+                            "fuel_burnt_end_relative_to_takeoff_sec",
+                            "fuel_burnt_start_relative_to_landed_sec",
+                            "fuel_burnt_start_relative_to_takeoff_sec",
+
+                            "fuel_burnt_start_relative_to_takeoff_sec",
+                            "fuel_burnt_end_relative_to_takeoff_sec",
+                            "fuel_burnt_end_relative_to_landed_sec",
+                            
+                            ]
 
 
 class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
@@ -79,8 +125,8 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         self.javaTrainRankfilesFolder = javaTrainRankfilesFolder
         super(PRCdataChallenge2025Submissions, self).__init__(TrainDataSetRowCount , RankDataSetRowCount , listOfColumnsWithOutliers )
         
-    def clean_outliers_capped(self , df , list_of_columnNames_to_clean):
-        for columnName in list_of_columnNames_to_clean:
+    def clean_outliers_capped(self , df , list_of_columnNames_to_clip):
+        for columnName in list_of_columnNames_to_clip:
             Q1 = df[columnName].quantile(0.25)
             Q3 = df[columnName].quantile(0.75)
             IQR = Q3 - Q1
@@ -97,96 +143,13 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         ''' add column with constant content either "rank" or "train" - used to filter afterwards '''
         df['train_rank'] = train_rank_str
         return df
-        
-    def compute_TAS_KnotsfromMach_atFuelStart(self , row):
-        from trajectory.aerocalc.airspeed import mach2tas 
-        mach = row['aircraft_mach_at_fuel_start']
-        aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
-
-        TAS = row['aircraft_TAS_at_fuel_start']
-        if not math.isnan(TAS):
-            return TAS
-        else:
-            #TAS is empty
-            if (mach is not None) and (mach != np.nan):
-                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
-                    return  mach2tas ( mach=mach, altitude=aircraft_altitude_ft)
-                else:
-                    return np.nan
-            else:
-                return np.nan
-
-    def compute_TAS_KnotsfromMach_atFuelEnd(self , row):
-        from trajectory.aerocalc.airspeed import mach2tas 
-        mach = row['aircraft_mach_at_fuel_end']
-        aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
-
-        TAS = row['aircraft_TAS_at_fuel_end']
-        if not math.isnan(TAS):
-            return TAS
-        else:
-            # TAS is empty            
-            if (mach is not None) and (mach != np.nan):
-                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
-                    return  mach2tas ( mach=mach,altitude=aircraft_altitude_ft)
-                else:
-                    return np.nan
-            else:
-                return np.nan
-
-        ''' compute CAS from mach '''
-    def compute_CAS_KnotsfromMach_atFuelStart(self, row ):
-        from trajectory.aerocalc.airspeed import  mach_alt2cas
-        mach = row['aircraft_mach_at_fuel_start']
-        aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
-        
-        CAS = row['aircraft_CAS_at_fuel_start']
-        if not math.isnan(CAS):
-            return CAS
-        else:
-            if (mach is not None) and (mach != np.nan):
-                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
-                    ''' assumption is that altitude is always provided -> no altitude missings content '''
-                    return  mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
-                else:
-                    return np.nan
-            else:
-                return np.nan
-    
-    def compute_CAS_KnotsfromMach_atFuelEnd(self, row ):
-        from trajectory.aerocalc.airspeed import  mach_alt2cas
-        mach = row['aircraft_mach_at_fuel_end']
-        aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
-
-        CAS = row['aircraft_CAS_at_fuel_end']
-        if not math.isnan(CAS):
-            return CAS
-        else:
-            if (mach is not None) and (mach != np.nan):
-                if ( aircraft_altitude_ft is not None) and not (math.isnan(aircraft_altitude_ft)):
-
-                    ''' assumption is that altitude is always provided -> no altitude missings content '''
-                    return  mach_alt2cas ( mach=mach,altitude=aircraft_altitude_ft)
-                else:
-                    return np.nan
-            else:
-                return np.nan
-    
-    ''' use python aerocal method to compute TAS and CAS from mach when TAS or CAS are null '''
-    def computeMissingTASCASfromMach(self, df):
-        # Machine epsilon for single precision (32-bit)
-        df['aircraft_TAS_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelStart , axis = 1)
-        df['aircraft_TAS_at_fuel_end']   = df.apply( self.compute_TAS_KnotsfromMach_atFuelEnd , axis = 1)
-        
-        df['aircraft_CAS_at_fuel_start'] = df.apply( self.compute_CAS_KnotsfromMach_atFuelStart , axis = 1)
-        df['aircraft_CAS_at_fuel_end']   = df.apply( self.compute_CAS_KnotsfromMach_atFuelEnd , axis = 1)
-        return df
     
     ''' latest version where all transformations are applied to both train and rank dataframes'''
     def extendCorrectTrainRankDataframe(self , concatenatedTrainRankDataset):
         
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
-        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeMissingTASCASfromMach(concatenatedTrainRankDataset)
+        ''' if mach is NaN and groundspeed is OK then use groundspeed as TAS value without wind '''
+        concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeTASnCASfromMachOrGroundSpeed(concatenatedTrainRankDataset)
         
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
 
@@ -198,21 +161,21 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
 
         ''' use clean outliers with capped quantiles without groupby flight_id nor groupby on aircraft code '''
-        concatenatedTrainRankDataset = self.clean_outliers_capped( concatenatedTrainRankDataset , self.listOfColumnsWithOutliers)
-        assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
+        ''' after v30 - do not cap / clip the values '''
+        #concatenatedTrainRankDataset = self.clean_outliers_capped( concatenatedTrainRankDataset , self.listOfColumnsWithOutliers)
+        #assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
         
         listOfColumnsToDrop = ['idx','flight_id', 'start', 'end' , 'aircraft_ICAO_Code', 'train_rank']
         df_temp = dropUnusedColumns ( concatenatedTrainRankDataset , listOfColumnsToDrop )
         print ( tabulate ( df_temp.describe(include='all'), headers='keys', tablefmt='grid' , showindex=False , ) )
         
-        ''' 6th November 2025 - v25 -> v26 -> test without dummies '''
+        ''' 6th November 2025 - v25 -> v26 -> test without dummies for the aircraft type code'''
         ''' after v26- add dummies again '''
         concatenatedTrainRankDataset = pd.get_dummies( concatenatedTrainRankDataset , columns=['aircraft_ICAO_Code'], dtype = int)
         print ( concatenatedTrainRankDataset.shape )
         print ( list ( concatenatedTrainRankDataset ) )
         
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
-        
         return concatenatedTrainRankDataset
     
     ''' manage a concatenated Train and Rank dataframe to apply the same transformations to both '''
@@ -249,6 +212,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
                 print ( list ( train_rank_dataset ) )
                 
                 return train_rank_dataset
+            
         return None
 
 if __name__ == '__main__':
@@ -290,21 +254,21 @@ if __name__ == '__main__':
     
     print ( tabulate ( concatenatedTrainRankDataset.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
     
-    ''' filter again the merged dataset to focus on train only '''
+    ''' filter again the merged dataset to extract train data only '''
     trainDataSet = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'train']
 
-    #print ( trainDataSet.shape)
     ''' build the model '''
-    #generatedModelFileName = prcDataChallenge2025Submissions.Build_Model_From_Train (trainDataSet)
+    generatedModelFileName = prcDataChallenge2025Submissions.BuildModelFromTrain (trainDataSet)
     
-    generatedModelFileName = "results_model_2025-11-15-23-53-24.h5"
-    print ( generatedModelFileName )
+    #generatedModelFileName = "results_model_2025-11-15-23-53-24.h5"
+    print ("--> generated model file = " +  generatedModelFileName )
     
     rankingDataset = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'rank']
-
-    #CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
-    CsvPredictionsFilePath = "fuel_rank_submission_2025-11-15-23-53-28.csv"
-    print ( CsvPredictionsFilePath )
+    
+    ''' make the predictions with ranking dataframe '''
+    CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
+    #CsvPredictionsFilePath = "fuel_rank_submission_2025-11-15-23-53-28.csv"
+    print ("generated CSV predictions file = " + CsvPredictionsFilePath )
 
     generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(CsvPredictionsFilePath , extendedRankFuelDataFileName)
         

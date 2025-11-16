@@ -4,42 +4,32 @@ Created on 8 nov. 2025
 @author: robert
 '''
 from minio import Minio
-from minio.datatypes import Object
 import re
 
 import numpy as np
 eps_single = np.finfo(np.float32).eps
-
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
-from pathlib import Path
-from tabulate import tabulate
 
 import matplotlib.pyplot as plt
 
 import pandas as pd
 import time
 import os
-from sklearn.preprocessing import OneHotEncoder
 # Set the option to display all columns
 pd.options.display.max_columns = None
 
-import numpy as np 
 # Make NumPy printouts easier to read.
 np.set_printoptions(precision=3, suppress=True)
 
 from tabulate import tabulate
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr, keepOnlyColumns
+from trajectory.utils import dropUnusedColumns , keepOnlyColumns
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
-import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras import backend
 
-from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from trajectory.Fuel.FuelReader import FuelDatabase
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import CustomObjectScope
@@ -49,21 +39,22 @@ import logging
 from pathlib import Path
 from tabulate import tabulate
 
-from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
-from trajectory.Environment.Constants import Meter2NauticalMiles
+from TensorFlow.CCC_TensorFlowSpeedBaseClassFile import TensorFlowSpeedBaseClass
 
-class TensorFlowBaseClass(object):
+class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
     
     def __init__(self, TrainDataSetRowCount , RankDataSetRowCount, listOfColumnsWithOutliers):
         self.TrainDataSetRowCount = TrainDataSetRowCount
         self.RankDataSetRowCount = RankDataSetRowCount
         self.listOfColumnsWithOutliers =  listOfColumnsWithOutliers
         
-    def plot_loss(self, history , y_limit , currentDateTimeAsString):
+        super(TensorFlowBaseClass, self).__init__()
+        
+    def plot_loss(self, history , y_limit ):
         
         plt.plot(history.history['loss'], label='training_loss')
         plt.plot(history.history['val_loss'], label='validation_loss')
-        plt.title("convergence versus ")
+        plt.title("convergence versus loss and validation")
         plt.ylim([0,y_limit])
         plt.xlabel('Epoch')
         plt.ylabel('Error (fuel_burn_kg / seconds)')
@@ -71,7 +62,8 @@ class TensorFlowBaseClass(object):
         plt.grid(True)
         
         # Save the plotFlightFeatureVersusTime to a file
-        plotFileName = 'results_training_loss_vs_validation_loss' + '_'+ currentDateTimeAsString + '.png'
+        currentSubmittedVersion = self.getLatestTeamSubmittedVersion()+1
+        plotFileName = 'results_training_loss_vs_validation_loss' + '_v'+ str(currentSubmittedVersion) + '.png'
         filesFolder = os.path.dirname(__file__)
         plotFilePath = os.path.join(filesFolder , plotFileName)
         
@@ -86,6 +78,9 @@ class TensorFlowBaseClass(object):
     ''' mean absolute error less sensitive to outliers '''
     def meanAbsoluteError(self , y_true , y_pred ):
         return backend.mean ( abs ( y_true - y_pred ))
+    
+    def loss_function(self ):
+        return self.rmse
 
     ''' used by all activitities '''
     def tf_model_fit( self, X_train, y_train, epochs):
@@ -99,19 +94,20 @@ class TensorFlowBaseClass(object):
         ''' use Mean Absolute Error because it is less sensible to outliers '''
         # 6 Novembre 2025 - use mean_absolute_error
         #model.compile(loss = 'mean_absolute_error' , optimizer = 'adam' , metrics = 'mean_absolute_error')
-        model.compile(loss = self.rmse , optimizer = 'adam' , metrics = self.rmse )
+        model.compile(loss = self.loss_function() , optimizer = 'adam' , metrics = self.rmse )
         history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2, verbose=1)
         
         # Save the entire model to a file
-        currentDateTimeAsString = getCurrentDateTimeAsStr()
-        modelFileName = "results_model_" +  currentDateTimeAsString + ".h5"
-
+        #currentDateTimeAsString = getCurrentDateTimeAsStr()
+        current_submission_version = self.getLatestTeamSubmittedVersion()+1
+        modelFileName = "results_model_" +  "v" + str(current_submission_version) + ".h5"
+        
         filesFolder = os.path.dirname(__file__)
         modelFilePath = os.path.join(filesFolder , modelFileName)
         model.save(modelFilePath)  # HDF5 format
         
-        self.plot_loss(history = history , y_limit = 0.4 , currentDateTimeAsString=currentDateTimeAsString)
-        return modelFilePath , currentDateTimeAsString
+        self.plot_loss(history = history , y_limit = 0.4 )
+        return modelFilePath 
         
     ''' possibly use a keras layer '''
     def scaleDataset( self , df ):
@@ -127,10 +123,10 @@ class TensorFlowBaseClass(object):
         print ( df.shape )
         return df
     
-    def generateAccuracyTextResults(self , model_file_path , X_test, y_test, currentDateTimeAsString):
+    def generateAccuracyTextResults(self , model_file_path , X_test, y_test):
         
         # 5 November after v24 - use rmse again
-        with CustomObjectScope({'rmse': self.rmse},{'loss':self.rmse}):
+        with CustomObjectScope({'rmse': self.rmse},{'loss':self.loss_function() }):
             model = load_model(model_file_path)
             
         ''' evaluate the model '''
@@ -145,7 +141,8 @@ class TensorFlowBaseClass(object):
         print(f"Test Accuracy: {accuracy}")
         
         # Using a context manager to create and write to a file
-        accuracyfileName = "results_accuracy_results" + "_" + currentDateTimeAsString + ".txt"
+        currentSubmittedVersion = self.getLatestTeamSubmittedVersion()+1
+        accuracyfileName = "results_accuracy_results" + "_v" + str(currentSubmittedVersion) + ".txt"
         filesFolder = os.path.dirname(__file__)
         accuracyFilePath = os.path.join(filesFolder , accuracyfileName)
      
@@ -163,7 +160,7 @@ class TensorFlowBaseClass(object):
         logging.info (' -------------- Rank Fuel -------------')
         
         ''' Save and load a model with the custom activation '''
-        with CustomObjectScope({'loss' :  self.rmse}, {'rmse': self.rmse}):
+        with CustomObjectScope({'loss' :  self.loss_function() }, {'rmse': self.rmse }):
             model = load_model(modelFilePath)
             
         listOfColumnsToDrop = ['idx', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank', 'aircraft_icao_code']
@@ -215,8 +212,9 @@ class TensorFlowBaseClass(object):
         
         # Write DataFrame to a CSV file
         filesFolder = os.path.dirname(__file__)
-        currentDateTimeAsStr = getCurrentDateTimeAsStr( )
-        rankSubmissionfileName = 'fuel_rank_submission' +'_' + currentDateTimeAsStr +'.csv'
+        #currentDateTimeAsStr = getCurrentDateTimeAsStr( )
+        newSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
+        rankSubmissionfileName = 'fuel_rank_submission' +'_v' + str(newSubmissionVersion) +'.csv'
         rankSubmissionFilePath = os.path.join(filesFolder , rankSubmissionfileName)
         
         df_predictions.to_csv(rankSubmissionFilePath, na_rep='N/A', sep=';',  index=True)  
@@ -231,15 +229,15 @@ class TensorFlowBaseClass(object):
         for columnName in list_of_columnNames_to_clean:
             zscoreColumnName = columnName + "_zscore"
             df[zscoreColumnName] = ( df[columnName] - df[columnName].mean() ) / df[columnName].std()
-            
-            df = df[(df[zscoreColumnName] < 3.0) & (df[zscoreColumnName] > -3.0)]
-            ''' drop the created column '''
+            ''' filter rows that are out of bound '''
+            #df = df[(df[zscoreColumnName] < 3.0) & (df[zscoreColumnName] > -3.0)]
+            ''' drop the created score column '''
             df = df.drop ( zscoreColumnName , axis=1)
             
         return df 
     
     ''' call model_fit '''
-    def Build_Model_From_Train(self , train_dataset ):
+    def BuildModelFromTrain(self , train_dataset ):
         
         start_time = time.time() 
         assert train_dataset.shape[0] == self.TrainDataSetRowCount
@@ -283,7 +281,7 @@ class TensorFlowBaseClass(object):
         ''' after v25 try to reduce epochs to 200 '''
         ''' after v26 -> set epochs again to 300 '''
         epochs = 200
-        model_file_path , currentDateTimeAsString = self.tf_model_fit( X_train, y_train , epochs )
+        model_file_path  = self.tf_model_fit( X_train, y_train , epochs )
         print ( model_file_path )
             
         end_time = time.time()  # Record the end time
@@ -291,7 +289,8 @@ class TensorFlowBaseClass(object):
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
         
         ''' generate accuracy text file '''
-        self.generateAccuracyTextResults(model_file_path , X_test, y_test, currentDateTimeAsString)
+        currentSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
+        self.generateAccuracyTextResults(model_file_path , X_test, y_test)
         return model_file_path    
     
     ''' 6th November 2025 - use in all scenarios '''
@@ -335,7 +334,6 @@ class TensorFlowBaseClass(object):
         return row[columnName].replace(tzinfo=timezone.utc).astimezone(tz=None)
     
     def uploadTeamParquetFileToS3(self ):
-        
         # and secret key.
         client = Minio("s3.opensky-network.org",
             access_key="HertaMoschenPastor",
@@ -439,10 +437,7 @@ class TensorFlowBaseClass(object):
                 # Rearrange columns order 
                 new_order = ['idx', 'flight_id', 'start', 'end','fuel_kg']
                 df_result = df_result[new_order]
-                
-                #print(tabulate(df_result[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
-                #print(tabulate(df_result[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-                
+                                
                 ''' write to parquet '''
                 
                 filesFolder = os.path.dirname(__file__)
@@ -455,4 +450,4 @@ class TensorFlowBaseClass(object):
                 elapsed_time = end_time - start_time
                 print(f"Elapsed time: {elapsed_time:.2f} seconds")
                 
-                print(" submission parquet file <<" + targetTeamParquetFilePath +">> generated correctly")
+                print("---> submission parquet file <<" + targetTeamParquetFilePath +">> generated correctly")

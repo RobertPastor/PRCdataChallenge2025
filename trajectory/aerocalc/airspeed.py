@@ -475,7 +475,7 @@ def tas2dp(
 
     ktas = U.speed_conv(tas, from_units=speed_units, to_units='kt')
     if ktas > 661.48:
-        raise ValueError (          'The function tas2dp only works if the tas is less than or equal to 661.48 kt')
+        raise ValueError ('The function tas2dp only works if the tas is less than or equal to 661.48 kt')
 
     P = SA.alt2press(altitude, alt_units=alt_units, press_units='pa')
 
