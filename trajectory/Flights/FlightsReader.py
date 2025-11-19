@@ -204,18 +204,20 @@ class FlightsDatabase(object):
    
     ''' read flight parquet file and return a dataframe , either a train or a rank flight dataframe '''
     def readOneFlightFileLite(self , train_rank_final , flightfileName ):
+        if str(flightfileName).endswith("parquet") == False:
+            flightfileName = flightfileName + ".parquet"
         folderPathStr = ""
         if train_rank_final == "train":
             folderPathStr = self.filesFolderTrain 
-
         elif train_rank_final == "rank":
             folderPathStr = self.filesFolderRank 
-
         else:
             folderPathStr = self.filesFolderFinal 
 
-        #logging.info(self.className + ": file name = " + fileName)
+        logging.info(self.className + ": file name = " + flightfileName)
+        logging.info(self.className + ": file path = " + folderPathStr)
         flightFilePath = os.path.join( folderPathStr , flightfileName)
+        print (flightFilePath)
         file = Path(flightFilePath)
         assert file.is_file() == True
         

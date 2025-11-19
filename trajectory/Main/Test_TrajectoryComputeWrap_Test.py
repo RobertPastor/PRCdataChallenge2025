@@ -73,7 +73,6 @@ class Test_Main(unittest.TestCase):
                 print(runway)
                 
             logging.info("------------ show Ades runways ------------")
-
             for runway in runwaysDB.getRunWays(Ades):
                 print(runway)
         else:

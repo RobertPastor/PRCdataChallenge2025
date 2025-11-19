@@ -33,7 +33,7 @@ def datetime_range(start, end, delta):
 def plotFlightFeatureVersusTime ( timeSeries, valuesToPlot , columnName ):
     pass
     plt.figure(figsize=(8, 5))
-    plt.plotFlightFeatureVersusTime(timeSeries, valuesToPlot, label=columnName , color="blue", linewidth=2)
+    plt.plot(timeSeries, valuesToPlot, label=columnName , color="blue", linewidth=2)
     plt.legend()
     plt.xlabel("Time")
     plt.ylabel("Value")
@@ -81,12 +81,12 @@ class Test_Main(unittest.TestCase):
         #print(tabulate(df_merge[:100], headers='keys', tablefmt='grid' , showindex=False , ))
         
         for columnName in ['flight_id', 'aircraft_type_code','source']:
-            ''' first non Nan value ni column '''
+            ''' first non Nan value in column '''
             df[columnName] = df.loc[df[columnName].first_valid_index(), columnName]
             
         # Interpolate the DataFrame
         interpolatedColumnList = ['latitude', 'longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']
-        df[interpolatedColumnList] = df[interpolatedColumnList].interpolate(method='linear',axis=0, Direction='both')
+        df[interpolatedColumnList] = df[interpolatedColumnList].interpolate(method='linear',axis=0, Direction='both',inside=True)
         
         print("count of nulls in vertical rate = " , str ( df['vertical_rate'].isnull().count() ))
         if df.shape[0] == df['vertical_rate'].isnull().count():
@@ -105,7 +105,7 @@ class Test_Main(unittest.TestCase):
         
         verticalRateMean = df['vertical_rate'].mean()
         verticalRateStd = df['vertical_rate'].std()
-        maxVerticalRateFeetMinutes = 2000.0
+        maxVerticalRateFeetMinutes = 5000.0
         ''' suppress vertical rates outside 3 standard deviation '''
         df['vertical_rate'] = df['vertical_rate'].mask( ( df['vertical_rate'] < verticalRateMean - (3*verticalRateStd)) | ( df['vertical_rate'] > (verticalRateMean + 3*verticalRateStd ) ) )
         print ( df.isnull().sum() )
@@ -205,7 +205,7 @@ class Test_Main(unittest.TestCase):
         altitudes = df['altitude']
         # Create the plot
         plotFlightFeatureVersusTime.figure(figsize=(10, 6))
-        plt.plot(dates, aplotFlightFeatureVersusTimeudes, marker='o', linestyle='-', color='b', label='Altitude')
+        plt.plot(dates, plotFlightFeatureVersusTime, marker='o', linestyle='-', color='b', label='Altitude')
         
         # Format the x-axis to show readable dates
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))

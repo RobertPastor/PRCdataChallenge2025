@@ -119,7 +119,6 @@ class FlightListDatabase(object):
         else:
             origin_icao = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
             return origin_icao
-
         
     def getOriginICAOairport(self , train_rank, flight_id):
         
@@ -150,8 +149,6 @@ class FlightListDatabase(object):
             destination_icao = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["destination_icao"].iloc[0]
             logging.info ( str ( destination_icao ) )
             return destination_icao
-
-        
 
     def getTakeOffInstant(self , train_rank, flight_id):
         if train_rank == 'train':
@@ -240,7 +237,7 @@ class FlightListDatabase(object):
 
             return False
         
-    def readTrainRankFlightListLite(self , train_rank):
+    def readTrainRankFinalFlightListLite(self , train_rank):
         if train_rank == 'train':
             logging.info(self.filePathFlightListTrain)
             
@@ -255,6 +252,7 @@ class FlightListDatabase(object):
                 
                 self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
                 return True
+            
         elif train_rank == 'rank':
             logging.info(self.filePathFlightListRank)
             
