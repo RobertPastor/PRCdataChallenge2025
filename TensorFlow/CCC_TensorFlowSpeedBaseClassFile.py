@@ -49,7 +49,7 @@ class TensorFlowSpeedBaseClass(object):
 
         if self.isNotNoneAndNotNan(mach) :
             if self.isNotNoneAndNotNan( aircraft_altitude_ft ):
-                return mach2tas ( mach=mach, altitude=aircraft_altitude_ft )
+                return mach2tas ( mach=mach, altitude=aircraft_altitude_ft ,temp='std' ,alt_units='ft', speed_units='kt')
         else:
             pass
             #if self.isNotNoneAndNotNan(groundSpeedKnots):

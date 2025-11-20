@@ -115,8 +115,9 @@ class AirportsDatabase(object):
         #return set() == self.airportsDataFrame.
 
     def readAsDict(self):
+        stream = open(self.FilePath, encoding='utf-8')
         try:
-            dictReader = csv.DictReader(open(self.FilePath, encoding='utf-8'), fieldnames=fieldNames , delimiter=";")
+            dictReader = csv.DictReader(stream , fieldnames=fieldNames , delimiter=";")
             for row in dictReader:
                 #print ( row )
                 airport = {}
@@ -130,10 +131,10 @@ class AirportsDatabase(object):
                             
                 #print ( row["ICAO Code"] )
                 self.airportsDb[row["ICAO Code"]] = airport
-            return True
         except Exception as e:
             logging.info ( e )
-            return False
+        stream.close()
+        return True
             
     def getAirportsFromCountry(self, Country = ''):
         for row in self.airportsDb.values():

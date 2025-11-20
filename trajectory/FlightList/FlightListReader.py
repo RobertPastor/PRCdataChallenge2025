@@ -60,7 +60,10 @@ class FlightListDatabase(object):
         self.filePathFlightListTrain = os.path.join(self.filesFolder , self.fileNameFlightListTrain)
         self.filePathFlightListRank = os.path.join(self.filesFolder , self.fileNameFlightListRank)
         self.filePathFlightListFinal = os.path.join(self.filesFolder , self.fileNameFlightListFinal)
-        #logging.info(self.filePathFlightListRank)
+        
+        logging.info("train -> " + self.filePathFlightListTrain)
+        logging.info("rank -> " + self.filePathFlightListRank)
+        logging.info("final -> " + self.filePathFlightListFinal)
         self.flightListExtendedWithAircraftData = False
         
         self.airportsDatabase = AirportsDatabase()
@@ -186,7 +189,15 @@ class FlightListDatabase(object):
     def checkRankFligthListHeaders(self):
         return (set(self.RankFlightListDataframe) == set(expectedHeaders))
     
-    def getTrainFlightListDataframe(self):
+    def getTrainRankFinalFlightListDataframe(self , train_rank_final ):
+        if train_rank_final == 'train':
+            return self.TrainFlightListDataframe
+        elif train_rank_final == 'rank':
+            return self.RankFlightListDataframe
+        else:
+            return self.FinalFlightListDataframe
+    
+    def getTrainFlightListDataframe(self , train_rank):
         return self.TrainFlightListDataframe
     
     def getRankFlightListDataframe(self):
@@ -237,8 +248,9 @@ class FlightListDatabase(object):
 
             return False
         
-    def readTrainRankFinalFlightListLite(self , train_rank):
-        if train_rank == 'train':
+    def readTrainRankFinalFlightListLite(self , train_rank_final):
+        assert train_rank_final == 'train' or train_rank_final == 'rank' or train_rank_final == 'final'
+        if train_rank_final == 'train':
             logging.info(self.filePathFlightListTrain)
             
             directory = Path(self.filesFolder)
@@ -253,7 +265,7 @@ class FlightListDatabase(object):
                 self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
                 return True
             
-        elif train_rank == 'rank':
+        elif train_rank_final == 'rank':
             logging.info(self.filePathFlightListRank)
             
             directory = Path(self.filesFolder)
@@ -274,13 +286,13 @@ class FlightListDatabase(object):
             directory = Path(self.filesFolder)
             logging.info(directory)
             
-            file = Path(self.filePathFlightListTrain)
+            file = Path(self.filePathFlightListFinal)
             if directory.is_dir() and file.is_file():
                 
                 logging.info (self.className + " : it is a directory - {0}".format(self.filesFolder))
-                logging.info (self.className + " : it is a file - {0}".format(self.filePathFlightListTrain))
+                logging.info (self.className + " : it is a file - {0}".format(self.filePathFlightListFinal))
                 
-                self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
+                self.FinalFlightListDataframe = pd.read_parquet ( self.filePathFlightListFinal )
                 return True
 
         return False

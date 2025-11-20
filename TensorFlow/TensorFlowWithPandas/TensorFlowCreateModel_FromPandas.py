@@ -22,7 +22,7 @@ import numpy as np
 np.set_printoptions(precision=3, suppress=True)
 
 from tabulate import tabulate
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
+from trajectory.Utils.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 import tensorflow as tf

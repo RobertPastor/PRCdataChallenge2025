@@ -11,7 +11,7 @@ import re
 import numpy as np
 eps_single = np.finfo(np.float32).eps
 
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
+from trajectory.Utils.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
 from pathlib import Path
 from tabulate import tabulate
 
@@ -29,7 +29,7 @@ import numpy as np
 np.set_printoptions(precision=3, suppress=True)
 
 from tabulate import tabulate
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr, keepOnlyColumns
+from trajectory.Utils.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr, keepOnlyColumns
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 import tensorflow as tf

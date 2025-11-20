@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 from tabulate import tabulate
 from datetime import datetime, timedelta
-from trajectory.utils import dropUnusedColumns
+from trajectory.Utils.utils import dropUnusedColumns
 
 initialHeaders = ['timestamp', 'flight_id','typecode','latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 ''' type_code renamed as aircraft_type_code '''
@@ -36,13 +36,17 @@ class FlightsDatabase(object):
         self.filesFolderRank = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data")
         self.filesFolderFinal = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-final-data")
         
-        
         self.filesFolderTrainInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-train-data-interpolated")
         self.filesFolderRankInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data-interpolated")
         self.filesFolderFinalInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-final-data-interpolated")
         
         assert Path(self.filesFolderTrain).is_dir() == True
         assert Path(self.filesFolderRank).is_dir() == True
+        assert Path(self.filesFolderFinal).is_dir() == True
+        
+        assert Path(self.filesFolderTrainInterpolated).is_dir() == True
+        assert Path(self.filesFolderRankInterpolated).is_dir() == True
+        assert Path(self.filesFolderFinalInterpolated).is_dir() == True
         
     ''' assumption : there is at least one row with a non null value in the typecode column '''
     def getFirstNonNullValueInColumn(self , df, columnName):

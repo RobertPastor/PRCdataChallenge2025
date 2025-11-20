@@ -21,7 +21,7 @@ from trajectory.Fuel.FuelReader import FuelDatabase
 from tabulate import tabulate
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 
-from trajectory.utils import keepOnlyColumns
+from trajectory.Utils.utils import keepOnlyColumns
 import matplotlib.pyplot as plt
 from pathlib import Path
 
@@ -168,7 +168,6 @@ class FlightsInterpolated(object):
         print("="*90)
         return fuelDataframe
     
-            
     def retrieveTakeOffLandedDataframe(self , flight_id):
         ''' takeoff short row with flight id and timestamp only '''
         takeOffRow = pd.DataFrame ( { "flight_id" : flight_id , "timestamp" : self.TakeOffInstant})

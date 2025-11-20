@@ -17,7 +17,7 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 from datetime import datetime, timedelta
 
-from trajectory.utils import dropUnusedColumns
+from trajectory.Utils.utils import dropUnusedColumns
 
 def addTimeDiffSeconds(self , df):
     df['time_diff_seconds'] = (df['end'] - df['start']).dt.total_seconds()

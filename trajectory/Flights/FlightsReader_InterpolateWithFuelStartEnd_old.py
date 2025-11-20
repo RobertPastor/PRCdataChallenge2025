@@ -17,7 +17,7 @@ from tabulate import tabulate
 from trajectory.Fuel.FuelReader import FuelDatabase
 from tabulate import tabulate
 
-from trajectory.utils import keepOnlyColumns
+from trajectory.Utils.utils import keepOnlyColumns
 
 def fill_Fuel_Frame_with_empty_columns_for_interpolation(df):
     

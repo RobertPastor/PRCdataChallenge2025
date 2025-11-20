@@ -16,7 +16,7 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 from datetime import datetime, timedelta
 
-from trajectory.utils import dropUnusedColumns
+from trajectory.Utils.utils import dropUnusedColumns
 
 listOfErroneousFlightIds = ["prc770822360","prc770885136","prc770887555",
                             "prc770893597","prc772539375","prc776853928","prc777326263","prc784305329"]

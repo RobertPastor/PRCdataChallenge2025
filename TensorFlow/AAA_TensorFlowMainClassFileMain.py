@@ -4,7 +4,7 @@ Created on 8 nov. 2025
 @author: robert
 
 '''
-
+import platform
 
 from minio import Minio
 from minio.datatypes import Object
@@ -13,7 +13,6 @@ import math
 import numpy as np
 eps_single = np.finfo(np.float32).eps
 
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
 from pathlib import Path
 from tabulate import tabulate
 
@@ -31,7 +30,6 @@ import numpy as np
 np.set_printoptions(precision=3, suppress=True)
 
 from tabulate import tabulate
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr, keepOnlyColumns
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 import tensorflow as tf
@@ -42,7 +40,6 @@ from tensorflow.keras import backend
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from trajectory.Fuel.FuelReader import FuelDatabase
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import CustomObjectScope
@@ -52,8 +49,6 @@ import logging
 from pathlib import Path
 from tabulate import tabulate
 
-from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
-from trajectory.Environment.Constants import Meter2NauticalMiles
 from TensorFlow.BBB_TensorFlowBaseClassFile import TensorFlowBaseClass
 
 TrainDataSetRowCount = 131530
@@ -119,9 +114,12 @@ listOfColumnsWithOutliers = ["aircraft_altitude_ft_at_fuel_start",
 class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
     """Exemple de classe simple"""
     
-    def __init__(self , extendedFuelTrainDataFileName , extendedRankFuelDataFileName , javaTrainRankfilesFolder):
+    def __init__(self , extendedFuelTrainDataFileName , extendedRankFuelDataFileName , extendedFinalFuelDataFileName ,
+                 javaTrainRankfilesFolder):
         self.extendedFuelTrainDataFileName = extendedFuelTrainDataFileName
         self.extendedRankFuelDataFileName = extendedRankFuelDataFileName
+        self.extendedFinalFuelDataFileName = extendedFinalFuelDataFileName
+        
         self.javaTrainRankfilesFolder = javaTrainRankfilesFolder
         super(PRCdataChallenge2025Submissions, self).__init__(TrainDataSetRowCount , RankDataSetRowCount , listOfColumnsWithOutliers )
         
@@ -146,7 +144,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
     
     ''' latest version where all transformations are applied to both train and rank dataframes'''
     def extendCorrectTrainRankDataframe(self , concatenatedTrainRankDataset):
-        
+        from trajectory.Utils.utils import dropUnusedColumns
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
         ''' if mach is NaN and groundspeed is OK then use groundspeed as TAS value without wind '''
         concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeTASnCASfromMachOrGroundSpeed(concatenatedTrainRankDataset)
@@ -209,6 +207,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
                 # concat Train and Rank
                 train_rank_dataset = pd.concat( [ train_dataset , rank_dataset ])
                 print ( train_rank_dataset.shape )
+                assert train_rank_dataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
                 print ( list ( train_rank_dataset ) )
                 
                 return train_rank_dataset
@@ -216,7 +215,7 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         return None
 
 if __name__ == '__main__':
-    import platform
+    
     logging.basicConfig(level=logging.INFO)
     print("python version = " + platform.python_version())
     print("tensorflow version = " + tf.__version__)
@@ -229,6 +228,7 @@ if __name__ == '__main__':
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-05-02-26-18.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-08-13-48-02.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-15-22-22-08.parquet"
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-19-12-46-33.parquet"
     
     #extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
     #extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
@@ -236,10 +236,15 @@ if __name__ == '__main__':
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-05-03-09-31.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-08-14-38-59.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-15-23-20-10.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-19-21-58-34.parquet"
+    
+    extendedFinalFuelDataFileName = "ExtendedFuel_rank_2025-11-DD-HH-MM-SS.parquet"
 
     javaTrainRankfilesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents/"
     ''' common class instance '''
-    prcDataChallenge2025Submissions = PRCdataChallenge2025Submissions(extendedFuelTrainDataFileName , extendedRankFuelDataFileName, javaTrainRankfilesFolder)
+    prcDataChallenge2025Submissions = PRCdataChallenge2025Submissions(extendedFuelTrainDataFileName , \
+                                                                      extendedRankFuelDataFileName, extendedFinalFuelDataFileName ,\
+                                                                      javaTrainRankfilesFolder)
     
     ''' in order to apply the same transformations - first concatenate train and rank '''
     concatenatedTrainRankDataset = prcDataChallenge2025Submissions.concatenateTrainRank()
@@ -260,7 +265,7 @@ if __name__ == '__main__':
     ''' build the model '''
     generatedModelFileName = prcDataChallenge2025Submissions.BuildModelFromTrain (trainDataSet)
     
-    #generatedModelFileName = "results_model_2025-11-15-23-53-24.h5"
+    #generatedModelFileName = "results_model_v39.h5"
     print ("--> generated model file = " +  generatedModelFileName )
     
     rankingDataset = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'rank']

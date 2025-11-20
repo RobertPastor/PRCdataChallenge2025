@@ -21,7 +21,7 @@ pd.options.display.max_columns = None
 np.set_printoptions(precision=3, suppress=True)
 
 from tabulate import tabulate
-from trajectory.utils import dropUnusedColumns , keepOnlyColumns
+from trajectory.Utils.utils import dropUnusedColumns , keepOnlyColumns
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 from tensorflow.keras import Sequential
@@ -96,7 +96,7 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         # 6 Novembre 2025 - use mean_absolute_error
         #model.compile(loss = 'mean_absolute_error' , optimizer = 'adam' , metrics = 'mean_absolute_error')
         model.compile(loss = self.loss_function() , optimizer = 'adam' , metrics = self.rmse )
-        history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2, verbose=1)
+        history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.3, verbose=1)
         
         # Save the entire model to a file
         #currentDateTimeAsString = getCurrentDateTimeAsStr()
@@ -276,7 +276,7 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         #scaling the target variable is often necessary to ensure that the loss function operates within a manageable range.
         #y = np.asarray(y).astype(np.float32)
         '''  Split the data (70% train, 20% test)'''
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3 , random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2 , random_state=42)
             
         ''' split data set in 0% train and 20% test '''
         ''' after v25 try to reduce epochs to 200 '''
@@ -291,7 +291,9 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         
         ''' generate accuracy text file '''
         currentSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
+        print("next submitted version = " + currentSubmissionVersion)
         self.generateAccuracyTextResults(model_file_path , X_test, y_test)
+        
         return model_file_path    
     
     ''' 6th November 2025 - use in all scenarios '''

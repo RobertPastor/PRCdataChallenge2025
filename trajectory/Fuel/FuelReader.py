@@ -13,8 +13,8 @@ from datetime import timedelta
 from pandas.api.types import is_datetime64_any_dtype
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
-from trajectory.utils import keepOnlyColumns
-from trajectory.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
+from trajectory.Utils.utils import keepOnlyColumns
+from trajectory.Utils.utils import dropUnusedColumns , oneHotEncoderSklearn , getCurrentDateTimeAsStr
 from trajectory.Flights.FlightsReader import FlightsDatabase
 from tabulate import tabulate
 
