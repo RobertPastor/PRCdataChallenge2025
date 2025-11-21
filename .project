@@ -3,6 +3,7 @@
 	<name>PRCdataChallenge2025</name>
 	<comment></comment>
 	<projects>
+		<project>pybada</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

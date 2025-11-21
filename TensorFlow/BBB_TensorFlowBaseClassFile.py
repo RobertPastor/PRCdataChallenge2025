@@ -79,9 +79,9 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
     def meanAbsoluteError(self , y_true , y_pred ):
         return backend.mean ( abs ( y_true - y_pred ))
     
-    def loss_function(self ):
+    def loss_function(self , y_true , y_pred):
         #return self.rmse
-        return 'mean_absolute_error'
+        return self.rmse(y_true , y_pred)
 
     ''' used by all activitities '''
     def tf_model_fit( self, X_train, y_train, epochs):
@@ -95,8 +95,9 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         ''' use Mean Absolute Error because it is less sensible to outliers '''
         # 6 Novembre 2025 - use mean_absolute_error
         #model.compile(loss = 'mean_absolute_error' , optimizer = 'adam' , metrics = 'mean_absolute_error')
-        model.compile(loss = self.loss_function() , optimizer = 'adam' , metrics = self.rmse )
-        history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.3, verbose=1)
+        model.compile(loss = self.rmse , optimizer = 'adam' , metrics = self.rmse )
+        ''' 80% vs 20% split factor -> hence 0.2 '''
+        history = model.fit( x = X_train , y = y_train , epochs = epochs , validation_split=0.2, verbose=1)
         
         # Save the entire model to a file
         #currentDateTimeAsString = getCurrentDateTimeAsStr()
@@ -112,7 +113,6 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         
     ''' possibly use a keras layer '''
     def scaleDataset( self , df ):
-    
         '''  Apply MinMaxScaler '''
         columnNameListToScale = []
         for columnName in list ( df ):
@@ -124,14 +124,13 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         print ( df.shape )
         return df
     
-    def generateAccuracyTextResults(self , model_file_path , X_test, y_test):
-        
+    def generateAccuracyTextResults(self , model_file_path , y_train , y_test):
         # 5 November after v24 - use rmse again
-        with CustomObjectScope({'rmse': self.rmse},{'loss':self.loss_function() }):
+        with CustomObjectScope( {'rmse': self.loss_function() },{'loss':self.loss_function()}):
             model = load_model(model_file_path)
             
         ''' evaluate the model '''
-        loss, accuracy = model.evaluate(X_test, y_test)
+        loss, accuracy = model.evaluate(y_train, y_test)
         #The loss function quantifies the difference between the predicted outputs and the actual target values.
         #It is a continuous value that the model tries to minimize during training.
         # Common loss functions in CNNs include Cross-Entropy Loss for classification tasks and Mean Squared Error (MSE) for regression tasks.
@@ -150,7 +149,6 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         with open(accuracyFilePath, "w") as file:
             file.write(f"Test Loss: {loss}\n")
             file.write(f"Test Accuracy: {accuracy}")
-
     
     ''' 6th November 2025 - common method to make predictions from ranking dataframe '''
     def predictFromRankAndModel(self , modelFilePath , X_rank): 
@@ -160,13 +158,16 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         logging.basicConfig(level=logging.INFO)
         logging.info (' -------------- Rank Fuel -------------')
         
-        ''' Save and load a model with the custom activation '''
-        with CustomObjectScope({'loss' :  self.loss_function() }, {'rmse': self.rmse }):
+        ''' Save and load a model with the custom activation ''' 
+        with CustomObjectScope({'loss' :  self.rmse }, {'rmse': self.rmse }):
             model = load_model(modelFilePath)
             
         listOfColumnsToDrop = ['idx', 'fuel_kg', 'start' , 'end' ,'flight_id','aircraft_type','train_rank', 'aircraft_icao_code']
         X_rank = dropUnusedColumns(X_rank , listOfColumnsToDrop)
         
+        ''' 21st November 2025 - apply '''
+        #X_rank = self.clean_with_z_score ( X_rank , self.listOfColumnsWithOutliers)
+
         #y_columnName = 'fuel_flow_kg_sec'
         listOfColumnsToDrop = ['fuel_flow_kg_sec']
         X_rank = dropUnusedColumns(X_rank , listOfColumnsToDrop)
@@ -249,7 +250,7 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         print ( list (train_dataset))
         
         ''' clean with zscore -> this operation reduces the number of rows '''
-        train_dataset = self.clean_with_z_score ( train_dataset , self.listOfColumnsWithOutliers)
+        #train_dataset = self.clean_with_z_score ( train_dataset , self.listOfColumnsWithOutliers)
         
         #train_dataset = self.clean_outliers_capping_with_groupby(train_dataset , 'aircraft_type' , listOfColumnsWithOutliers)
         print ( list (train_dataset))
@@ -276,7 +277,7 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         #scaling the target variable is often necessary to ensure that the loss function operates within a manageable range.
         #y = np.asarray(y).astype(np.float32)
         '''  Split the data (70% train, 20% test)'''
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2 , random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2 , random_state = 42)
             
         ''' split data set in 0% train and 20% test '''
         ''' after v25 try to reduce epochs to 200 '''
@@ -291,13 +292,12 @@ class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
         
         ''' generate accuracy text file '''
         currentSubmissionVersion = self.getLatestTeamSubmittedVersion()+1
-        print("next submitted version = " + currentSubmissionVersion)
-        self.generateAccuracyTextResults(model_file_path , X_test, y_test)
+        print("next submitted version = " + str(currentSubmissionVersion))
         
         return model_file_path    
     
     ''' 6th November 2025 - use in all scenarios '''
-    ''' read the S3 storage to extract all team paruet submissions and find the latest submitted version '''
+    ''' read the S3 storage to extract all team parquet submissions and find the latest submitted version '''
     def getLatestTeamSubmittedVersion(self):
         # create a client
         client = Minio( endpoint = "s3.opensky-network.org" ,
