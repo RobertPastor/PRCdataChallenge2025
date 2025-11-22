@@ -32,6 +32,10 @@ import logging
 
 from xlrd import open_workbook
 from trajectory.Environment.Runways.RunWayFile import RunWay
+from trajectory.Guidance.WayPointFile import Airport
+from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
+from trajectory.Environment.Earth.EarthFile import Earth
+from trajectory.Environment.Constants import NauticalMiles2Meter , ConstantClimbRampLengthNauticalMiles
 
 fieldNames = ['id' , 'airport_ref', 'airport_ident' , 'length_ft' , 'width_ft' ,
               'surface' , 'lighted', 'closed', 
@@ -44,15 +48,11 @@ fieldNames = ['id' , 'airport_ref', 'airport_ident' , 'length_ft' , 'width_ft' ,
 class RunWayDataBase(object):
     
     FilePath = ''
-    
     def __init__(self):
         self.className = self.__class__.__name__
-
         self.FilePath = "RunWays.xls"
-        
         #self.FilesFolder = os.getcwd()
         self.FilesFolder = os.path.dirname(__file__)
-
         logging.info ( self.className + ': file folder= {0}'.format(self.FilesFolder) )
         self.FilePath = os.path.abspath(self.FilesFolder+ os.path.sep + self.FilePath)
         logging.info ( self.className + ': file path= {0}'.format(self.FilePath) )
@@ -68,25 +68,21 @@ class RunWayDataBase(object):
         #logging.info ( type ( rowValues[self.ColumnNames['id']] ) )
         id_content = str( int ( rowValues[self.ColumnNames['id']] ) )
         if len(id_content.strip())> 0:
-                
             runwayDict = {}
             for column in self.ColumnNames:
                 if column == 'id':
                     runwayDict[column] = int(rowValues[self.ColumnNames[column]])
-                        
                 elif column in ['le_latitude_deg', 'le_longitude_deg', 'le_heading_degT', 
                                     'he_latitude_deg', 'he_longitude_deg', 'he_heading_degT' ,
                                     'length_ft']:
                     ''' float values '''
                     if len(str(rowValues[self.ColumnNames[column]]).strip())>0:
                         runwayDict[column] = float(rowValues[self.ColumnNames[column]])
-                    
                 elif column in ['le_ident', 'he_ident']:
                     strRunwayName = str(rowValues[self.ColumnNames[column]]).strip().split('.')[0]
                     runwayDict[column] = strRunwayName
                     if str(strRunwayName).isdigit() and int(strRunwayName) < 10 and len(strRunwayName)==1:
                         runwayDict[column] = '0' + strRunwayName
-                        
                 else:
                     # string fields
                     runwayDict[column] = str(rowValues[self.ColumnNames[column]]).strip()
@@ -108,10 +104,8 @@ class RunWayDataBase(object):
                                     TrueHeadingDegrees  =   runwayDict['le_heading_degT'],
                                     LatitudeDegrees     =   runwayDict['le_latitude_deg'],
                                     LongitudeDegrees    =   runwayDict['le_longitude_deg'])
-                    
                 keyOne = runwayDict['le_ident']
-
-                    
+            
             if (len(str(rowValues[self.ColumnNames['he_ident']]).strip()) > 0 and
                     len(str(rowValues[self.ColumnNames['airport_ident']]).strip()) > 0 and
                     len(str(rowValues[self.ColumnNames['length_ft']]).strip()) > 0 and
@@ -125,7 +119,6 @@ class RunWayDataBase(object):
                                     TrueHeadingDegrees  =   runwayDict['he_heading_degT'],
                                     LatitudeDegrees     =   runwayDict['he_latitude_deg'],
                                     LongitudeDegrees    =   runwayDict['he_longitude_deg'])
-                                    
                 keyTwo = runwayDict['he_ident']
 
         runwayDict = {}
@@ -139,7 +132,6 @@ class RunWayDataBase(object):
         return None
         
     def hasRunWays(self, airportICAOcode):
-        
         assert (isinstance(airportICAOcode, str)) and len(airportICAOcode)>0
         for row in range(self.sheet.nrows): 
             rowValues = self.sheet.row_values(row, start_colx=0, end_colx=self.sheet.ncols)
@@ -150,22 +142,19 @@ class RunWayDataBase(object):
     def getRunWaysAsDict(self, airportICAOcode):
         assert not(self.sheet is None)
         assert (isinstance(airportICAOcode, str)) and len(airportICAOcode)>0
-        
         runwaysDict = {}
         for row in range(self.sheet.nrows): 
             rowValues = self.sheet.row_values(row, start_colx=0, end_colx=self.sheet.ncols)
             if (rowValues[self.ColumnNames['airport_ident']] == airportICAOcode):
                 runwaysDict.update(self.getInternalRunWays(rowValues))
-        
         return runwaysDict        
 
     def getRunWays(self, airportICAOcode):
         assert not(self.sheet is None)
         assert (isinstance(airportICAOcode, str)) and len(airportICAOcode)>0
-        
         runwaysDict = self.getRunWaysAsDict(airportICAOcode)
-        
         for runway in runwaysDict.values():
+            ''' returns runway as Runway class instance '''
             yield runway
         
     def findAirportRunWays(self, airportICAOcode , runwayLengthFeet = 0.0):
@@ -180,7 +169,6 @@ class RunWayDataBase(object):
             if runwayLengthFeet > 0.0:
                 if (rowValues[self.ColumnNames['airport_ident']] == airportICAOcode) and (rowValues[self.ColumnNames['length_ft']] > runwayLengthFeet):
                     runwaysDict.update(self.getInternalRunWays(rowValues))
-
             else:
                 if (rowValues[self.ColumnNames['airport_ident']] == airportICAOcode):
                     runwaysDict.update(self.getInternalRunWays(rowValues))
@@ -206,13 +194,11 @@ class RunWayDataBase(object):
                         self.ColumnNames[column] = index
                     index += 1
                 break
-        
         return True
     
     def __str__(self):
         logging.info ( self.className + ':RunWay DataBase= {0}'.format(self.FilePath) )
-        
-        
+    
     def getFilteredRunWays(self, airportICAOcode, runwayName = ''):
         assert not(airportICAOcode is None) 
         assert isinstance(airportICAOcode, (str)) 
@@ -229,11 +215,76 @@ class RunWayDataBase(object):
         else:
             ''' return arbitrary chosen first run-way '''
             return runwaysDict.get(list (runwaysDict)[0])
-        
+    
     def __getitem__(self, key):
         if key in self.runWaysDb.keys():
             return self.runWaysDb[key]
         else:
             return None
-            
     
+    def computeBestDepartureRunway(self , departureAirport, arrivalAirport ):
+        assert isinstance ( departureAirport , Airport )
+        assert isinstance ( arrivalAirport , Airport )
+        minimalDistanceMeters = 0.0
+        first = True
+        bestRunWay = None
+        for runWay in self.getRunWays():
+            assert isinstance( runWay , RunWay)
+            if runWay.getAirportICAOcode() == departureAirport.getName():
+                
+                '''   
+                    runWay = RunWay(Name               = rwy.Name ,
+                                        airportICAOcode    = Adep,
+                                        LengthFeet         = rwy.LengthFeet,
+                                        TrueHeadingDegrees = rwy.TrueHeadingDegrees,
+                                        LatitudeDegrees    = rwy.LatitudeDegrees,
+                                        LongitudeDegrees   = rwy.LongitudeDegrees)
+                '''
+                runwayEnd = runWay.getEndOfRunWay()
+                ''' using heritage -> create a point at distance corresponding to the runway lenght and with the runway heading '''
+                latitudeDegrees , longitudeDegrees = runwayEnd.getGeoPointAtDistanceHeading( ConstantClimbRampLengthNauticalMiles * NauticalMiles2Meter, runWay.getTrueHeadingDegrees())
+                pathEnd = GeographicalPoint(latitudeDegrees , longitudeDegrees, Earth().getEarthRadiusMeters())
+                distanceMeters = pathEnd.computeDistanceMetersTo( arrivalAirport )
+                if first:
+                    first = False
+                    bestRunWay = runWay
+                    minimalDistanceMeters = distanceMeters
+                else:
+                    if ( distanceMeters < minimalDistanceMeters ):
+                        bestRunWay = runWay
+                        minimalDistanceMeters = distanceMeters
+        return bestRunWay
+        
+    def computeBestArrivalRunway(self , departureAirport, arrivalAirport ):
+        assert isinstance ( departureAirport , Airport )
+        assert isinstance ( arrivalAirport , Airport )
+        minimalDistanceMeters = 0.0
+        first = True
+        bestRunWay = None
+        for runWay in self.getRunWays():
+            assert isinstance( runWay , RunWay)
+            if runWay.getAirportICAOcode() == arrivalAirport.getName():
+                
+                '''   
+                    runWay = RunWay(Name               = rwy.Name ,
+                                        airportICAOcode    = Adep,
+                                        LengthFeet         = rwy.LengthFeet,
+                                        TrueHeadingDegrees = rwy.TrueHeadingDegrees,
+                                        LatitudeDegrees    = rwy.LatitudeDegrees,
+                                        LongitudeDegrees   = rwy.LongitudeDegrees)
+                '''
+                runwayEnd = runWay.getEndOfRunWay()
+                ''' using heritage -> create a point at distance corresponding to the runway lenght and with the runway heading '''
+                latitudeDegrees , longitudeDegrees = runwayEnd.getGeoPointAtDistanceHeading( ConstantClimbRampLengthNauticalMiles * NauticalMiles2Meter, runWay.getTrueHeadingDegrees())
+                pathEnd = GeographicalPoint(latitudeDegrees , longitudeDegrees, Earth().getEarthRadiusMeters())
+                distanceMeters = pathEnd.computeDistanceMetersTo( departureAirport )
+                if first:
+                    first = False
+                    bestRunWay = runWay
+                    minimalDistanceMeters = distanceMeters
+                else:
+                    if ( distanceMeters < minimalDistanceMeters ):
+                        bestRunWay = runWay
+                        minimalDistanceMeters = distanceMeters
+        return bestRunWay
+

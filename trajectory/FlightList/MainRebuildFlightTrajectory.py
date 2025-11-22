@@ -14,6 +14,8 @@ from tabulate import tabulate
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
+from trajectory.Guidance.WayPointFile import Airport
+from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 import matplotlib.pyplot as plt
 
 from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
@@ -42,8 +44,7 @@ class FlightTrajectoryReBuild(object):
     
     def extractLandedInstant(self):
         return self.flightListDatabase.getLandedInstant( self.train_rank_final , self.flight_id )
-
-
+    
     def readFlightListDatabase(self):
         logging.info("---------Read Flight List <<" + self.train_rank_final +">> ------------")
 
@@ -74,22 +75,42 @@ if __name__ == '__main__':
     ac = flightTrajectoryReBuild.extractAircraftICAOcode()
     print ( "aircraft = " + ac  )
 
-    originAirport = flightTrajectoryReBuild.extractDepartureAirport()
-    print( "origin airport = " +   originAirport)  
-    destinationAirport =   flightTrajectoryReBuild.extractDestinationAirport()
-    print( "destination airport = "+  destinationAirport)
+    originAirportICAOcode = flightTrajectoryReBuild.extractDepartureAirport()
+    print( "origin airport = " +   originAirportICAOcode)  
+    destinationAirportICAOcode =   flightTrajectoryReBuild.extractDestinationAirport()
+    print( "destination airport = "+  destinationAirportICAOcode)
     
-    print ( flightTrajectoryReBuild.extractTakeOffInstant())    
+    print ( flightTrajectoryReBuild.extractTakeOffInstant())
     print ( flightTrajectoryReBuild.extractLandedInstant())
     
     runWaysDataBase = RunWayDataBase()
     runWaysDataBase.read()
-    print ( runWaysDataBase.hasRunWays(originAirport) )   
-    print ( runWaysDataBase.hasRunWays(destinationAirport) )
+    print (f"are there runways for the airport -> {originAirportICAOcode}  -> {runWaysDataBase.hasRunWays(originAirportICAOcode)}" )
+    print (f"are there runways for this airport -> {destinationAirportICAOcode}  -> {runWaysDataBase.hasRunWays(destinationAirportICAOcode)}" )
     
     print("-"*90)
-    for runway in runWaysDataBase.getRunWays(originAirport):
+    for runway in runWaysDataBase.getRunWays(originAirportICAOcode):
         print(runway)
     print("-"*90)
-    for runway in runWaysDataBase.getRunWays(destinationAirport):
+    for runway in runWaysDataBase.getRunWays(destinationAirportICAOcode):
         print(runway)
+        
+    airportsDatabase = AirportsDatabase()
+    airportsDatabase.readWithPandas()
+    
+    assert airportsDatabase.isAirportICAOcodeInDB(originAirportICAOcode)
+    assert airportsDatabase.isAirportICAOcodeInDB(destinationAirportICAOcode)
+    
+    departureAirport = Airport(Name = originAirportICAOcode, 
+                            LatitudeDegrees = airportsDatabase.getAirportLatitudeDegrees(originAirportICAOcode) , 
+                            LongitudeDegrees = airportsDatabase.getAirportLongitudeDegrees(originAirportICAOcode) , 
+                            fieldElevationAboveSeaLevelMeters = airportsDatabase.getAirportElevationMeters(originAirportICAOcode))
+    
+    arrivalAirport = Airport(Name = destinationAirportICAOcode , 
+                             LatitudeDegrees = airportsDatabase.getAirportLatitudeDegrees(destinationAirportICAOcode) , 
+                             LongitudeDegrees = airportsDatabase.getAirportLongitudeDegrees(destinationAirportICAOcode) , 
+                             fieldElevationAboveSeaLevelMeters = airportsDatabase.getAirportElevationMeters(destinationAirportICAOcode) )
+    
+    ''' best departure run-way is the one with minimal distance between end of 5 nautical climb ramp and first point of the route '''
+    bestDepartureRunway = runWaysDataBase.computeBestDepartureRunway( departureAirport, arrivalAirport )    
+    bestArrivalRunway = runWaysDataBase.computeBestDepartureRunway( departureAirport, arrivalAirport )

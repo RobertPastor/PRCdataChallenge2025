@@ -44,6 +44,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import CustomObjectScope
 
+from trajectory.Utils.utils import dropUnusedColumns
 import logging
 
 from pathlib import Path
@@ -144,7 +145,6 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
     
     ''' latest version where all transformations are applied to both train and rank dataframes'''
     def extendCorrectTrainRankDataframe(self , concatenatedTrainRankDataset):
-        from trajectory.Utils.utils import dropUnusedColumns
         ''' compute TAS and CAS from mach when mach is not null and TAS or CAS are null '''
         ''' if mach is NaN and groundspeed is OK then use groundspeed as TAS value without wind '''
         concatenatedTrainRankDataset = prcDataChallenge2025Submissions.computeTASnCASfromMachOrGroundSpeed(concatenatedTrainRankDataset)
@@ -155,7 +155,6 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         #print(tabulate(concatenatedTrainRankDataset[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         ''' set info discriminating whether aircraft has or not winglets or sharklets '''
         concatenatedTrainRankDataset['hasSharklets'] = np.where ( concatenatedTrainRankDataset['Wingspan_ft_without_winglets_sharklets'].isnull() , 0 , 1)
-        
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
 
         ''' use clean outliers with capped quantiles without groupby flight_id nor groupby on aircraft code '''
@@ -163,15 +162,22 @@ class PRCdataChallenge2025Submissions(TensorFlowBaseClass):
         #concatenatedTrainRankDataset = self.clean_outliers_capped( concatenatedTrainRankDataset , self.listOfColumnsWithOutliers)
         #assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
         
-        listOfColumnsToDrop = ['idx','flight_id', 'start', 'end' , 'aircraft_ICAO_Code', 'train_rank']
-        df_temp = dropUnusedColumns ( concatenatedTrainRankDataset , listOfColumnsToDrop )
-        print ( tabulate ( df_temp.describe(include='all'), headers='keys', tablefmt='grid' , showindex=False , ) )
+        #listOfColumnsToDrop = ['idx','flight_id', 'start', 'end' , 'aircraft_ICAO_Code', 'train_rank']
+        #df_temp = dropUnusedColumns ( concatenatedTrainRankDataset , listOfColumnsToDrop )
+        #print ( tabulate ( df_temp.describe(include='all'), headers='keys', tablefmt='grid' , showindex=False , ) )
         
         ''' 6th November 2025 - v25 -> v26 -> test without dummies for the aircraft type code'''
         ''' after v26- add dummies again '''
         concatenatedTrainRankDataset = pd.get_dummies( concatenatedTrainRankDataset , columns=['aircraft_ICAO_Code'], dtype = int)
         print ( concatenatedTrainRankDataset.shape )
         print ( list ( concatenatedTrainRankDataset ) )
+        
+        ''' suppress all degrees features '''
+        listOfColumnsToDrop = [ 'aircraft_latitude_deg_at_fuel_start', 'aircraft_longitude_deg_at_fuel_start',
+                                'aircraft_latitude_deg_at_fuel_end', 'aircraft_longitude_deg_at_fuel_end',
+                                 'aircraft_track_angle_deg_at_fuel_start', 'aircraft_track_angle_deg_at_fuel_end',
+                                  'Wingspan_ft_without_winglets_sharklets', 'Wingspan_ft_with_winglets_sharklets']
+        concatenatedTrainRankDataset = dropUnusedColumns ( concatenatedTrainRankDataset , listOfColumnsToDrop)
         
         assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
         return concatenatedTrainRankDataset
@@ -258,12 +264,10 @@ if __name__ == '__main__':
     print ( concatenatedTrainRankDataset.shape )
     
     assert concatenatedTrainRankDataset.shape[0] == TrainDataSetRowCount + RankDataSetRowCount
-    
     print ( tabulate ( concatenatedTrainRankDataset.describe().transpose(), headers='keys', tablefmt='grid' , showindex=False , ))
     
     ''' filter again the merged dataset to extract train data only '''
     trainDataSet = concatenatedTrainRankDataset[ concatenatedTrainRankDataset['train_rank'] == 'train']
-
     ''' build the model '''
     generatedModelFileName = prcDataChallenge2025Submissions.BuildModelFromTrain (trainDataSet)
     

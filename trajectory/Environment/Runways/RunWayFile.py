@@ -98,6 +98,10 @@ class RunWay(GeographicalPoint):
         strRunWay += ' longitude= {0:.2f} degrees'.format(self.LongitudeDegrees) 
         return strRunWay
     
+    def computeEndOfRunWay(self):
+        latitudeDegrees , longitudeDegrees = self.getGeoPointAtDistanceHeading(self.getLengthMeters(), self.getTrueHeadingDegrees())
+        return GeographicalPoint(latitudeDegrees , longitudeDegrees, EarthRadiusMeters)
+    
     def getEndOfRunWay(self):
         latitudeDegrees , longitudeDegrees = self.getGeoPointAtDistanceHeading(self.getLengthMeters(), self.getTrueHeadingDegrees())
         return GeographicalPoint(latitudeDegrees , longitudeDegrees, EarthRadiusMeters)

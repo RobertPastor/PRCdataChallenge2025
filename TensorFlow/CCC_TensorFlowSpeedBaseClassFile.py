@@ -8,14 +8,11 @@ import math
 import numpy as np
 
 from trajectory.Environment.Constants import MeterPerSecond2Knots, Meter2Feet
-from trajectory.aerocalc.airspeed import  mach_alt2cas
-from trajectory.aerocalc.airspeed import mach2tas 
-from trajectory.aerocalc.airspeed import tas2cas
+from trajectory.aerocalc.airspeed import mach_alt2cas
+
 from trajectory.Environment.Constants import Knots2MetersPerSecond , MetersToNauticalMiles
 
-from pyBADA import atmosphere as atm
-from pyBADA.atmosphere import mach2Tas as Bada_mach2Tas
-from pyBADA.atmosphere import mach2Cas as Bada_mach2Cas
+from trajectory.Utils.badaAirspeeds import mach2tas , mach2cas
 
 class TensorFlowSpeedBaseClass(object):
     pass
@@ -27,27 +24,23 @@ class TensorFlowSpeedBaseClass(object):
         return not (value is None) and (value != np.nan) and not( math.isnan ( value ))
     
     def compute_TAS_KnotsfromMach_atFuelStart(self , row):
-        
         mach = row['aircraft_mach_at_fuel_start']
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
         ''' TAS computed from Java is correct - CAS is erroneous '''
         TAS = row['aircraft_TAS_at_fuel_start']
-        groundSpeedKnots = row['aircraft_groundspeed_kt_at_fuel_start']
-
+        deltaTemperatureCelsius = 0.0 
         if self.isNotNoneAndNotNan(mach) and  self.isNotNoneAndNotNan( aircraft_altitude_ft ):
-            return mach2tas ( mach=mach, altitude=aircraft_altitude_ft , temp='std' ,alt_units='ft', speed_units='kt')
+            return mach2tas ( mach = mach, altitude_feet = aircraft_altitude_ft , deltaTemperatureCelsius = deltaTemperatureCelsius)
         return TAS
 
     def compute_TAS_KnotsfromMach_atFuelEnd(self , row):
-        
         mach = row['aircraft_mach_at_fuel_end']
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
         ''' TAS computed from Java is correct - CAS is erroneous '''
         TAS = row['aircraft_TAS_at_fuel_end']
-        groundSpeedKnots = row['aircraft_groundspeed_kt_at_fuel_end']
-
+        deltaTemperatureCelsius = 0.0 
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
-            return mach2tas ( mach=mach, altitude=aircraft_altitude_ft ,temp='std' ,alt_units='ft', speed_units='kt')
+            return mach2tas ( mach = mach, altitude_feet = aircraft_altitude_ft , deltaTemperatureCelsius = deltaTemperatureCelsius )
         return TAS
 
         ''' compute CAS from mach '''
@@ -57,12 +50,12 @@ class TensorFlowSpeedBaseClass(object):
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
         ''' TAS computed from Java is correct - CAS is erroneous '''
         CAS = row['aircraft_CAS_at_fuel_start']
-        groundSpeedKnots = row['aircraft_groundspeed_kt_at_fuel_start']
-
+        #groundSpeedKnots = row['aircraft_groundspeed_kt_at_fuel_start']
+        deltaTemperatureCelsius = 0.0 
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
             ''' assumption is that altitude is always provided -> no altitude missings content '''
             try:
-                return mach_alt2cas ( mach = mach, altitude = aircraft_altitude_ft , alt_units='ft', speed_units='kt')
+                return mach2cas ( mach = mach, altitude_feet = aircraft_altitude_ft , deltaTemperatureCelsius = deltaTemperatureCelsius )
             except:
                 pass
         return CAS
@@ -73,12 +66,12 @@ class TensorFlowSpeedBaseClass(object):
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
         ''' TAS computed from Java is correct - CAS is erroneous '''
         CAS = row['aircraft_CAS_at_fuel_end']
-        groundSpeedKnots = row['aircraft_groundspeed_kt_at_fuel_end']
-        
+        #groundSpeedKnots = row['aircraft_groundspeed_kt_at_fuel_end']
+        deltaTemperatureCelsius = 0.0 
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
             ''' assumption is that altitude is always provided -> no altitude missings content '''
             try:
-                return  mach_alt2cas ( mach = mach,altitude = aircraft_altitude_ft , alt_units = 'ft' , speed_units = 'kt')
+                return mach2cas ( mach = mach, altitude_feet = aircraft_altitude_ft , deltaTemperatureCelsius = deltaTemperatureCelsius )
             except:
                 pass
         return CAS
@@ -98,68 +91,47 @@ class TensorFlowSpeedBaseClass(object):
         
         mach = row['aircraft_mach_at_fuel_start']
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
-        aircraft_altitude_meters = aircraft_altitude_ft * Meter2Feet
-        ''' BADA provides speed results in m/s '''
+        deltaTemperatureCelsius = 0.0 
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
             # deviation from standard tamperature
-            deltaTemp = 0.0
-            ''' BADA provides speed results in m/s '''
-            theta = atm.theta(aircraft_altitude_meters, deltaTemp)
-            return Bada_mach2Tas ( mach , theta ) * MeterPerSecond2Knots
+            return mach2tas ( mach = mach, altitude_feet = aircraft_altitude_ft , deltaTemperatureCelsius = deltaTemperatureCelsius )
         return row['aircraft_TAS_at_fuel_start']
         
     def compute_TAS_KnotsfromMach_Bada_atFuelEnd(self, row):
         mach = row['aircraft_mach_at_fuel_end']
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
-        aircraft_altitude_meters = aircraft_altitude_ft * Meter2Feet
-
+        deltaTemperatureCelsius = 0.0 
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
-            # deviation from standard tamperature
-            deltaTemp = 0.0
-            # theta Normalized temperature according to the ISA model
-            theta = atm.theta(aircraft_altitude_meters, deltaTemp)
-            return Bada_mach2Tas ( mach , theta ) * MeterPerSecond2Knots
+            return mach2tas ( mach = mach, altitude_feet = aircraft_altitude_ft , deltaTemperatureCelsius = deltaTemperatureCelsius )
         return row['aircraft_TAS_at_fuel_end']
         
     def compute_CAS_KnotsfromMach_Bada_atFuelStart(self , row):
         mach = row['aircraft_mach_at_fuel_start']
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_start']
-        aircraft_altitude_meters = aircraft_altitude_ft * Meter2Feet
 
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
-            # deviation from standard tamperature
-            deltaTemp = 0.0
-            # theta: Normalized temperature
-            # delta : normalized pressure
-            # sigma: Normalized air density             
-            theta , delta , sigma = atm.atmosphereProperties ( aircraft_altitude_meters , deltaTemp)
-            
-            '''' retunrs Cas in meters per seconds '''
-            return Bada_mach2Cas ( mach , theta , delta, sigma ) * MeterPerSecond2Knots
+            deltaTemperatureCelsius = 0.0 
+            '''' return Cas in knots '''
+            return mach2cas ( mach , aircraft_altitude_ft , deltaTemperatureCelsius )
         return row['aircraft_CAS_at_fuel_start']
         
     def compute_CAS_KnotsfromMach_Bada_atFuelEnd(self, row):
         mach = row['aircraft_mach_at_fuel_end']
         aircraft_altitude_ft = row['aircraft_altitude_ft_at_fuel_end']
-        aircraft_altitude_meters = aircraft_altitude_ft * Meter2Feet
-
         if self.isNotNoneAndNotNan(mach) and self.isNotNoneAndNotNan( aircraft_altitude_ft ):
-            deltaTemp = 0.0
-            theta , delta , sigma = atm.atmosphereProperties ( aircraft_altitude_meters , deltaTemp)
-            
-            ''' returns CAS in meters per seconds '''
-            return Bada_mach2Cas ( mach , theta , delta, sigma ) * MeterPerSecond2Knots
+            deltaTemperatureCelsius = 0.0 
+            return mach2cas ( mach , aircraft_altitude_ft , deltaTemperatureCelsius )
         return row['aircraft_CAS_at_fuel_end']
     
     ''' use python aerocal method to compute TAS and CAS from mach when TAS or CAS are null '''
     def computeTASnCASfromMachOrGroundSpeed(self, df):
         # Machine epsilon for single precision (32-bit)
         ''' using aero calc library '''
-        df['aircraft_TAS_aerocalc_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelStart , axis = 1)
-        df['aircraft_TAS_aerocalc_at_fuel_end']   = df.apply( self.compute_TAS_KnotsfromMach_atFuelEnd   , axis = 1)
+        #df['aircraft_TAS_aerocalc_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_atFuelStart , axis = 1)
+        #df['aircraft_TAS_aerocalc_at_fuel_end']   = df.apply( self.compute_TAS_KnotsfromMach_atFuelEnd   , axis = 1)
         
-        df['aircraft_CAS_aerocalc_at_fuel_start'] = df.apply( self.compute_CAS_KnotsfromMach_atFuelStart , axis = 1)
-        df['aircraft_CAS_aerocalc_at_fuel_end']   = df.apply( self.compute_CAS_KnotsfromMach_atFuelEnd   , axis = 1)
+        #df['aircraft_CAS_aerocalc_at_fuel_start'] = df.apply( self.compute_CAS_KnotsfromMach_atFuelStart , axis = 1)
+        #df['aircraft_CAS_aerocalc_at_fuel_end']   = df.apply( self.compute_CAS_KnotsfromMach_atFuelEnd   , axis = 1)
         
         ''' TAS from mach using BADA pyBADA '''
         df['aircraft_TAS_Bada_at_fuel_start'] = df.apply( self.compute_TAS_KnotsfromMach_Bada_atFuelStart , axis = 1)
