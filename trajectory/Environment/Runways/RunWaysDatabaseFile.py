@@ -139,9 +139,8 @@ class RunWayDataBase(object):
         return None
         
     def hasRunWays(self, airportICAOcode):
-        assert not(self.sheet is None)
-        assert (isinstance(airportICAOcode, str)) and len(airportICAOcode)>0
         
+        assert (isinstance(airportICAOcode, str)) and len(airportICAOcode)>0
         for row in range(self.sheet.nrows): 
             rowValues = self.sheet.row_values(row, start_colx=0, end_colx=self.sheet.ncols)
             if (rowValues[self.ColumnNames['airport_ident']] == airportICAOcode):

@@ -16,6 +16,8 @@ from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
 import matplotlib.pyplot as plt
 
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
+
 class FlightTrajectoryReBuild(object):
     
     flight_id  = "prc812317830"
@@ -69,8 +71,25 @@ if __name__ == '__main__':
     flightTrajectoryReBuild.readFlightListDatabase()
     
     print ( "aircraft = " + flightTrajectoryReBuild.extractAircraftICAOcode() )
-    print( "origin airport = "+ flightTrajectoryReBuild.extractDepartureAirport() )    
-    print( "destination airport = "+ flightTrajectoryReBuild.extractDestinationAirport() )
+    ac = flightTrajectoryReBuild.extractAircraftICAOcode()
+    print ( "aircraft = " + ac  )
+
+    originAirport = flightTrajectoryReBuild.extractDepartureAirport()
+    print( "origin airport = " +   originAirport)  
+    destinationAirport =   flightTrajectoryReBuild.extractDestinationAirport()
+    print( "destination airport = "+  destinationAirport)
     
     print ( flightTrajectoryReBuild.extractTakeOffInstant())    
     print ( flightTrajectoryReBuild.extractLandedInstant())
+    
+    runWaysDataBase = RunWayDataBase()
+    runWaysDataBase.read()
+    print ( runWaysDataBase.hasRunWays(originAirport) )   
+    print ( runWaysDataBase.hasRunWays(destinationAirport) )
+    
+    print("-"*90)
+    for runway in runWaysDataBase.getRunWays(originAirport):
+        print(runway)
+    print("-"*90)
+    for runway in runWaysDataBase.getRunWays(destinationAirport):
+        print(runway)
