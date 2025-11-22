@@ -48,8 +48,10 @@ def extendAircraftCharacteristics( row , characteristicName , aircraftDatabase )
 class FlightListDatabase(object):
     className = ''
     
-    def __init__(self):
+    def __init__(self  , train_rank_final ):
         self.className = self.__class__.__name__
+        
+        self.train_rank_final = train_rank_final
         
         self.fileNameFlightListTrain = "flightlist_train.parquet"
         self.fileNameFlightListRank =  "flightlist_rank.parquet"
@@ -166,7 +168,6 @@ class FlightListDatabase(object):
             takeoff = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["takeoff"].iloc[0]
             logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
             return takeoff
-
         
     def getLandedInstant(self , train_rank, flight_id):
         if train_rank == 'train':
@@ -181,8 +182,39 @@ class FlightListDatabase(object):
             landed = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["landed"].iloc[0]
             logging.info (self.className + " - landed instant " + str ( landed ) )
             return landed
-       
         
+    def getAircraftICAOcode(self , flight_id ):
+        assert self.train_rank_final == 'train' or self.train_rank_final == 'rank' or self.train_rank_final == "final"
+        ''' filter on aircraft_type '''
+        if self.train_rank_final == 'train':
+            df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+        elif self.train_rank_final == 'rank':
+            df = self.RankFlightListDataframe [self.RankFlightListDataframe['aircraft_type'].notnull()]
+        else:
+            df = self.FinalFlightListDataframe [self.RankFlightListDataframe['aircraft_type'].notnull()]
+        ''' filter on flight_id '''
+        df = df[df['flight_id'] == flight_id]
+        print(tabulate(df[:1], headers='keys', tablefmt='grid' , showindex=False , ))
+        ''' assumption aircraft_type has col index = 1 '''
+        aircraft_index = df.columns.get_loc("aircraft_type")
+        first_row_index = 0
+        ac = df.iloc[first_row_index, aircraft_index]
+        return ac
+    
+    def collectUniqueAircraftTypesFromTrainFlightList(self):
+        
+        assert self.extendTrainFlightListWithAircraftData() == True
+        
+        df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+        aircraft_codes_list = df['aircraft_type'].unique().tolist()
+        
+        for aircraft_icao_code in aircraft_codes_list:
+            print("aircraft ICAO code = " , str(aircraft_icao_code) )
+            if ( self.faaAircraftDatabase.isICAOcodeExisting(aircraft_icao_code)):
+                print (" ----> aircraft = " , str(aircraft_icao_code) , " is in Aircraft Database")
+        #logging.info( df.head ())
+        return True
+    
     def checkTrainFlightListHeaders(self):
         return (set(self.TrainFlightListDataframe) == set(expectedHeaders))
         
@@ -383,19 +415,7 @@ class FlightListDatabase(object):
         else:
             return False
     
-    def collectUniqueAircraftTypesFromTrainFlightList(self):
-        
-        assert self.extendTrainFlightListWithAircraftData() == True
-        
-        df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
-        aircraft_codes_list = df['aircraft_type'].unique().tolist()
-        
-        for aircraft_icao_code in aircraft_codes_list:
-            print("aircraft ICAO code = " , str(aircraft_icao_code) )
-            if ( self.faaAircraftDatabase.isICAOcodeExisting(aircraft_icao_code)):
-                print (" ----> aircraft = " , str(aircraft_icao_code) , " is in Aircraft Database")
-        #logging.info( df.head ())
-        return True
+    
     
     def collectUniqueAirports(self):
         

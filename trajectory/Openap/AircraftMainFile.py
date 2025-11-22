@@ -40,9 +40,7 @@ class OpenapAircraft(OpenapAircraftConfiguration):
             self.setInitialMassKilograms( self.getReferenceMassKilograms() )
         else:
             self.setInitialMassKilograms(initialMassKilograms)
-
         logging.info ( self.className  + " --- " + self.getAircraftName() )
-        
         
     def getAircraftName(self):
         return self.openapAircraft['aircraft']
@@ -76,7 +74,6 @@ if __name__ == '__main__':
     print("-"*80)
     
     departureRunwayAltitudeMSLmeters = 300.0
-    
     available_acs = prop.available_aircraft(use_synonym=True)
 
     for actype in available_acs:
