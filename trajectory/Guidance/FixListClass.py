@@ -6,7 +6,6 @@ Created on 11 août 2023
 
 import os
 import logging
-import sys
 from trajectory.Guidance.ConstraintsFile import analyseConstraint
 
 '''
@@ -25,7 +24,6 @@ class FixList(object):
     arrivalAirportICAOcode = ""
     departureRunwayName = ""
     arrivalRunwayName = ""
-    
     
     def __init__(self, strRoute , directRoute = False):
         assert isinstance ( strRoute , str)
@@ -123,13 +121,13 @@ class FixList(object):
                 else:
                     self.fixList.append(fix)
 
-            index += 1             
+            index += 1
             
         print(self.fixList)
         
-    def insertIntermediateBetweenAirports(self):
-        if ( self.directRoute ):
-            self.i
+    #def insertIntermediateBetweenAirports(self):
+    #    if ( self.directRoute ):
+    #        self.i
 
     def deleteFix(self, thisFix):
         if thisFix in self.fixList:

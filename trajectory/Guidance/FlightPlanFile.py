@@ -56,10 +56,8 @@ from trajectory.Guidance.FixListClass import FixList
 class FlightPlan(FixList):
     
     className = ''
-    
     wayPointsDict = {}
     constraintsList = []
-    
     departureAirportIcaoCode = ''
     departureAirport = None
     arrivalAirportIcaoCode = ''
@@ -132,7 +130,6 @@ class FlightPlan(FixList):
         return self.departureRunway
     
     def getArrivalRunway(self):
-        
         self.arrivalRunway =  self.runwaysDb.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, 
                                                                 runwayName = self.arrivalRunwayName)
         assert ( not (self.arrivalRunway is None) and isinstance(self.arrivalRunway, RunWay ))
@@ -406,10 +403,10 @@ class FlightPlan(FixList):
         return lengthMeters 
     
     def insertDynamicWaypoint(self):
-        ''' in cas of a direct route from departure airport to arrival airport '''
+        ''' in case of a direct route from departure airport to arrival airport '''
         ''' need to insert some dynamic waypoints '''
-        
-
+        pass
+    
     def computeDistanceToLastFixMeters(self, currentPosition, fixListIndex):
         '''
         compute length to fly from the provided index in the fix list
@@ -442,4 +439,3 @@ class FlightPlan(FixList):
 #         if not(self.arrivalAirport is None):
 #             lengthMeters += self.wayPointsDict[self.fixList[-1]].getDistanceMetersTo(self.arrivalAirport)
         return lengthMeters
-    

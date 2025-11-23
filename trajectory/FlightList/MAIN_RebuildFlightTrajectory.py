@@ -35,6 +35,8 @@ class FlightTrajectoryReBuild(object):
         self.flight_id = flight_id
         assert self.train_rank_final == "train" or self.train_rank_final == "rank" or self.train_rank_final == "final"
         
+        self.flightsDatabase = FlightsDatabase()
+        
     def readRunways(self):
         self.runWaysDataBase = RunWayDataBase()
         assert self.runWaysDataBase.read()
@@ -149,10 +151,13 @@ class FlightTrajectoryReBuild(object):
                     #csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
                     #flightPath.createStateVectorHistoryFile()
                     print(f"flight_id = {self.flight_id} - takeoff instant = {self.takeOffInstant}")
-                    pd_df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(abortedFlight , self.aircraftICAOcode ,
+                    df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(abortedFlight , self.aircraftICAOcode ,
                                                                                    self.flight_id , self.takeOffInstant)
                     #flightPath.createKmlXmlDocument()
-                    
+                    folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
+                    fileName = self.flight_id + ".parquet"
+                    path = os.path.join ( folder , fileName)
+                    df.to_parquet( path )
     
             except Exception as e:
                     logging.error("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )

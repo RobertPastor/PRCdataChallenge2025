@@ -40,6 +40,8 @@ class FlightsDatabase(object):
         self.filesFolderRankInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data-interpolated")
         self.filesFolderFinalInterpolated = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-final-data-interpolated")
         
+        self.filesFolderRankComputed = os.path.join( self.filesFolder , ".." , ".." , "Data-Download-OpenSkyNetwork" , "competition-rank-data-computed")
+
         assert Path(self.filesFolderTrain).is_dir() == True
         assert Path(self.filesFolderRank).is_dir() == True
         assert Path(self.filesFolderFinal).is_dir() == True
@@ -64,6 +66,14 @@ class FlightsDatabase(object):
     def getRankFlightsFolderPathStr(self):
         return self.filesFolderRank
     
+    def getTrainRankFinalFlightsComputedFolderPathStr(self, train_rank_final):
+        if train_rank_final == "train":
+            return self.filesFolderTrainComputed
+        elif train_rank_final == "rank":
+            return self.filesFolderRankComputed
+        else:
+            return self.filesFolderFinalComputed
+        
     def getTrainRankFinalFlightsFolderPathStr(self, train_rank_final):
         if train_rank_final == "train":
             return self.filesFolderTrain
