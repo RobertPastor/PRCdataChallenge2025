@@ -143,6 +143,8 @@ class FlightTrajectoryReBuild(object):
             try:
                     flightPath.computeFlight(deltaTimeSeconds = 1.0)
                     csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
+                    flightPath.createStateVectorHistoryFile()
+                    flightPath.createKmlXmlDocument()
     
             except Exception as e:
                     logging.error("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )

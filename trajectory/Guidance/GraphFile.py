@@ -296,7 +296,8 @@ class Graph(object):
     
         return  ValueError("GraphFile - createKmlOutputPureDocument - number of vertices is 0")
     
-    def createKmlOutputFile(self, abortedFlight, aircraftICAOcode, AdepICAOcode, AdesICAOcde):
+    def createKmlOutputFile(self, abortedFlight, aircraftICAOcode, 
+                            AdepICAOcode, AdesICAOcde):
         
         self.AbortedFlight = abortedFlight
         self.AircraftICAOcode = aircraftICAOcode
