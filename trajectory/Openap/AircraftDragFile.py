@@ -21,9 +21,7 @@ class OpenapAircraftDrag(OpenapAircraftMass):
         pass
         self.className = self.__class__.__name__
         super().__init__(aircraftICAOcode)
-                
-        self.drag         = Drag(ac=str( aircraftICAOcode ).lower() , wave_drag=False)
-        
+        self.drag = Drag(ac=str( aircraftICAOcode ).lower() , wave_drag=False)
         
     def getWingAreaSurfaceSquareMeters(self):
         return self.aircraft['wing']['area']

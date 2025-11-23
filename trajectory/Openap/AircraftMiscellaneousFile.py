@@ -12,15 +12,12 @@ class OpenapAircraftMiscelleaneous(OpenapAircraftFlightPhases):
     pass
 
     def __init__(self, aircraftICAOcode):
-        
         self.className = self.__class__.__name__
         self.aircraftICAOcode = aircraftICAOcode
-        
         super().__init__(aircraftICAOcode)
         
     def getMaximumNumberOfPassengers(self):
         return self.aircraft['pax']['max']
-        
         
     def getLandingLengthMeters(self):
         self.LandingLengthMetersDict = self.wrap.landing_distance()

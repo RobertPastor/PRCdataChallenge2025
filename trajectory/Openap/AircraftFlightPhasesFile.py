@@ -13,9 +13,9 @@ from trajectory.aerocalc.airspeed import tas2cas, tas2mach, default_temp_units
 from trajectory.Environment.Constants import  Meter2Feet , MeterSecond2Knots
 from trajectory.Environment.Constants import  Meter2NauticalMiles
 from trajectory.Openap.AircraftStateVectorFile import OpenapAircraftStateVector
+from trajectory.Openap.AircraftPRCdataframeFile import OpenapAircraftPRCchallenge
 
-
-class OpenapAircraftFlightPhases(OpenapAircraftStateVector):
+class OpenapAircraftFlightPhases(OpenapAircraftPRCchallenge):
     ''' openap wrap flight phases '''
     aircraftConfigurationList = ['take-off', 
                                  'initial-climb', 
@@ -32,14 +32,11 @@ class OpenapAircraftFlightPhases(OpenapAircraftStateVector):
         self.className = self.__class__.__name__
         self.aircraftICAOcode = aircraftICAOcode
         super().__init__(aircraftICAOcode)
-
         self.aircraftCurrentConfiguration = self.aircraftConfigurationList[0]
-        
         logger.info ( self.className  + ' ===================================================' )
         self.flightPathAngleDegrees = 0.0
         logger.info ( self.className + ' default configuration= ' + self.aircraftCurrentConfiguration )
         logger.info ( self.className + ' ===================================================' )
-        
         self.totalDistanceFlownMeters = 0.0
         
     def setTotalDistanceFlownMeters(self, totalDistanceFlownMeters):

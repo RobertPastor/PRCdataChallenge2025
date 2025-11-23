@@ -12,7 +12,6 @@ from trajectory.Environment.Constants import MeterSecond2Knots , Meter2Feet, Met
 from trajectory.OutputFiles.XlsxOutputFile import XlsxOutput
 from trajectory.aerocalc.airspeed import tas2cas
 
-
 class OpenapAircraftStateVector(object):
     aircraftICAOcode = ""
     aircraftStateHistory = []
@@ -20,11 +19,9 @@ class OpenapAircraftStateVector(object):
     def __init__(self , aircraftICAOcode ):
         self.className = self.__class__.__name__
         self.aircraftICAOcode = aircraftICAOcode
-        
         self.aircraft = prop.aircraft( ac=str(aircraftICAOcode).lower(), use_synonym=True )
-        ''' ensure that there is only one unique access to the WRAP database '''
+        ''' ensure that there is only one unique access to / read of the WRAP database '''
         self.wrap = WRAP(str(aircraftICAOcode).upper(), use_synonym=True)
-
         self.aircraftStateHistory = []
     
     def initStateVector(self,
@@ -87,13 +84,11 @@ class OpenapAircraftStateVector(object):
                                                  endOfSimulation]
         self.aircraftStateHistory.append(aircraftStateDict)
 
-
     def createStateVectorHistoryFile(self, filePrefix):
         if isinstance(filePrefix, str) and len(filePrefix)>0:
             fileName =  filePrefix + '-Altitude-MSL-Speed-History'
         else:
             fileName = self.aircraftICAOcode + '-Altitude-MSL-Speed-History'
-
         xlsxOutput = XlsxOutput(fileName)
         ''' 9th September 2023 - add characteristic point '''
         xlsxOutput.writeHeaders(['elapsed-time-seconds', 

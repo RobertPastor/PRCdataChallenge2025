@@ -27,6 +27,8 @@ Created on Mar 18, 2015
 '''
 import logging
 from datetime import datetime
+import pandas as pd
+from tabulate import tabulate
 
 from trajectory.Guidance.WayPointFile import WayPoint, Airport
 
@@ -65,13 +67,11 @@ class Edge(object):
     def getDistanceTailHeadMeters(self):
         if ( isinstance(self._tail, (WayPoint, Airport)) and isinstance(self._head, (WayPoint , Airport)) ):
             self.distanceTailHeadMeters = self._tail.getDistanceMetersTo(self._head)
-
         return self.distanceTailHeadMeters
 
     def getBearingTailHeadDegrees(self):
         if ( isinstance(self._tail, (WayPoint , Airport)) and isinstance(self._head, (WayPoint , Airport)) ):
             self.bearingTailHeadDegrees = self._tail.getBearingDegreesTo(self._head)
-
         return self.bearingTailHeadDegrees
 
 class Graph(object):
@@ -81,7 +81,6 @@ class Graph(object):
     
     def __init__(self):
         self.className = self.__class__.__name__
-
         self._vertex = []
         self._edge = []
         self.lengthMeters = 0.0
@@ -109,7 +108,7 @@ class Graph(object):
         else:
             assert (isinstance(args[0], int))
             index = args[0]
-            if (index >= 0) and (index <=  len(self._vertex)):
+            if (index >= 0) and (index <= len(self._vertex)):
                 weight = args[1]
                 self._vertex.insert(index, Vertex(weight))
                 ''' need to re build the list of Edges '''
@@ -197,6 +196,7 @@ class Graph(object):
         return len(self._edge)
     
     def getVertices(self):
+        ''' returns an iterator on the vertices '''
         for vertex in self._vertex:
             yield vertex
 
@@ -206,14 +206,13 @@ class Graph(object):
             yield edge
             
     def hideSomeVertices(self, kmlFileLike , nbHidden):
-        
         count = 0
         for vertex in self.getVertices():
             wayPoint = vertex.getWeight()
             if ( len(wayPoint.getName()) > 0):
-                    # if waypoint gas a name -> reset counter
-                    count = 0
-                    kmlFileLike.write( wayPoint.getName(),
+                # if waypoint has a name -> reset counter
+                count = 0
+                kmlFileLike.write( wayPoint.getName(),
                                     wayPoint.getLongitudeDegrees(),
                                     wayPoint.getLatitudeDegrees(), 
                                     wayPoint.getAltitudeMeanSeaLevelMeters())
@@ -298,7 +297,6 @@ class Graph(object):
     
     def createKmlOutputFile(self, abortedFlight, aircraftICAOcode, 
                             AdepICAOcode, AdesICAOcde):
-        
         self.AbortedFlight = abortedFlight
         self.AircraftICAOcode = aircraftICAOcode
         self.AdepICAOcode = AdepICAOcode
@@ -325,7 +323,6 @@ class Graph(object):
             
             kmlOutputFile = KmlOutput(strFileName, abortedFlight, aircraftICAOcode, AdepICAOcode, AdesICAOcde)
             kmlOutputFile = self.hideSomeVertices(kmlOutputFile, 10)
-
             for vertex in self.getVertices():
                 wayPoint = vertex.getWeight()
                 kmlOutputFile.write(wayPoint.getName(),
@@ -336,7 +333,40 @@ class Graph(object):
             logging.debug ( "{0} - {1}".format(self.className , strFileName) )
             return kmlOutputFile
     
-        return  ValueError("GraphFile - createKmlOutputFile - number of vertices is 0")
+        return ValueError("GraphFile - createKmlOutputFile - number of vertices is 0")
+    
+    def createPRCdataChallengeFlightDataframe(self , abortedFlight , flight_id, takeOffInstant ):
+        assert (type(abortedFlight) == bool )
+        
+        flight_id_series = pd.Series(name="flight_id")
+        timestamp_series = pd.Series(name="timestamp")
+        
+        maxVertexWritten = 10000
+        vertexCounter = 0
+        courseAngleDegrees = 0.0
+        if self.getNumberOfVertices() > 1:
+            ''' loop '''
+            index = 0
+            for vertex in self.getVertices():
+                vertexCounter = vertexCounter + 1
+                if vertexCounter > maxVertexWritten:
+                    break
+                ''' build an edge having two consecutive vertices as tail and head '''
+                edge = None
+                if index > 0:
+                    edge = Edge(self.getVertex(index-1).getWeight(), self.getVertex(index).getWeight())
+                if not (edge is None):
+                    courseAngleDegrees = edge.getBearingTailHeadDegrees()
+                    
+                flight_id_series.add(flight_id, axis = 1)
+                timestamp_series.add()
+                
+        df = pd.DataFrame()
+        df = pd.concat([df, flight_id_series.to_frame()], ignore_index=True)
+        df = pd.concat([df, timestamp_series.to_frame()], ignore_index=True)
+        print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
+        return df
     
     def createXlsxOutputFile(self, abortedFlight, aircraftICAOcode, AdepICAOcode, AdesICAOcode):
         assert (type(abortedFlight) == bool )

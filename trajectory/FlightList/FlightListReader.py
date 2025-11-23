@@ -277,7 +277,6 @@ class FlightListDatabase(object):
         else:
             logging.error(self.className + " : it is a directory - {0}".format(self.filesFolder))
             logging.error (self.className + " : it is a file - {0}".format(self.filePathFlightListTrain))
-
             return False
         
     def readTrainRankFinalFlightListLite(self , train_rank_final):

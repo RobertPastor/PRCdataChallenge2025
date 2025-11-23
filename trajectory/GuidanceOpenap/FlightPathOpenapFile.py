@@ -59,11 +59,9 @@ from trajectory.Guidance.ConstraintsFile import ArrivalRunWayTouchDownConstraint
 
 from trajectory.Openap.AircraftMainFile import OpenapAircraft
 
-
 from trajectory.Environment.Constants import Meter2Feet , GravityMetersPerSquareSeconds , Meter2NauticalMiles #= 0.000539956803 # One Meter = 0.0005 nautical miles
 from trajectory.Environment.Constants import Kilogram2Pounds # = 2.20462262 # 1 kilogram = 2.204 lbs
 from trajectory.Environment.Constants import DescentGlideSlopeThreeDegrees, DescentGlideSlopeDistanceNauticalMiles
-
 
 class FlightPathOpenap(FlightPlan):
     
@@ -140,7 +138,6 @@ class FlightPathOpenap(FlightPlan):
             raise ValueError(self.className + ' aircraft not found= ' + self.aircraftICAOcode)
 
     def printPassedWayPoint(self, finalWayPoint):
-        
         distanceFlownNautics = self.finalRoute.getLengthMeters() * Meter2NauticalMiles
         strMsg = ' passing way-point: {0} - alt= {1:.2f} meters - alt= {2:.2f} feet - already flown distance= {3:.2f} Nm'.format(
                                                     finalWayPoint.getName(),
@@ -521,7 +518,6 @@ class FlightPathOpenap(FlightPlan):
             #logging.debug ("------------------- end of arrival ground run ----------")
             self.elapsedTimeSeconds = arrivalGroundRun.getElapsedTimeSeconds()
         
-      
     def computeFlight(self, deltaTimeSeconds):
         #logging.info ( self.className + " : compute flight")
         ''' 
@@ -536,17 +532,12 @@ class FlightPathOpenap(FlightPlan):
         #logging.info ( self.className + " : start computing the trajectory ")
         try:
             if self.isDomestic() or self.isOutBound():
-                
                 #logging.info ( self.className + " - build departure phase")
                 self.endOfSimulation, initialHeadingDegrees , initialWayPoint = self.buildDeparturePhase()
-                
                 #logging.info( self.className + " - end of departure phase")
-                
             ''' end of simulation = True means the flight is aborted '''
             if ( self.endOfSimulation == False ) and ( self.isDomestic() or self.isInBound() ):
-                
                 #assert not(self.arrivalAirport is None)
-                
                 #logging.info ( self.className + " : build simulated arrival phase")
                 finalRadiusOfTurnMeters = self.buildSimulatedArrivalPhase()
                 #logging.info ( self.className + " - final radius of turn = {0} meters".format(finalRadiusOfTurnMeters))
@@ -555,7 +546,6 @@ class FlightPathOpenap(FlightPlan):
             #logging.debug ( self.className + "==================== Loop over the fix list ====================")
             if (self.endOfSimulation == False):
                 #logging.info ( self.className + " : loop through fix list")
-                
                 self.endOfSimulation, initialHeadingDegrees = self.loopThroughFixList(initialHeadingDegrees = initialHeadingDegrees,
                                                                                       elapsedTimeSeconds    = initialWayPoint.getElapsedTimeSeconds())
             
@@ -565,7 +555,6 @@ class FlightPathOpenap(FlightPlan):
                 
             if (self.endOfSimulation == False):
                 logging.info ( self.className + ' ========== delta mass status ==============' )
-
                 logging.info ( self.className + ' initial mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getTakeOffMassKilograms(),
                                                                                                    self.aircraft.getTakeOffMassKilograms()*Kilogram2Pounds) )
                 logging.info ( self.className + ' final mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getCurrentMassKilograms(),
@@ -597,6 +586,9 @@ class FlightPathOpenap(FlightPlan):
         #self.aircraft.createStateVectorOutputFile(self.abortedFlight, self.aircraftICAOcode, self.departureAirport.getICAOcode(), self.arrivalAirport.getICAOcode())
         logging.debug (  '{0} - final route length = {1:.2f} Nm'.format(self.className, self.finalRoute.getLengthMeters()*Meter2NauticalMiles) )
         return kmlXmlDocument
+    
+    #def createPRCdataChallengeFlightDataframe(self, abortedFlight):
+    #    return self.aircraft.createPRCdataChallengeFlightDataframe(abortedFlight)
     
     def createStateVectorHistoryFile(self):
         fileName = "{0}-{1}-{2}-Aborted-{3}".format( self.aircraftICAOcode , self.departureAirport.getICAOcode() , self.arrivalAirport.getICAOcode() , self.abortedFlight )

@@ -32,13 +32,12 @@ class WayPointsDatabase(object):
 
         self.WayPointsDict = {}
         self.ColumnNames = {}
-        
         self.sheetName = "WayPoints"
 
     def exists(self):
-        logging.info(self.className + ": path exists = {0}".format(os.path.exists(self.FilesFolder)))
-        logging.info(self.className + ": file exists = {0}".format(os.path.isfile(self.FilePath)))
-        return os.path.exists(self.FilesFolder) and os.path.isfile(self.FilePath)
+        #logging.info(self.className + ": path exists = {0}".format(os.path.exists(self.FilesFolder)))
+        #logging.info(self.className + ": file exists = {0}".format(os.path.isfile(self.FilePath)))
+        return os.path.exists(self.FilesFolder) and os.path.isdir(self.FilesFolder) and os.path.isfile(self.FilePath)
     
     def computeContinent(self , wayPointName ):
         wayPointAsDict = {}

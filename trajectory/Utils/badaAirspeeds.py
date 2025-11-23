@@ -10,7 +10,6 @@ https://github.com/eurocontrol-bada/pybada
 '''
 
 from pyBADA import atmosphere as atm
-from pyBADA import constants as const
 
 from trajectory.Environment.Constants import Knot2MetersPerSecond , Feet2Meter,\
     MeterSecond2Knots

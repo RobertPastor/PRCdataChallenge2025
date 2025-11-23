@@ -21,7 +21,6 @@ class OpenapAircraftMass(OpenapAircraftFuelFlow):
     minimumMassKilograms = 0.0
     maximumMassKilograms = 0.0
     
-    
     def __init__(self , aircraftICAOcode ):
         
         logger.setLevel(logging.INFO)

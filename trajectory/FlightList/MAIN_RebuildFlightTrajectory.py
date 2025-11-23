@@ -22,15 +22,17 @@ from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.Openap.AircraftMainFile import OpenapAircraft
 
 from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
+from trajectory.GuidanceOpenap.FlightPathOpenapFile import FlightPathOpenap
 
 class FlightTrajectoryReBuild(object):
     
     flight_id  = "prc812317830"
     train_rank_final = "rank"
-    columnNameList = ['latitude', 'longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']
+    columnNameList = ['latitude','longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']
 
     def __init__(self , train_rank_final , flight_id ):
-        self.train_rank_final
+        self.train_rank_final = train_rank_final
+        self.flight_id = flight_id
         assert self.train_rank_final == "train" or self.train_rank_final == "rank" or self.train_rank_final == "final"
         
     def readRunways(self):
@@ -63,10 +65,12 @@ class FlightTrajectoryReBuild(object):
         return self.ArrivalAirportICAOCode
     
     def extractTakeOffInstant(self):
-        return self.flightListDatabase.getTakeOffInstant( self.train_rank_final , self.flight_id )
+        self.takeOffInstant = self.flightListDatabase.getTakeOffInstant( self.train_rank_final , self.flight_id )
+        return self.takeOffInstant
     
     def extractLandedInstant(self):
-        return self.flightListDatabase.getLandedInstant( self.train_rank_final , self.flight_id )
+        self.landedInstant = self.flightListDatabase.getLandedInstant( self.train_rank_final , self.flight_id )
+        return self.landedInstant
     
     def readFlightListDatabase(self):
         logging.info("---------Read Flight List <<" + self.train_rank_final +">> ------------")
@@ -120,9 +124,8 @@ class FlightTrajectoryReBuild(object):
         strRoute = str(strRoute).replace("--", "-")
         print(f"direct route = {strRoute}")
         return strRoute
-            
+        
     def computeFlightProfile(self):
-        from trajectory.GuidanceOpenap.FlightPathOpenapFile import FlightPathOpenap
         
         self.aircraft = OpenapAircraft( aircraftICAOcode     = str(self.aircraftICAOcode).lower() , 
                                         earth                = Earth() , 
@@ -142,9 +145,14 @@ class FlightTrajectoryReBuild(object):
                     directRoute            = True)
             try:
                     flightPath.computeFlight(deltaTimeSeconds = 1.0)
-                    csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
-                    flightPath.createStateVectorHistoryFile()
-                    flightPath.createKmlXmlDocument()
+                    abortedFlight = flightPath.abortedFlight
+                    #csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
+                    #flightPath.createStateVectorHistoryFile()
+                    print(f"flight_id = {self.flight_id} - takeoff instant = {self.takeOffInstant}")
+                    pd_df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(abortedFlight , self.aircraftICAOcode ,
+                                                                                   self.flight_id , self.takeOffInstant)
+                    #flightPath.createKmlXmlDocument()
+                    
     
             except Exception as e:
                     logging.error("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )
@@ -177,9 +185,7 @@ if __name__ == '__main__':
     print ( flightTrajectoryReBuild.extractLandedInstant())
     
     flightTrajectoryReBuild.readAirports()
-
     flightTrajectoryReBuild.readRunways()
     flightTrajectoryReBuild.computeBestRunways()
-    
     flightTrajectoryReBuild.computeFlightProfile()
     
