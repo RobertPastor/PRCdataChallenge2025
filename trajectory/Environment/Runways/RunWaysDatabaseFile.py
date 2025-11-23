@@ -36,6 +36,7 @@ from trajectory.Guidance.WayPointFile import Airport
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Constants import NauticalMiles2Meter , ConstantClimbRampLengthNauticalMiles
+from trajectory.Environment.Constants import EarthMeanRadiusMeters
 
 fieldNames = ['id' , 'airport_ref', 'airport_ident' , 'length_ft' , 'width_ft' ,
               'surface' , 'lighted', 'closed', 
@@ -44,7 +45,6 @@ fieldNames = ['id' , 'airport_ref', 'airport_ident' , 'length_ft' , 'width_ft' ,
               'he_ident' , 'he_latitude_deg' , 'he_longitude_deg' , 
               'he_elevation_ft' , 'he_heading_degT', 'he_displaced_threshold_ft' ]
 
-    
 class RunWayDataBase(object):
     
     FilePath = ''
@@ -138,6 +138,7 @@ class RunWayDataBase(object):
             if (rowValues[self.ColumnNames['airport_ident']] == airportICAOcode):
                 return True
         return False
+    
  
     def getRunWaysAsDict(self, airportICAOcode):
         assert not(self.sheet is None)
@@ -227,8 +228,9 @@ class RunWayDataBase(object):
         assert isinstance ( arrivalAirport , Airport )
         minimalDistanceMeters = 0.0
         first = True
-        bestRunWay = None
-        for runWay in self.getRunWays():
+        bestDepartureRunWay = None
+        for runWay in self.getRunWays(departureAirport.getICAOcode()):
+            print(runWay)
             assert isinstance( runWay , RunWay)
             if runWay.getAirportICAOcode() == departureAirport.getName():
                 
@@ -243,25 +245,27 @@ class RunWayDataBase(object):
                 runwayEnd = runWay.getEndOfRunWay()
                 ''' using heritage -> create a point at distance corresponding to the runway lenght and with the runway heading '''
                 latitudeDegrees , longitudeDegrees = runwayEnd.getGeoPointAtDistanceHeading( ConstantClimbRampLengthNauticalMiles * NauticalMiles2Meter, runWay.getTrueHeadingDegrees())
-                pathEnd = GeographicalPoint(latitudeDegrees , longitudeDegrees, Earth().getEarthRadiusMeters())
+                pathEnd = GeographicalPoint(latitudeDegrees , longitudeDegrees, EarthMeanRadiusMeters)
                 distanceMeters = pathEnd.computeDistanceMetersTo( arrivalAirport )
                 if first:
                     first = False
-                    bestRunWay = runWay
+                    bestDepartureRunWay = runWay
                     minimalDistanceMeters = distanceMeters
                 else:
                     if ( distanceMeters < minimalDistanceMeters ):
-                        bestRunWay = runWay
+                        bestDepartureRunWay = runWay
                         minimalDistanceMeters = distanceMeters
-        return bestRunWay
+        print(f"best departure runway for departure {departureAirport.getICAOcode()} and arrival {arrivalAirport.getICAOcode()} -> {bestDepartureRunWay}")
+        return bestDepartureRunWay
         
     def computeBestArrivalRunway(self , departureAirport, arrivalAirport ):
         assert isinstance ( departureAirport , Airport )
         assert isinstance ( arrivalAirport , Airport )
         minimalDistanceMeters = 0.0
         first = True
-        bestRunWay = None
-        for runWay in self.getRunWays():
+        bestArrivalRunWay = None
+        for runWay in self.getRunWays(arrivalAirport.getICAOcode()):
+            print(runWay)
             assert isinstance( runWay , RunWay)
             if runWay.getAirportICAOcode() == arrivalAirport.getName():
                 
@@ -276,15 +280,16 @@ class RunWayDataBase(object):
                 runwayEnd = runWay.getEndOfRunWay()
                 ''' using heritage -> create a point at distance corresponding to the runway lenght and with the runway heading '''
                 latitudeDegrees , longitudeDegrees = runwayEnd.getGeoPointAtDistanceHeading( ConstantClimbRampLengthNauticalMiles * NauticalMiles2Meter, runWay.getTrueHeadingDegrees())
-                pathEnd = GeographicalPoint(latitudeDegrees , longitudeDegrees, Earth().getEarthRadiusMeters())
+                pathEnd = GeographicalPoint(latitudeDegrees , longitudeDegrees, EarthMeanRadiusMeters)
                 distanceMeters = pathEnd.computeDistanceMetersTo( departureAirport )
                 if first:
                     first = False
-                    bestRunWay = runWay
+                    bestArrivalRunWay = runWay
                     minimalDistanceMeters = distanceMeters
                 else:
                     if ( distanceMeters < minimalDistanceMeters ):
-                        bestRunWay = runWay
+                        bestArrivalRunWay = runWay
                         minimalDistanceMeters = distanceMeters
-        return bestRunWay
+        print(f"best arrival runway for departure {departureAirport.getICAOcode()} and arrival {arrivalAirport.getICAOcode()} -> {bestArrivalRunWay}")
+        return bestArrivalRunWay
 

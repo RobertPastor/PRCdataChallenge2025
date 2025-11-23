@@ -32,8 +32,6 @@ from trajectory.Guidance.Haversine import points2distanceMeters, points2bearingD
 from trajectory.Guidance.Haversine import  LatitudeLongitudeAtDistanceBearing
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
 
-from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
-
 def to_positive_angle(angleDegrees):
     angleDegrees = math.fmod(angleDegrees, 360);
     if (angleDegrees < 0): 
@@ -140,14 +138,15 @@ class Airport(WayPoint):
     ICAOcode = ''
     Country = ''
     
-    def __init__(self, Name="Orly-Paris-Sud", 
-                 LatitudeDegrees = 48.726254 , 
+    def __init__(self, 
+                 Name             = "Orly-Paris-Sud", 
+                 LatitudeDegrees  = 48.726254 , 
                  LongitudeDegrees = 2.365247 ,
                  fieldElevationAboveSeaLevelMeters = 300, 
-                 isDeparture = False, 
-                 isArrival = False,
-                 ICAOcode = '',
-                 Country = ''):
+                 isDeparture  = False, 
+                 isArrival    = False,
+                 ICAOcode     = '',
+                 Country      = 'Unknown'):
         
         WayPoint.__init__(self, Name, LatitudeDegrees, LongitudeDegrees, fieldElevationAboveSeaLevelMeters)
         self.fieldElevationAboveSeaLevelMeters = fieldElevationAboveSeaLevelMeters
@@ -168,7 +167,7 @@ class Airport(WayPoint):
     
     def __str__(self):
         strMsg = self.className + ': Airport: ' + self.ICAOcode + ' - ' 
-        strMsg += self.Name + ' - lat= {0:.2f} degrees - long= {1:.2f} degrees'.format(self.LatitudeDegrees, self.LongitudeDegrees) 
+        strMsg += self.Name + ' - latitude= {0:.2f} degrees - longitude= {1:.2f} degrees'.format(self.LatitudeDegrees, self.LongitudeDegrees) 
         strMsg += ' - field elevation= {0:.2f} meters'.format(self.fieldElevationAboveSeaLevelMeters)
         return strMsg
     
@@ -177,11 +176,6 @@ class Airport(WayPoint):
     
     def getFieldElevationAboveSeaLevelMeters(self):
         return self.fieldElevationAboveSeaLevelMeters
-    
-    def hasRunWays(self, runwaysDatabase):
-        ''' return true if this airport has at least one run-way in the database '''
-        assert isinstance(runwaysDatabase, RunWayDataBase) and not(runwaysDatabase is None)
-        return runwaysDatabase.hasRunWays(self.ICAOcode)
     
     def getRunWaysAsDict(self, runwaysDatabase):
         assert isinstance(runwaysDatabase, RunWayDataBase) and not(runwaysDatabase is None)

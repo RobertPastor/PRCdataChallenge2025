@@ -158,29 +158,29 @@ class FlightListDatabase(object):
     def getTakeOffInstant(self , train_rank, flight_id):
         if train_rank == 'train':
             takeoff = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["takeoff"].iloc[0]
-            logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
+            #logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
             return takeoff
         elif train_rank == 'rank':
             takeoff = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["takeoff"].iloc[0]
-            logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
+            #logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
             return takeoff
         else:
             takeoff = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["takeoff"].iloc[0]
-            logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
+            #logging.info (self.className + " - takeoff instant " + str ( takeoff ) )
             return takeoff
         
     def getLandedInstant(self , train_rank, flight_id):
         if train_rank == 'train':
             landed = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["landed"].iloc[0]
-            logging.info (self.className + " - landed instant " + str ( landed ) )
+            #logging.info (self.className + " - landed instant " + str ( landed ) )
             return landed
         elif train_rank == 'rank':
             landed = self.RankFlightListDataframe[self.RankFlightListDataframe['flight_id'] == flight_id]["landed"].iloc[0]
-            logging.info (self.className + " - landed instant " + str ( landed ) )
+            #logging.info (self.className + " - landed instant " + str ( landed ) )
             return landed
         else:
             landed = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["landed"].iloc[0]
-            logging.info (self.className + " - landed instant " + str ( landed ) )
+            #logging.info (self.className + " - landed instant " + str ( landed ) )
             return landed
         
     def getAircraftICAOcode(self , flight_id ):

@@ -131,6 +131,10 @@ class OpenapAircraftConfiguration(OpenapAircraftSpeeds):
     def getCruiseLevelFeet(self):
         return self.cruiseLevelFeet
     
+    def getMaxCruiseFlightLevel(self):
+        self.maxCruiseAltitudeFeet = self.ceilingMeters * Meter2Feet
+        return self.maxCruiseAltitudeFeet / 100.0
+    
     def getMaxCruiseAltitudeFeet(self):
         #self.maxCruiseAltitudeFeet = self.wrap.cruise_max_alt()['default'] * 1000.0 * Meter2Feet
         self.maxCruiseAltitudeFeet = self.ceilingMeters * Meter2Feet

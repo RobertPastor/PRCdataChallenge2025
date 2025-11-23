@@ -84,13 +84,11 @@ class AirportsDatabase(object):
         self.className = self.__class__.__name__
         ''' file name with extension '''
         self.FileName = "Airports.csv"
-        
         self.airportsFilesFolder = os.path.dirname(__file__)
 
         #logging.info ( self.className + ': file folder= {0}'.format(self.airportsFilesFolder) )
         self.FilePath = os.path.join(self.airportsFilesFolder , self.FileName)
         #logging.info ( self.className + ': file path= {0}'.format(self.FilePath) )
-        
         self.airportsDataFrame = None
         
     def readWithPandas(self):
@@ -113,7 +111,6 @@ class AirportsDatabase(object):
     def checkHeaders(self):
         return True
         #return set() == self.airportsDataFrame.
-
     def readAsDict(self):
         stream = open(self.FilePath, encoding='utf-8')
         try:

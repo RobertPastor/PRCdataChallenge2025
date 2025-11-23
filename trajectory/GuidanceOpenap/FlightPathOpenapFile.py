@@ -74,11 +74,12 @@ class FlightPathOpenap(FlightPlan):
     
     def __init__(self, 
                  route, 
-                 aircraftICAOcode = 'A320', 
-                 RequestedFlightLevel  = 330.0, 
-                 cruiseMach            = 0.8, 
-                 takeOffMassKilograms  = 62000.0,
-                 reducedClimbPowerCoeff = 0.0):
+                 aircraftICAOcode       = 'A320', 
+                 RequestedFlightLevel   = 330.0, 
+                 cruiseMach             = 0.8, 
+                 takeOffMassKilograms   = 62000.0,
+                 reducedClimbPowerCoeff = 0.0 ,
+                 directRoute            = False):
         
         ''' The root logger always defaults to WARNING level. '''
         logging.getLogger().setLevel(logging.INFO)
@@ -88,18 +89,17 @@ class FlightPathOpenap(FlightPlan):
         self.abortedFlight = False
         
         ''' initialize mother class '''
-        FlightPlan.__init__(self, route)
+        FlightPlan.__init__(self, route , directRoute )
         
         ''' first bad and incomplete flight length '''
         ''' missing last turn and glide slope '''
         self.flightLengthMeters = self.computeLengthMeters() 
-        
         self.aircraftICAOcode = aircraftICAOcode
         
         ''' aircraft object '''
         self.aircraft = OpenapAircraft( str(aircraftICAOcode).lower() , Earth() , Atmosphere() , initialMassKilograms = None)
         
-        assert isinstance(self.aircraft, OpenapAircraft) and not(self.aircraft is None)
+        assert not(self.aircraft is None) and isinstance(self.aircraft, OpenapAircraft)  
         self.aircraft.setAircraftMassKilograms(takeOffMassKilograms)
         self.aircraft.setInitialMassKilograms(takeOffMassKilograms)
         

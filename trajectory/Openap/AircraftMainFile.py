@@ -63,7 +63,7 @@ class OpenapAircraft(OpenapAircraftConfiguration):
         filePrefix += "-" + aircraftICAOcode + "-" + AdepICAOcode + "-" + AdesICAOcode
         self.createStateVectorHistorySheet(workbook)
 
-    
+
 if __name__ == '__main__':
     
     earth = Earth()
@@ -114,7 +114,6 @@ if __name__ == '__main__':
                                                                       altitudeMSLmeters        = altitudeMSLmeters )
                 
                 elapsedTimeSeconds = elapsedTimeSeconds + deltaTimeSeconds 
-                
                 logger.info( " - distance flown = {0:.2f} meters - distance flown = {1:.2f} Nautical miles ".format( totalDistanceFlownMeters , totalDistanceFlownMeters * Meter2NauticalMiles ))
         except Exception as e:
             print ( "main - exception = {0}".format( e ) )

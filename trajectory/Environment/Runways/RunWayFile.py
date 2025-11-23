@@ -9,6 +9,7 @@ from trajectory.Environment.Constants import Feet2Meter
 from trajectory.Environment.Earth.EarthFile import EarthRadiusMeters
 
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
+from trajectory.Environment.Constants import NauticalMiles2Meter , ConstantClimbRampLengthNauticalMiles
 
 
 class RunWay(GeographicalPoint):    
@@ -69,9 +70,15 @@ class RunWay(GeographicalPoint):
         self.LengthFeet = LengthFeet
         self.TrueHeadingDegrees = TrueHeadingDegrees
         
-                                    
     def getName(self):
         return self.Name
+                    
+    ''' geo point at 10 nautical miles of the end of the runway -> direction runway true heading '''
+    def computeGeoPointBeforeOrAfterEndOfRunway(self):
+        latitudeDegrees , longitudeDegrees = self.getGeoPointAtDistanceHeading( 
+            DistanceMeters = 2.0 * ConstantClimbRampLengthNauticalMiles * NauticalMiles2Meter, 
+            HeadingDegrees = self.getTrueHeadingDegrees())
+        return GeographicalPoint(latitudeDegrees , longitudeDegrees ,self.getAltitudeMeanSeaLevelMeters())
     
     def getAirportICAOcode(self):
         return self.airportICAOcode

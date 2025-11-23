@@ -4,10 +4,9 @@ Created on 11 août 2023
 @author: robert
 '''
 
-
+import os
 import logging
-
-
+import sys
 from trajectory.Guidance.ConstraintsFile import analyseConstraint
 
 '''
@@ -28,8 +27,15 @@ class FixList(object):
     arrivalRunwayName = ""
     
     
-    def __init__(self, strRoute):
-        self.className = self.__class__.__name__
+    def __init__(self, strRoute , directRoute = False):
+        assert isinstance ( strRoute , str)
+        assert isinstance ( directRoute , bool )
+        
+        self.directRoute = directRoute
+        
+        script_name = os.path.basename(__file__)        
+        self.className = script_name.split("\\.")[0]
+        
         self.fixList = []
         
         self.departureAirportIcaoCode = ""
@@ -42,7 +48,12 @@ class FixList(object):
         logging.debug (self.className + ': route= ' + strRoute)
         self.strRoute = strRoute
         
-        
+    def getFixList(self):
+        return self.fixList
+    
+    def getFixListSize(self):
+        return len(self.fixList)
+    
     def __str__(self):
         return self.className + ' fix list= ' + str(self.fixList)
     
@@ -84,7 +95,6 @@ class FixList(object):
                         
                 else:
                     raise ValueError (self.className + ': ADEP must be the first fix in the route!!!')
-
                 
             elif  str(fix).startswith('ADES'):
                 ''' check if Destination Airport is last item of the list '''
@@ -97,7 +107,6 @@ class FixList(object):
                     self.arrivalRunwayName = ''
                     if len(str(fix).split('/')) >= 3:
                         self.arrivalRunwayName = str(fix).split('/')[2]
-                    
                 else:
                     raise ValueError (self.classeName + ': ADES must be the last fix of the route!!!' )
 
@@ -115,7 +124,12 @@ class FixList(object):
                     self.fixList.append(fix)
 
             index += 1             
-
+            
+        print(self.fixList)
+        
+    def insertIntermediateBetweenAirports(self):
+        if ( self.directRoute ):
+            self.i
 
     def deleteFix(self, thisFix):
         if thisFix in self.fixList:

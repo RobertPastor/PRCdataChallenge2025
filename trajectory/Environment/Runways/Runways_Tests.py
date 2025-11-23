@@ -13,7 +13,6 @@ import logging
 from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Guidance.WayPointFile import Airport
-
 from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
 
 #============================================
@@ -22,7 +21,7 @@ class Test_Main(unittest.TestCase):
     def test_main_one(self):
         
         airportsDatabase = AirportsDatabase()
-        ret = airportsDatabase.read()
+        ret = airportsDatabase.readAsDict()
         print ("Airports database read status = " + str(ret) )
         #for country in airportsDatabase.getCountries():
         #    print ( country )
@@ -46,9 +45,7 @@ class Test_Main(unittest.TestCase):
     def test_main_three(self):
         
         airportsDatabase = AirportsDatabase()
-        ret = airportsDatabase.read()
-        if ret:
-            print ("Airports database read status = " + str(ret) )
+        if airportsDatabase.readAsDict():
             #for country in airportsDatabase.getCountries():
             #    print ( country )
                 
@@ -57,7 +54,6 @@ class Test_Main(unittest.TestCase):
             logging.info(airportLFPG)
             
             runwaysDB = RunWayDataBase()
-            
             if (runwaysDB.exists()):
                 print("runwaysDB exists")
                 if runwaysDB.read():

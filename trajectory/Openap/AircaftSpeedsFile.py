@@ -48,16 +48,13 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
         
         self.maximumSpeedMmoMach = self.aircraft['mmo']
         #logger.info( self.className + " - max operational speed = {0} mach".format ( self.maximumSpeedMmoMach ))
-
         self.initialTASknots = 0.0
         self.currentTASknots = self.initialTASknots
-        
         self.takeOffCASspeedsMeterSecondsDict = self.wrap.takeoff_speed() 
         #logger.info( self.className + " - Take Off CAS speeds = (m/s)" + json.dumps ( self.takeOffCASspeedsMeterSecondsDict ) )
         
         self.takeOffAccelerationMetersSecondsSquareDict = self.wrap.takeoff_acceleration()
         #logger.info( self.className + " - Take Off mean acceleration = {0} meters per seconds square".format( json.dumps ( self.takeOffAccelerationMetersSecondsSquareDict ) ) )
-
         self.landingDecelerationMetersSecondsSquareDict = self.wrap.landing_acceleration()
         #logger.info( self.className + " - Landing deceleration = {0} meters per seconds square".format( json.dumps ( self.landingDecelerationMetersSecondsSquareDict ) ) )
 

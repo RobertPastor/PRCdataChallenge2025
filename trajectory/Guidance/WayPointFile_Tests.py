@@ -18,7 +18,6 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         
         
-        
 if __name__ == '__main__':
     logging.basicConfig()
     unittest.main()

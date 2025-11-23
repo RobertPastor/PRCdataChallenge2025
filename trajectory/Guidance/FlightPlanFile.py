@@ -65,24 +65,50 @@ class FlightPlan(FixList):
     arrivalAirportIcaoCode = ''
     arrivalAirport = None
     
-    def __init__(self, strRoute):
+    def __init__(self, strRoute , directRoute):
         logging.info("----- Flight Plan init ------")
         
+        assert isinstance ( strRoute, str )
+        assert isinstance ( directRoute, bool  )
+        
         self.className = self.__class__.__name__
-        FixList.__init__(self, strRoute)
+        FixList.__init__(self, strRoute , directRoute)
         
         self.wayPointsDb = WayPointsDatabase()
         assert self.wayPointsDb.exists() ==  True
         assert self.wayPointsDb.read() ==  True
         
         self.airportsDb = AirportsDatabase()
-        assert self.airportsDb.read() == True
+        assert self.airportsDb.readAsDict() == True
         
         self.runwaysDb = RunWayDataBase()
         assert self.runwaysDb.exists() == True
         assert self.runwaysDb.read() == True
         
         self.buildFixList()
+        
+        ''' if fix list is empty and directRoute = True then add dynamic way points '''
+        if self.directRoute == True and self.getFixListSize() == 0:
+            self.insertIntermediateWaypoinBetweenAirports()
+            
+    def insertIntermediateWaypoinBetweenAirports(self):
+        #EndOfClimbRampWayPoint = 
+        departureRunway = self.getDepartureRunway()
+        ''' geo point at 10 nautical miles of the runway end '''
+        endOfClimbRampGeoPoint = departureRunway.computeGeoPointBeforeOrAfterEndOfRunway()
+        endOfClimbRampWayPoint = WayPoint(Name = "EndOfClimbRamp" ,
+                                          LatitudeDegrees = endOfClimbRampGeoPoint.getLatitudeDegrees() ,
+                                          LongitudeDegrees = endOfClimbRampGeoPoint.getLongitudeDegrees() ,
+                                          AltitudeMeanSeaLevelMeters = endOfClimbRampGeoPoint.getAltitudeMeanSeaLevelMeters())
+        self.insert("begin", endOfClimbRampWayPoint)
+        
+        arrivalRunway = self.getArrivalRunway()
+        startOfDescentRampGeoPoint = arrivalRunway.computeGeoPointBeforeOrAfterEndOfRunway()
+        startOfDescentRampWayPoint = WayPoint(Name = "StartOfDescentRamp" ,
+                                          LatitudeDegrees = startOfDescentRampGeoPoint.getLatitudeDegrees() ,
+                                          LongitudeDegrees = startOfDescentRampGeoPoint.getLongitudeDegrees() ,
+                                          AltitudeMeanSeaLevelMeters = startOfDescentRampGeoPoint.getAltitudeMeanSeaLevelMeters())
+        self.insert("end", startOfDescentRampWayPoint)
          
     def getArrivalAirport(self):
         assert ( not(self.arrivalAirport is None) and isinstance(self.arrivalAirport, Airport))
@@ -91,7 +117,34 @@ class FlightPlan(FixList):
     def getDepartureAirport(self):
         assert ( not(self.departureAirport is None) and isinstance(self.departureAirport, Airport))
         return self.departureAirport
-
+    
+    def getDepartureRunway(self):
+        self.departureRunway = self.runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
+        assert ( not (self.departureRunway is None) and isinstance(self.departureRunway, RunWay ))
+        
+        self.departureRunway = RunWay(Name             = self.departureRunway.Name,
+                                    airportICAOcode    = self.departureAirport.ICAOcode,
+                                    LengthFeet         = self.departureRunway.LengthFeet,
+                                    TrueHeadingDegrees = self.departureRunway.TrueHeadingDegrees,
+                                    LatitudeDegrees    = self.departureRunway.LatitudeDegrees,
+                                    LongitudeDegrees   = self.departureRunway.LongitudeDegrees)
+        logging.info ( self.className + " : departure runway : " + str(self.departureRunway) )
+        return self.departureRunway
+    
+    def getArrivalRunway(self):
+        
+        self.arrivalRunway =  self.runwaysDb.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, 
+                                                                runwayName = self.arrivalRunwayName)
+        assert ( not (self.arrivalRunway is None) and isinstance(self.arrivalRunway, RunWay ))
+        
+        self.arrivalRunway = RunWay(Name               = self.arrivalRunway.Name,
+                                    airportICAOcode    = self.arrivalAirport.ICAOcode,
+                                    LengthFeet         = self.arrivalRunway.LengthFeet,
+                                    TrueHeadingDegrees = self.arrivalRunway.TrueHeadingDegrees,
+                                    LatitudeDegrees    = self.arrivalRunway.LatitudeDegrees,
+                                    LongitudeDegrees   = self.arrivalRunway.LongitudeDegrees)
+        return self.arrivalRunway
+    
     def buildFixList(self):
         #print ( self.className + " : Build the fix list")
         '''
@@ -104,7 +157,6 @@ class FlightPlan(FixList):
         for fix in self.getFix():
             
             logging.info(self.className + ": next fix = " + fix)
-            
             wayPoint = self.wayPointsDb.getWayPoint(fix)
             if (wayPoint):
                 logging.info("waypoint = {0} in wayPoints database".format(wayPoint))
@@ -119,16 +171,7 @@ class FlightPlan(FixList):
         logging.info( self.className + " : arrival airport : " + str(self.arrivalAirport))
         logging.info( self.className + " : arrival runway : " + str(self.arrivalRunwayName))
         
-        self.arrivalRunway =  self.runwaysDb.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, runwayName = self.arrivalRunwayName)
-        assert ( not (self.arrivalRunway is None) and isinstance(self.arrivalRunway, RunWay ))
-        
-        self.arrivalRunway = RunWay(Name               = self.arrivalRunway.Name,
-                                    airportICAOcode    = self.arrivalAirport.ICAOcode,
-                                    LengthFeet         = self.arrivalRunway.LengthFeet,
-                                    TrueHeadingDegrees = self.arrivalRunway.TrueHeadingDegrees,
-                                    LatitudeDegrees    = self.arrivalRunway.LatitudeDegrees,
-                                    LongitudeDegrees   = self.arrivalRunway.LongitudeDegrees)
-        
+        self.arrivalRunway = self.getArrivalRunway()
         logging.info ( self.className + " : arrival runway : " + str(self.arrivalRunway) )
 
         self.departureAirport = self.airportsDb.getAirportFromICAOCode(ICAOcode = self.departureAirportICAOcode)
@@ -136,15 +179,7 @@ class FlightPlan(FixList):
         
         logging.info( self.className + " : departure airport : " + str(self.departureAirport))
         #self.departureRunway = runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
-        self.departureRunway = self.runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
-        assert ( not (self.departureRunway is None) and isinstance(self.departureRunway, RunWay ))
-        
-        self.departureRunway = RunWay(Name             = self.departureRunway.Name,
-                                    airportICAOcode    = self.departureAirport.ICAOcode,
-                                    LengthFeet         = self.departureRunway.LengthFeet,
-                                    TrueHeadingDegrees = self.departureRunway.TrueHeadingDegrees,
-                                    LatitudeDegrees    = self.departureRunway.LatitudeDegrees,
-                                    LongitudeDegrees   = self.departureRunway.LongitudeDegrees)
+        self.departureRunway = self.getDepartureRunway()
         logging.info ( self.className + " : departure runway : " + str(self.departureRunway) )
 
         #logging.debug self.className + ': fix list= ' + str(self.fixList)
@@ -155,6 +190,7 @@ class FlightPlan(FixList):
         insert a waypoint in the list and add the waypoint to the flight plan dictionary 
         '''
         assert (isinstance(wayPoint, WayPoint))
+        assert ( isinstance ( position, str ))
 
         if position == 'begin':
             self.fixList.insert(0, wayPoint.getName())
@@ -363,10 +399,16 @@ class FlightPlan(FixList):
                 lengthMeters += self.wayPointsDict[self.fixList[-1]].getDistanceMetersTo(self.arrivalAirport)
             else:
                 raise self.className + " - wayPoints Dictionary is empty !!!"
+            
                 if (not(self.departureAirport is None) and isinstance( self.departureAirport, Airport )):
                     lengthMeters += self.departureAirport.getDistanceMetersTo(self.arrivalAirport)
             
         return lengthMeters 
+    
+    def insertDynamicWaypoint(self):
+        ''' in cas of a direct route from departure airport to arrival airport '''
+        ''' need to insert some dynamic waypoints '''
+        
 
     def computeDistanceToLastFixMeters(self, currentPosition, fixListIndex):
         '''
