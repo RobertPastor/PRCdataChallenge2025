@@ -63,8 +63,9 @@ class OpenapAircraft(OpenapAircraftConfiguration):
         filePrefix += "-" + aircraftICAOcode + "-" + AdepICAOcode + "-" + AdesICAOcode
         self.createStateVectorHistorySheet(workbook)
         
-    def createPRCdataChallengeFlightDataframe(self , abortedFlight , aircraftICAOcode , flight_id , takeOffInstant):
-        return self.createAircraftPRCdataChallengeFlightDataframe(abortedFlight , aircraftICAOcode , flight_id , takeOffInstant)
+    def createPRCdataChallengeFlightDataframe(self , finalRoute , abortedFlight , aircraftICAOcode , 
+                                              flight_id , takeOffInstant):
+        return self.createAircraftPRCdataChallengeFlightDataframe(finalRoute , abortedFlight , aircraftICAOcode , flight_id , takeOffInstant)
 
 if __name__ == '__main__':
     

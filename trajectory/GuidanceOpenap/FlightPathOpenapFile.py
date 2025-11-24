@@ -230,7 +230,6 @@ class FlightPathOpenap(FlightPlan):
             self.finalRoute.addGraph(greatCircle)
                     
             #logging.debug ( ' ================== end of great circle ================== ' )
-            
             finalWayPoint = self.finalRoute.getLastVertex().getWeight()
             
             lastLeg = self.finalRoute.getLastEdge()

@@ -97,6 +97,7 @@ class Graph(object):
         
     def addVertex(self, *args):
         if len(args) == 1:
+            ''' position in the oriented graph '''
             weight = args[0]
             self._vertex.append(Vertex(weight))
             ''' add edge here '''
@@ -132,6 +133,7 @@ class Graph(object):
         """
         (Graph, int) -> Vertex
         Returns the specified vertex of this graph.
+        v is an ordered key related to the position in the ordered graph '''
         """
         assert isinstance(v, int)
         if v < 0 or v >= len(self._vertex):
@@ -172,14 +174,14 @@ class Graph(object):
             return self._edge[numberOfEdges-1]
         return None
 
-    def getEdge(self, w):
+    def getEdge(self, position):
         '''
         (Graph, int) -> Edge
         '''
-        assert isinstance(w, int)
-        if w < 0 or w > len(self._edge):
+        assert isinstance(position, int)
+        if position < 0 or position > len(self._edge):
             raise ValueError('Graph: getEdge: edge index out of bounds !!!')
-        return self._edge[w]
+        return self._edge[position]
     
     def getNumberOfVertices(self):
         """

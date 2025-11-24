@@ -151,7 +151,8 @@ class FlightTrajectoryReBuild(object):
                     #csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
                     #flightPath.createStateVectorHistoryFile()
                     print(f"flight_id = {self.flight_id} - takeoff instant = {self.takeOffInstant}")
-                    df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(abortedFlight , self.aircraftICAOcode ,
+                    finalRoute = flightPath.finalRoute
+                    df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(finalRoute, abortedFlight , self.aircraftICAOcode ,
                                                                                    self.flight_id , self.takeOffInstant)
                     #flightPath.createKmlXmlDocument()
                     folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
