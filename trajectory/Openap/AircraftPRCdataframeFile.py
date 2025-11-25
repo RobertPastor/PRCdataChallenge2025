@@ -14,27 +14,43 @@ from tabulate import tabulate
 from trajectory.Guidance.GraphFile import Graph
 
 class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
+    
+    lastValidLatitudeDegrees = 0.0
+    lastValidLongitudeDegrees = 0.0
+    lastValidAltitudeMSLmeters = 0.0
 
     def __init__(self , aircraftICAOcode):
         super().__init__(aircraftICAOcode)
         
     def extractLatitudeDegrees(self , finalRoute , index ):
         assert type(index) == int
-        vertex = finalRoute.getVertex(index)
-        wayPoint = vertex.getWeight()
-        return wayPoint.getLatitudeDegrees()
+        try:
+            vertex = finalRoute.getVertex(index)
+            wayPoint = vertex.getWeight()
+            self.lastValidLatitudeDegrees = wayPoint.getLatitudeDegrees()
+            return self.lastValidLatitudeDegrees 
+        except:
+            return self.lastValidLatitudeDegrees 
     
     def extractLongitudeDegrees(self , finalRoute , index ):
         assert type(index) == int
-        vertex = finalRoute.getVertex(index)
-        wayPoint = vertex.getWeight()
-        return wayPoint.getLongitudeDegrees()
+        try:
+            vertex = finalRoute.getVertex(index)
+            wayPoint = vertex.getWeight()
+            self.lastValidLongitudeDegrees = wayPoint.getLongitudeDegrees()
+            return self.lastValidLongitudeDegrees
+        except:
+            return self.lastValidLongitudeDegrees
     
     def extractAltitudeMSLmeters(self , finalRoute, index ):
         assert type(index) == int
-        vertex = finalRoute.getVertex(index)
-        wayPoint = vertex.getWeight()
-        return wayPoint.getAltitudeMeanSeaLevelMeters()
+        try:
+            vertex = finalRoute.getVertex(index)
+            wayPoint = vertex.getWeight()
+            self.lastValidAltitudeMSLmeters = wayPoint.getAltitudeMeanSeaLevelMeters()
+            return self.lastValidAltitudeMSLmeters
+        except:
+            return self.lastValidAltitudeMSLmeters
     
     def extractTrackCourseAngleDegrees(self , finalRoute, index):
         assert type(index) == int
@@ -172,5 +188,7 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
         for columnName in ["altitude","TAS","CAS","mach"]:
             df[columnName] = df[columnName].astype(float)
 
+        ''' suppress index '''
+        #df = df.
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         return df

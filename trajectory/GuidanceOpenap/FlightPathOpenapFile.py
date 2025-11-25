@@ -318,9 +318,9 @@ class FlightPathOpenap(FlightPlan):
         if ( self.finalRoute.getTotalLegDistanceMeters() > self.departureRunway.getLengthMeters()):
             #print ("ground run length = {0:.2f} meters - runway length = {1:.2f} meters".format( self.finalRoute.getTotalLegDistanceMeters() , self.departureRunway.getLengthMeters()))
             logging.info ( self.className + " -----> runway overshoot---------")
-            self.endOfSimulation = True
+            #self.endOfSimulation = True
             
-        else:
+        if True:
                         
             distanceToFirstFixNautics = initialWayPoint.getDistanceMetersTo(self.getFirstWayPoint()) * Meter2NauticalMiles
             ''' next lateral phase is a climb ramp '''
@@ -519,9 +519,7 @@ class FlightPathOpenap(FlightPlan):
         
     def computeFlight(self, deltaTimeSeconds):
         #logging.info ( self.className + " : compute flight")
-        ''' 
-        main entry to compute a whole flight 
-        '''
+        '''         main entry to compute a whole flight         '''
         self.deltaTimeSeconds = deltaTimeSeconds
         
         #assert not( self.aircraft is None)

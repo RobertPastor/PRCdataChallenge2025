@@ -414,8 +414,6 @@ class FlightListDatabase(object):
         else:
             return False
     
-    
-    
     def collectUniqueAirports(self):
         
         logging.info(self.className + ": ------- collect Unique Airports -------- ")
@@ -503,7 +501,6 @@ class FlightListDatabase(object):
         
         self.extendedRankFlightListDataframe = merged_df
         self.RankFlightListDataframe = merged_df
-        
         return True
         
     def extendTrainFlightListWithAirportData(self):
@@ -550,7 +547,6 @@ class FlightListDatabase(object):
         
         self.extendedTrainFlightListDataframe = df_merged
         self.TrainFlightListDataframe = df_merged
-
         return True
         #logging.info ( df_flightListExtendedWithAirportData.head(10) )
         
@@ -603,9 +599,7 @@ class FlightListDatabase(object):
         self.flightListExtendedWithAircraftData = False
         self.faaAircraftDatabase = FaaAircraftDatabase()
         assert self.faaAircraftDatabase.exists()
-        
         if ( self.faaAircraftDatabase.read()):
-            
             for extendedCharacteristic in self.faaAircraftDatabase.getListOfExtendedCharacteristics():
                 self.TrainFlightListDataframe[extendedCharacteristic] = self.TrainFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , self.faaAircraftDatabase ))
         
@@ -617,9 +611,7 @@ class FlightListDatabase(object):
         self.flightListExtendedWithAircraftData = False
         self.faaAircraftDatabase = FaaAircraftDatabase()
         assert self.faaAircraftDatabase.exists()
-        
         if ( self.faaAircraftDatabase.read()):
-            
             for extendedCharacteristic in self.faaAircraftDatabase.getListOfExtendedCharacteristics():
                 self.RankFlightListDataframe[extendedCharacteristic] = self.RankFlightListDataframe.apply ( extendAircraftCharacteristics , axis = 1 , args = ( extendedCharacteristic , self.faaAircraftDatabase ))
             

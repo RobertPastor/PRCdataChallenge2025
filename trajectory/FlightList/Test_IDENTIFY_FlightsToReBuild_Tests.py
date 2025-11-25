@@ -67,7 +67,8 @@ class FlightsToReBuild(object):
         if ( df_flightsDataframe.empty == False ):
             
             rowCount = df_flightsDataframe.shape[0]
-            threshold = int ( rowCount / 3.0 ) 
+            ''' threshold to zero it is looking after any flight not usable for interpolation '''
+            threshold = int ( 0 ) 
             #columnNameList = ['latitude', 'longitude','altitude','groundspeed','track','vertical_rate', 'mach', 'TAS', 'CAS']
             print(''' ============ count nan =================''')
             for column in self.columnNameList:
@@ -76,7 +77,8 @@ class FlightsToReBuild(object):
                 
             if ( df_flightsDataframe["latitude"].isna().sum() > threshold ) or \
                 ( df_flightsDataframe["longitude"].isna().sum() > threshold ) or \
-                ( df_flightsDataframe["altitude"].isna().sum() > threshold ): 
+                ( df_flightsDataframe["altitude"].isna().sum() > threshold ) or \
+                ( df_flightsDataframe["mach"].isna().sum() > threshold ): 
                 self.flightIdsWithNaNList.append(flight_id)
                 print("-"*90)
                 return flight_id
@@ -151,14 +153,14 @@ if __name__ == '__main__':
 
     print("-"*90)
     for flight_id in flightIdsWithNan:
-        logging.info(flight_id)
+        print(flight_id)
         
-        df = flightsToReBuild.getFlightDataframe(flight_id)
-        for feature in flightsToReBuild.columnNameList:
-            print ( train_rank_final + "_" + flight_id + " _ " + feature )
-            x = df['timestamp']
-            y = df[feature]
-            y_limit = df[feature].max()
+        #df = flightsToReBuild.getFlightDataframe(flight_id)
+        #for feature in flightsToReBuild.columnNameList:
+        #    print ( train_rank_final + " ; " + flight_id + "  ; " + feature )
+        #    x = df['timestamp']
+        #    y = df[feature]
+        #    y_limit = df[feature].max()
             #flightsToReBuild.plotFlightFeatureVersusTime(x, y , feature, flight_id)
         
     print("-"*90)

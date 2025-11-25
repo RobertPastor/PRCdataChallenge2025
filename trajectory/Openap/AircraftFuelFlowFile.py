@@ -33,7 +33,7 @@ class OpenapAircraftFuelFlow(OpenapAircraftVerticalRate):
     def getFuelFlowClimbKgSeconds(self , aircraftMassKilograms , TASknots , aircraftAltitudeMSLfeet , verticalRateFeetMinutes , accelerationMetersSecondsSquare ):
         fuelFlowKgSeconds = self.fuelFlow.enroute(mass=aircraftMassKilograms, tas=TASknots, alt=aircraftAltitudeMSLfeet, vs=verticalRateFeetMinutes, acc=accelerationMetersSecondsSquare, limit=True)
         #logger.info(self.className + " - fuel flow climb {0:.2f} kilograms per second".format( fuelFlowKgSeconds ))
-        return fuelFlowKgSeconds
+        return fuelFlowKgSeconds * 0.5
     
     def getFuelFlowCruiseKgSeconds(self , aircraftMassKilograms , TASknots , aircraftAltitudeMSLfeet , verticalRateFeetMinutes , accelerationMetersSecondsSquare ):
         fuelFlowKgSeconds = self.fuelFlow.enroute(mass=aircraftMassKilograms, 
@@ -43,7 +43,7 @@ class OpenapAircraftFuelFlow(OpenapAircraftVerticalRate):
                                                   acc=accelerationMetersSecondsSquare, 
                                                   limit=True)
         #logger.info(self.className + " - fuel flow cruise {0:.2f} kilograms per second".format( fuelFlowKgSeconds ))
-        return fuelFlowKgSeconds
+        return fuelFlowKgSeconds * 0.5
     
     def getFuelFlowDescentKgSeconds(self , aircraftMassKilograms , TASknots, aircraftAltitudeMSLfeet , verticalRateFeetMinutes , accelerationMetersSecondsSquare):
         #fuelFlowKgSeconds = self.fuelFlow.at_thrust( acthr = thrustNewtons , alt=aircraftAltitudeMSLfeet, limit=True)

@@ -30,13 +30,9 @@ class OpenapAircraftMass(OpenapAircraftFuelFlow):
         
         self.maximumTakeOffMassKilograms   = self.aircraft['mtow']
         self.maxLandingMassKilograms       = self.aircraft['mlw']
-        self.operatingEmptyWeightKilograms = self.aircraft['oew']
-        self.referenceMassKilograms        = self.maximumTakeOffMassKilograms * 0.85
-        
-        self.minimumMassKilograms          = self.aircraft['oew']
-        
-        #logger.info ( self.className + " max TakeOff mass = {0} kilograms ".format(self.maximumTakeOffMassKilograms))
-        #logger.info ( self.className + " max Landing mass = {0} kilograms".format(self.maxLandingMassKilograms))
+        self.operatingEmptyWeightKilograms = self.aircraft['oew']* 0.75
+        self.referenceMassKilograms        = self.maximumTakeOffMassKilograms 
+        self.minimumMassKilograms          = self.aircraft['oew'] 
         
     def getReferenceMassKilograms (self):
         return self.referenceMassKilograms
@@ -54,7 +50,7 @@ class OpenapAircraftMass(OpenapAircraftFuelFlow):
     def setAircraftMassKilograms(self, aircraftMassKilograms ):
         ''' @TODO add check that current mass not lower to minimum mass '''
         if ( aircraftMassKilograms < self.operatingEmptyWeightKilograms ):
-            raise ValueError("Error - aircraft mass lower than Operating Empty weight = {0} kilograms".format( self.operatingEmptyWeightKilograms ))
+            raise ValueError("Error - aircraft mass {0} -> lower than Operating Empty weight = {1} kilograms".format( aircraftMassKilograms , self.operatingEmptyWeightKilograms ))
         self.currentMassKilograms = aircraftMassKilograms
     
     def getTakeOffMassKilograms(self):

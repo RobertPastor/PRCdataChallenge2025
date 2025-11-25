@@ -223,7 +223,7 @@ class RunWayDataBase(object):
         else:
             return None
     
-    def computeBestDepartureRunway(self , departureAirport, arrivalAirport ):
+    def computeBestDepartureRunway(self  , departureAirport , arrivalAirport):
         assert isinstance ( departureAirport , Airport )
         assert isinstance ( arrivalAirport , Airport )
         minimalDistanceMeters = 0.0

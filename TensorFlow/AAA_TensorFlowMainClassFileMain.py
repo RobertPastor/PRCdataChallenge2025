@@ -6,26 +6,13 @@ Created on 8 nov. 2025
 '''
 import platform
 
-from minio import Minio
-from minio.datatypes import Object
-import re
-import math
 import numpy as np
 eps_single = np.finfo(np.float32).eps
 
-from pathlib import Path
-from tabulate import tabulate
-
-import matplotlib.pyplot as plt
-
 import pandas as pd
-import time
 import os
-from sklearn.preprocessing import OneHotEncoder
 # Set the option to display all columns
 pd.options.display.max_columns = None
-
-import numpy as np 
 # Make NumPy printouts easier to read.
 np.set_printoptions(precision=3, suppress=True)
 
@@ -33,22 +20,12 @@ from tabulate import tabulate
 
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras import backend
 
-from sklearn.compose import make_column_transformer
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-
-from tensorflow.keras.models import load_model
-from tensorflow.keras.utils import CustomObjectScope
 
 from trajectory.Utils.utils import dropUnusedColumns
 import logging
 
 from pathlib import Path
-from tabulate import tabulate
 
 from TensorFlow.BBB_TensorFlowBaseClassFile import TensorFlowBaseClass
 
@@ -245,6 +222,8 @@ if __name__ == '__main__':
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-15-23-20-10.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-19-21-58-34.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-20-09-16-03.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-24-19-32-56.parquet"
+    extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-25-22-18-57.parquet"
     
     extendedFinalFuelDataFileName = "ExtendedFuel_rank_2025-11-DD-HH-MM-SS.parquet"
 
@@ -280,7 +259,7 @@ if __name__ == '__main__':
     CsvPredictionsFilePath = prcDataChallenge2025Submissions.predictFromRankAndModel(generatedModelFileName , rankingDataset)
     #CsvPredictionsFilePath = "fuel_rank_submission_2025-11-15-23-53-28.csv"
     print ("generated CSV predictions file = " + CsvPredictionsFilePath )
-
+    
     generatedTeamSubmissionParquetFileName =  prcDataChallenge2025Submissions.generateTeamSubmissionParquetFile(CsvPredictionsFilePath , extendedRankFuelDataFileName)
     print ( generatedTeamSubmissionParquetFileName )
     

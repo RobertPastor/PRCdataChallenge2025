@@ -87,6 +87,7 @@ class FlightPlan(FixList):
         
         ''' if fix list is empty and directRoute = True then add dynamic way points '''
         if self.directRoute == True and self.getFixListSize() == 0:
+            ''' route cannot be empty '''
             self.insertIntermediateWaypoinBetweenAirports()
             
     def insertIntermediateWaypoinBetweenAirports(self):
@@ -144,15 +145,12 @@ class FlightPlan(FixList):
     
     def buildFixList(self):
         #print ( self.className + " : Build the fix list")
-        '''
-        from the route build a fix list and from the fix list build a way point list
-        '''
+        '''   from the route build a fix list and from the fix list build a way point list      '''
         self.wayPointsDict = {}
         
         ''' fill self departure airport and self.arrivalAirport '''
         self.createFixList()
         for fix in self.getFix():
-            
             logging.info(self.className + ": next fix = " + fix)
             wayPoint = self.wayPointsDb.getWayPoint(fix)
             if (wayPoint):
@@ -196,14 +194,11 @@ class FlightPlan(FixList):
         else:
             if isinstance(position, int):
                 self.fixList.insert(position, wayPoint.getName())
-
         # need to ensure that the same name does not appear twice in the list
         self.wayPointsDict[wayPoint.getName()] = wayPoint
 
     def getFirstWayPoint(self):
-        ''' 
-        if fix list is empty , need at least an arrival airport 
-        '''
+        '''         if fix list is empty , need at least an arrival airport         '''
         if len(self.fixList) > 0:
             firstFix = self.fixList[0]
             return self.wayPointsDict[firstFix]
@@ -374,11 +369,9 @@ class FlightPlan(FixList):
                 if index == 0:
                     lengthMeters += self.departureAirport.getDistanceMetersTo(self.wayPointsDict[fix])
                     previousWayPoint = self.wayPointsDict[fix]
-
                 else:
                     lengthMeters += previousWayPoint.getDistanceMetersTo(self.wayPointsDict[fix])
                     previousWayPoint = self.wayPointsDict[fix]
-
             else:
                 ''' no departure airport '''
                 if index == 0:
@@ -386,7 +379,6 @@ class FlightPlan(FixList):
                 else:
                     lengthMeters += previousWayPoint.getDistanceMetersTo(self.wayPointsDict[fix]) 
                     previousWayPoint = self.wayPointsDict[fix]
-
             index += 1
             
         ''' add distance from last fix to arrival airport if applicable '''
