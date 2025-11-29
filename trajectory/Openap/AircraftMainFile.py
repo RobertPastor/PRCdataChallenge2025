@@ -11,7 +11,6 @@ from openap import prop
 import json
 
 from trajectory.Openap.AircraftConfigurationFile import OpenapAircraftConfiguration
-import time
 
 from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere

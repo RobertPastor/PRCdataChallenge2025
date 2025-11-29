@@ -16,10 +16,10 @@ class Test_Main(unittest.TestCase):
 
     def test_main_one(self):
         
-        print("------------ Waypoint test one----------------")
 
         logging.basicConfig(level=logging.INFO)
-        
+        logging.info("------------ Waypoint test one----------------")
+
         
         
 if __name__ == '__main__':

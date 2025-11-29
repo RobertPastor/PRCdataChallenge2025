@@ -24,9 +24,7 @@ def interpolate(x , xArray, yArray):
     #x1 must be greater to x0
     x0 , x1 = xArray
     y0 , y1 = yArray
-    
     y = ( ( (y1 - y0) / (x1 - x0) ) * ( x - x0 ) ) + y0
-    
     return y
 
 class OpenapAircraftSpeeds(OpenapAircraftEngine):
@@ -40,7 +38,7 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
     def __init__(self , aircraftICAOcode):
         
         logger.setLevel(logging.INFO)
-        self.className = self.__class__.__name__
+        self.className = "OpenapAircraftSpeeds"
         super().__init__(aircraftICAOcode)
         
         self.maximumSpeedVmoKnots = self.aircraft['vmo']
@@ -108,6 +106,7 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
     def getCurrentTASmetersSeconds(self):
         return self.currentTASknots * Knots2MetersSeconds
     
+    ''' purpose is to clip the speed to the target Cruise Mach if overshoot the  cruise mach speed '''
     def setCurrentTASmetersSeconds(self, TASmetersSeconds , aircraftAltitudeMSLfeet ):
         if TASmetersSeconds < 0.0:
             #logger.info ( self.className + " - Error - TAS is negative " )
@@ -118,6 +117,7 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
                     temp_units = default_temp_units,
                     alt_units  = 'ft',
                     speed_units= 'm/s' ) > self.targetCruiseMach:
+            ''' cap size the speed to cruise mach '''
             self.currentTASknots = mach2tas ( mach     = self.targetCruiseMach,
                                               temp     = 'std',
                                               altitude = aircraftAltitudeMSLfeet,
@@ -126,7 +126,6 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
                                               speed_units = 'kt')
         else:
             self.currentTASknots = TASmetersSeconds * MeterSecond2Knots
-        
         
     def getFinalApproachCASknots( self ):
         return self.wrap.finalapp_vcas()['default'] 
@@ -137,32 +136,44 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
     def computeClimbCASknots(self , altitudeMSLfeet , CASknots ):
         
         if self.initialClimbCASset == False:
+            ''' first time we enter this function '''
             self.initialClimbCASset = True
             self.initialClimbCASknots = CASknots
             self.initialClimbAltitudeFeet = altitudeMSLfeet
         
         self.climbCASknots = CASknots
+        logging.info( self.className + " - aircraft CAS {0:.2f} knots".format ( CASknots ))
+
         ''' cross over altitude when constant CAS climb starts '''
-        if ( altitudeMSLfeet < self.wrap.climb_cross_alt_concas() ['default'] * 1000.0 * Meter2Feet ):
+        crossOverAltitudeContantCASfeet = self.wrap.climb_cross_alt_concas() ['default'] * 1000.0 * Meter2Feet
+        crossOverAltitudeConstantMachFeet = self.wrap.climb_cross_alt_conmach() ['default'] * 1000.0 * Meter2Feet
+        logging.info( self.className + " - cross over altitude MSL {0:.2f} feet".format ( crossOverAltitudeContantCASfeet ))
+
+        if ( altitudeMSLfeet <  crossOverAltitudeContantCASfeet):
             ''' below cross over altitude when constant CAS climb starts '''
-            #logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
+            logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
             
             self.constantClimbCASknots = self.wrap.climb_const_vcas()['default']
             ''' xp must be in increasing order '''
-            if ( self.initialClimbCASknots < self.constantClimbCASknots):
+            if ( self.climbCASknots < self.constantClimbCASknots):
+                ''' condition to interpolate are met '''
+                assert altitudeMSLfeet >= self.initialClimbAltitudeFeet
+                assert altitudeMSLfeet <= crossOverAltitudeContantCASfeet
+                assert self.initialClimbCASknots  <= self.constantClimbCASknots
                 self.climbCASknots = interpolate ( x = altitudeMSLfeet , 
-                                            xArray = [ self.initialClimbAltitudeFeet , self.wrap.climb_cross_alt_concas() ['default'] * 1000.0 * Meter2Feet ],
+                                            xArray = [ self.initialClimbAltitudeFeet , crossOverAltitudeContantCASfeet ],
                                             yArray = [ self.initialClimbCASknots , self.constantClimbCASknots ] )
             else:
-                self.climbCASknots = self.initialClimbCASknots
-                self.initialClimbCASknots = self.climbCASknots
+                ''' constant climb CAS reached - wait until altitude increases '''
+                ''' do not change the speed until we reach cross over altitude '''
+                pass
                 
-        elif ( altitudeMSLfeet < self.wrap.climb_cross_alt_conmach() ['default'] * 1000.0 * Meter2Feet ):
+        elif ( altitudeMSLfeet >= crossOverAltitudeContantCASfeet ) \
+            and ( altitudeMSLfeet <  crossOverAltitudeConstantMachFeet ):
             ''' cross over altitude from constant CAS to use constant climb mach '''
-            #logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
+            logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
 
             self.constantClimbMach = self.wrap.climb_const_mach()['default']
-            
             self.constantClimbCASknots = mach_alt2cas( mach = self.constantClimbMach , 
                                                          altitude = altitudeMSLfeet , 
                                                          alt_units = 'ft',
@@ -175,7 +186,6 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
         else:
             #logging.info( self.className + " - aircraft altitude = {0:.2f} feet".format( altitudeMSLfeet ))
             self.constantClimbMach = self.wrap.climb_const_mach()['default']
-            
             self.targetCruiseCASknots = mach_alt2cas( mach        = self.getTargetCruiseMach() , 
                                                       altitude    = self.getCruiseLevelFeet()  , 
                                                       alt_units   = 'ft',

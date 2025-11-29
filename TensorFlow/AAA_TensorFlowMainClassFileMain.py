@@ -213,6 +213,7 @@ if __name__ == '__main__':
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-15-22-22-08.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-19-12-46-33.parquet"
     extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-20-13-26-25.parquet"
+    extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-11-26-01-21-54.parquet"
     
     #extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-26-12-04-34.parquet"
     #extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-10-27-19-52-33.parquet"
@@ -224,6 +225,7 @@ if __name__ == '__main__':
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-20-09-16-03.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-24-19-32-56.parquet"
     extendedRankFuelDataFileName = "ExtendedFuel_rank_2025-11-25-22-18-57.parquet"
+    #ExtendedFuel_rank_2025-11-25-22-18-57.parquet
     
     extendedFinalFuelDataFileName = "ExtendedFuel_rank_2025-11-DD-HH-MM-SS.parquet"
 

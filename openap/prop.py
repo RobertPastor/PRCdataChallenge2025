@@ -2,7 +2,6 @@
 
 import glob
 import os
-from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ print(" openap/prop : ==================== read data/aircraft/_synonym.csv =====
 aircraft_synonym = pd.read_csv(file_synonym)
 
 
-@lru_cache()
 def available_aircraft(use_synonym=False):
     """Get available aircraft types in OpenAP model.
 
@@ -25,7 +23,7 @@ def available_aircraft(use_synonym=False):
         list of string: aircraft types.
 
     """
-    print(" openap/prop : ================== read available aircrafts ==================")
+    print("openap/prop : ================== read available aircrafts ==================")
     files = sorted(glob.glob(dir_aircraft + "*.yml"))
     acs = [f[-8:-4] for f in files]
 
@@ -34,7 +32,6 @@ def available_aircraft(use_synonym=False):
         acs = acs + syno
 
     return acs
-
 
 def aircraft(ac, use_synonym=False, **kwargs):
     """Get details of an aircraft type.
@@ -75,8 +72,6 @@ def aircraft(ac, use_synonym=False, **kwargs):
 
     return acdict
 
-
-@lru_cache()
 def aircraft_engine_options(ac):
     """Get engine options of an aircraft type.
 
@@ -96,8 +91,6 @@ def aircraft_engine_options(ac):
 
     return eng_options
 
-
-@lru_cache()
 def search_engine(eng):
     """Search engine by the starting characters.
 
@@ -123,8 +116,6 @@ def search_engine(eng):
 
     return result
 
-
-@lru_cache()
 def engine(eng):
     """Get engine parameters.
 

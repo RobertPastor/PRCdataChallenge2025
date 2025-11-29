@@ -17,7 +17,7 @@ from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Guidance.WayPointFile import Airport
 
-from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWaysDataBase
 from openap import prop
 
 from trajectory.Openap.AircraftMainFile import OpenapAircraft

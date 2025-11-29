@@ -42,7 +42,6 @@ class WayPointsDatabase(object):
     def computeContinent(self , wayPointName ):
         wayPointAsDict = {}
         if wayPointName in self.WayPointsDict:
-            
             wayPointAsDict = self.WayPointsDict[wayPointName]
             
             Continent = 'Unknown-continent'
@@ -72,6 +71,12 @@ class WayPointsDatabase(object):
         else:
             logging.info( "WayPoint = {0} not available in the WayPoints database ".format(wayPointName) )
             return None
+        
+    def getNumberOfWaypoints(self): 
+        assert self.exists()
+        assert len(self.WayPointsDict)>0
+        assert len(self.WayPointsDict.keys()) > 0
+        return len(self.WayPointsDict.keys())
     
     def read(self):
         assert len(self.FilePath)>0

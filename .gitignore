@@ -101,6 +101,8 @@ Data-Download-OpenSkyNetwork/
 *.csv
 *.xlsx
 
+#do not push kml files
+*.kml
 
 trajectory/Environment/Airports/Airports.csv
 !requirements.txt

@@ -3,6 +3,8 @@ Created on 27 avr. 2025
 
 @author: robert
 '''
+from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
+from trajectory.Environment.Runways import RunWaysDatabaseFile
 
 '''
 Created on 3 february 2015
@@ -45,7 +47,11 @@ import logging
 
 from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.Environment.Earth.EarthFile import Earth
+
 from trajectory.Environment.Utils import logElapsedRealTime
+from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWaysDataBase
+from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
 
 from trajectory.Guidance.FlightPlanFile import FlightPlan
 from trajectory.GuidanceOpenap.GroundRunLegOpenapFile import GroundRunLeg
@@ -71,12 +77,17 @@ class FlightPathOpenap(FlightPlan):
     reducedClimbPowerCoeff = 0.0
     
     def __init__(self, 
-                 route, 
+                 strRoute, 
                  aircraftICAOcode       = 'A320', 
                  RequestedFlightLevel   = 330.0, 
                  cruiseMach             = 0.8, 
                  takeOffMassKilograms   = 62000.0,
                  reducedClimbPowerCoeff = 0.0 ,
+                 earth                  = None,
+                 atmosphere             = None,  
+                 airportsDatabase       = None,
+                 runwaysDataBase        = None,
+                 waypointsDatabase      = None,
                  directRoute            = False):
         
         ''' The root logger always defaults to WARNING level. '''
@@ -86,8 +97,27 @@ class FlightPathOpenap(FlightPlan):
         self.className = self.__class__.__name__
         self.abortedFlight = False
         
+        assert isinstance( strRoute , str)
+        
+        assert ( isinstance ( earth , Earth ))
+        self.earth = earth
+        
+        assert ( isinstance ( atmosphere, Atmosphere))
+        self.atmosphere = atmosphere
+
+        assert ( isinstance ( airportsDatabase , AirportsDatabase))
+        self.airportsDatabase = airportsDatabase
+        
+        assert ( isinstance (runwaysDataBase , RunWaysDataBase))
+        self.runwaysDataBase = runwaysDataBase
+        
+        assert isinstance ( waypointsDatabase , WayPointsDatabase)
+        self.waypointsDatabase = waypointsDatabase
+        logging.info( self.className + " - size of waypoints database = {0}".format( self.waypointsDatabase.getNumberOfWaypoints() ) )
+        
         ''' initialize mother class '''
-        FlightPlan.__init__(self, route , directRoute )
+        FlightPlan.__init__(self, strRoute=strRoute , airportsDatabase=self.airportsDatabase , runwaysDatabase=self.runwaysDataBase, 
+                            waypointsDatabase=self.waypointsDatabase , directRoute=directRoute )
         
         ''' first bad and incomplete flight length '''
         ''' missing last turn and glide slope '''
@@ -95,7 +125,8 @@ class FlightPathOpenap(FlightPlan):
         self.aircraftICAOcode = aircraftICAOcode
         
         ''' aircraft object '''
-        self.aircraft = OpenapAircraft( str(aircraftICAOcode).lower() , Earth() , Atmosphere() , initialMassKilograms = None)
+        self.aircraft = OpenapAircraft( str(aircraftICAOcode).lower() , 
+                                        earth , atmosphere , initialMassKilograms = None)
         
         assert not(self.aircraft is None) and isinstance(self.aircraft, OpenapAircraft)  
         self.aircraft.setAircraftMassKilograms(takeOffMassKilograms)
@@ -157,11 +188,11 @@ class FlightPathOpenap(FlightPlan):
         execute a turn to align true heading and then fly a great circle 
         '''    
         #logging.debug (' ================== one Turn Leg for each fix in the list =============== ')
-        turnLeg = TurnLeg(  initialWayPoint = tailWayPoint,
-                            finalWayPoint = headWayPoint,
+        turnLeg = TurnLeg(  initialWayPoint       = tailWayPoint,
+                            finalWayPoint         = headWayPoint,
                             initialHeadingDegrees = initialHeadingDegrees,
-                            aircraft = self.aircraft,
-                            reverse = False)
+                            aircraft              = self.aircraft,
+                            reverse               = False)
         
         distanceToLastFixMeters = self.computeDistanceToLastFixMeters(currentPosition = tailWayPoint, fixListIndex = headWayPointIndex)
         #logging.info ( self.className + ' distance to last fix= {0:.2f} Nm'.format(distanceToLastFixMeters * Meter2NauticalMiles) )

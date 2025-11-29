@@ -19,7 +19,7 @@ from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Guidance.WayPointFile import Airport
 
-from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWaysDataBase
 from openap import prop
 
 from trajectory.Openap.AircraftMainFile import OpenapAircraft
@@ -63,7 +63,7 @@ class Test_Main(unittest.TestCase):
         AdepRunway = "27R"
         AdesRunway = "07L"
         
-        runwaysDB = RunWayDataBase()
+        runwaysDB = RunWaysDataBase()
         if (runwaysDB.exists()):
             print("runwaysDB exists")
             ret = runwaysDB.read()

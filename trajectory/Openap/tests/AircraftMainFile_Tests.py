@@ -12,6 +12,7 @@ import time
 from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Atmosphere.AtmosphereFile import Atmosphere
 from trajectory.Environment.Constants import Meter2NauticalMiles
+from trajectory.Openap.AircraftMainFile import OpenapAircraft
 
 import logging
 # create logger

@@ -42,14 +42,14 @@ import logging
 
 from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
-from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWaysDataBase
+from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
 
 from trajectory.Guidance.WayPointFile import WayPoint, Airport
 from trajectory.Environment.Runways.RunWayFile import RunWay
 
 #from trajectory.Guidance.ConstraintsFile import analyseConstraint
 from trajectory.Environment.Constants import Meter2NauticalMiles
-
 from trajectory.Guidance.FixListClass import FixList
 
 
@@ -63,26 +63,28 @@ class FlightPlan(FixList):
     arrivalAirportIcaoCode = ''
     arrivalAirport = None
     
-    def __init__(self, strRoute , directRoute):
+    def __init__(self, strRoute , airportsDatabase , runwaysDatabase , waypointsDatabase, directRoute):
         logging.info("----- Flight Plan init ------")
         
         assert isinstance ( strRoute, str )
         assert isinstance ( directRoute, bool  )
         
         self.className = self.__class__.__name__
-        FixList.__init__(self, strRoute , directRoute)
+        FixList.__init__(self, strRoute=strRoute , directRoute=directRoute)
         
-        self.wayPointsDb = WayPointsDatabase()
-        assert self.wayPointsDb.exists() ==  True
-        assert self.wayPointsDb.read() ==  True
         
-        self.airportsDb = AirportsDatabase()
-        assert self.airportsDb.readAsDict() == True
         
-        self.runwaysDb = RunWayDataBase()
-        assert self.runwaysDb.exists() == True
-        assert self.runwaysDb.read() == True
+        assert isinstance ( airportsDatabase , AirportsDatabase)
+        self.airportsDatabase = airportsDatabase
+        #assert self.airportsDb.readAsDict() == True
         
+        assert isinstance ( runwaysDatabase , RunWaysDataBase)
+        self.runwaysDatabase = runwaysDatabase
+        
+        assert isinstance ( waypointsDatabase , WayPointsDatabase)
+        self.waypointsDatabase = waypointsDatabase
+        logging.info( self.className + " - size of waypoints database = {0}".format(self.waypointsDatabase.getNumberOfWaypoints()))
+
         self.buildFixList()
         
         ''' if fix list is empty and directRoute = True then add dynamic way points '''
@@ -118,7 +120,7 @@ class FlightPlan(FixList):
         return self.departureAirport
     
     def getDepartureRunway(self):
-        self.departureRunway = self.runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
+        self.departureRunway = self.runwaysDatabase.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
         assert ( not (self.departureRunway is None) and isinstance(self.departureRunway, RunWay ))
         
         self.departureRunway = RunWay(Name             = self.departureRunway.Name,
@@ -131,7 +133,7 @@ class FlightPlan(FixList):
         return self.departureRunway
     
     def getArrivalRunway(self):
-        self.arrivalRunway =  self.runwaysDb.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, 
+        self.arrivalRunway =  self.runwaysDatabase.getFilteredRunWays(airportICAOcode = self.arrivalAirportICAOcode, 
                                                                 runwayName = self.arrivalRunwayName)
         assert ( not (self.arrivalRunway is None) and isinstance(self.arrivalRunway, RunWay ))
         
@@ -152,7 +154,7 @@ class FlightPlan(FixList):
         self.createFixList()
         for fix in self.getFix():
             logging.info(self.className + ": next fix = " + fix)
-            wayPoint = self.wayPointsDb.getWayPoint(fix)
+            wayPoint = self.waypointsDatabase.getWayPoint(fix)
             if (wayPoint):
                 logging.info("waypoint = {0} in wayPoints database".format(wayPoint))
                 self.wayPointsDict[fix] = wayPoint
@@ -160,7 +162,7 @@ class FlightPlan(FixList):
                 self.deleteFix(fix)
         
         ''' self.arrivalAirportICAOcode obtained from base class fix list '''
-        self.arrivalAirport = self.airportsDb.getAirportFromICAOCode(ICAOcode = self.arrivalAirportICAOcode)
+        self.arrivalAirport = self.airportsDatabase.getAirportFromICAOCode(ICAOcode = self.arrivalAirportICAOcode)
         assert ( not (self.arrivalAirport is None) and isinstance( self.arrivalAirport, Airport))
         
         logging.info( self.className + " : arrival airport : " + str(self.arrivalAirport))
@@ -169,11 +171,11 @@ class FlightPlan(FixList):
         self.arrivalRunway = self.getArrivalRunway()
         logging.info ( self.className + " : arrival runway : " + str(self.arrivalRunway) )
 
-        self.departureAirport = self.airportsDb.getAirportFromICAOCode(ICAOcode = self.departureAirportICAOcode)
+        self.departureAirport = self.airportsDatabase.getAirportFromICAOCode(ICAOcode = self.departureAirportICAOcode)
         assert ( not (self.departureAirport is None) and isinstance( self.departureAirport, Airport))
         
         logging.info( self.className + " : departure airport : " + str(self.departureAirport))
-        #self.departureRunway = runwaysDb.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
+        #self.departureRunway = runwaysDatabase.getFilteredRunWays(airportICAOcode = self.departureAirportICAOcode, runwayName = self.departureRunwayName)
         self.departureRunway = self.getDepartureRunway()
         logging.info ( self.className + " : departure runway : " + str(self.departureRunway) )
 

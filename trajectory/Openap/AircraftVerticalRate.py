@@ -6,7 +6,6 @@ Created on 25 déc. 2024
 
 import logging 
 import math
-from methodtools import lru_cache
 from trajectory.Environment.Constants import Meter2Feet
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,6 @@ class OpenapAircraftVerticalRate(OpenapAircraftMiscelleaneous):
         self.descentRangeDict = self.wrap.descent_range()
         self.descentRangeMeters = self.descentRangeDict['default'] * 1000.0
         
-    @lru_cache()
     def getDescentRangeMeters(self):
         #logger.info( self.className + " - descent range = {0:.2f} meters ".format ( self.descentRangeMeters ) )
         return self.descentRangeMeters

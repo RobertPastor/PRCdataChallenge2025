@@ -34,7 +34,6 @@ from xlrd import open_workbook
 from trajectory.Environment.Runways.RunWayFile import RunWay
 from trajectory.Guidance.WayPointFile import Airport
 from trajectory.Guidance.GeographicalPointFile import GeographicalPoint
-from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Constants import NauticalMiles2Meter , ConstantClimbRampLengthNauticalMiles
 from trajectory.Environment.Constants import EarthMeanRadiusMeters
 
@@ -45,7 +44,7 @@ fieldNames = ['id' , 'airport_ref', 'airport_ident' , 'length_ft' , 'width_ft' ,
               'he_ident' , 'he_latitude_deg' , 'he_longitude_deg' , 
               'he_elevation_ft' , 'he_heading_degT', 'he_displaced_threshold_ft' ]
 
-class RunWayDataBase(object):
+class RunWaysDataBase(object):
     
     FilePath = ''
     def __init__(self):
@@ -129,6 +128,8 @@ class RunWayDataBase(object):
         return runwayDict
     
     def getAirportRunways(self, airportICAOcode, runwayLengthFeet = 0.0):
+        if self.hasRunWays(airportICAOcode):
+            return self.getFilteredRunWays(airportICAOcode)
         return None
         
     def hasRunWays(self, airportICAOcode):
@@ -139,7 +140,6 @@ class RunWayDataBase(object):
                 return True
         return False
     
- 
     def getRunWaysAsDict(self, airportICAOcode):
         assert not(self.sheet is None)
         assert (isinstance(airportICAOcode, str)) and len(airportICAOcode)>0

@@ -13,55 +13,63 @@ import logging
 from trajectory.Environment.Earth.EarthFile import Earth
 from trajectory.Environment.Airports.AirportDatabaseFile import AirportsDatabase
 from trajectory.Guidance.WayPointFile import Airport
-from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWayDataBase
+from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWaysDataBase
 
 #============================================
 class Test_Main(unittest.TestCase):
 
     def test_main_one(self):
-        
+        logging.basicConfig(level=logging.INFO)
+
         airportsDatabase = AirportsDatabase()
         ret = airportsDatabase.readAsDict()
-        print ("Airports database read status = " + str(ret) )
+        logging.info ("Airports database read status = " + str(ret) )
         #for country in airportsDatabase.getCountries():
-        #    print ( country )
+        #    logging.info ( country )
             
         ICAOcode = "LFPG"
         airport = airportsDatabase.getAirportFromICAOCode(ICAOcode)
         
         assert (isinstance(airport, Airport))
-        print("Airport = " + airport.getName())
+        logging.info("Airport = " + airport.getName())
         
     def test_main_two(self):
-        
-        runwaysDB = RunWayDataBase()
+        logging.basicConfig(level=logging.INFO)
+
+        runwaysDB = RunWaysDataBase()
         if (runwaysDB.exists()):
-            print("runwaysDB exists")
+            logging.info("runwaysDB exists")
             ret = runwaysDB.read()
-            print ("read runways database result = {0}".format(ret))
+            logging.info ("read runways database result = {0}".format(ret))
         else:
-            print("runwaysDB does not exists")
+            logging.info("runwaysDB does not exists")
             
     def test_main_three(self):
-        
+        logging.basicConfig(level=logging.INFO)
+
         airportsDatabase = AirportsDatabase()
         if airportsDatabase.readAsDict():
-            #for country in airportsDatabase.getCountries():
-            #    print ( country )
+            index = 0
+            for country in airportsDatabase.getCountries():
+                index = index + 1
+                if index>10:
+                    break
+                logging.info ("country = " + country )
                 
             airportICAOcode = "LFPG"
             airportLFPG = airportsDatabase.getAirportFromICAOCode(airportICAOcode)
             logging.info(airportLFPG)
             
-            runwaysDB = RunWayDataBase()
+            runwaysDB = RunWaysDataBase()
             if (runwaysDB.exists()):
-                print("runwaysDB exists")
+                logging.info("runwaysDB exists")
                 if runwaysDB.read():
                     
                     for runway in runwaysDB.getRunWays(airportICAOcode):
-                        print(runway)
+                        logging.info(runway)
                 
         
         
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     unittest.main()

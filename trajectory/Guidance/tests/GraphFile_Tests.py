@@ -53,7 +53,7 @@ class Test_Graph(unittest.TestCase):
 
         logging.info ( " ========== AirportsDatabase testing ======= time start= " )
         airportsDb = AirportsDatabase()
-        assert (airportsDb.read())
+        assert (airportsDb.readWithPandas())
         airportsDb.dumpCountry(Country="France")
         logging.info ( "number of airports= " + str( airportsDb.getNumberOfAirports() ) )
         for ap in ['Orly', 'paris', 'toulouse', 'marseille' , 'roissy', 'blagnac' , 'provence' , 'de gaulle']:
@@ -97,7 +97,7 @@ class Test_Graph(unittest.TestCase):
     def test_main_five(self):    
 
         airportsDb = AirportsDatabase()
-        assert (airportsDb.read())
+        assert (airportsDb.readWithPandas())
         
         logging.info ( ' ============== g3 performance ===============' )
         t0 = time.perf_counter()

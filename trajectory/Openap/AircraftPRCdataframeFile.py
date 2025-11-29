@@ -20,37 +20,44 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
     lastValidAltitudeMSLmeters = 0.0
 
     def __init__(self , aircraftICAOcode):
+        self.aircraftICAOcode = aircraftICAOcode
         super().__init__(aircraftICAOcode)
         
     def extractLatitudeDegrees(self , finalRoute , index ):
         assert type(index) == int
         try:
-            vertex = finalRoute.getVertex(index)
-            wayPoint = vertex.getWeight()
-            self.lastValidLatitudeDegrees = wayPoint.getLatitudeDegrees()
-            return self.lastValidLatitudeDegrees 
+            if index < finalRoute.getNumberOfVertices():
+                vertex = finalRoute.getVertex(index)
+                wayPoint = vertex.getWeight()
+                self.lastValidLatitudeDegrees = wayPoint.getLatitudeDegrees()
+                return self.lastValidLatitudeDegrees 
         except:
             return self.lastValidLatitudeDegrees 
+        return self.lastValidLatitudeDegrees 
     
     def extractLongitudeDegrees(self , finalRoute , index ):
         assert type(index) == int
         try:
-            vertex = finalRoute.getVertex(index)
-            wayPoint = vertex.getWeight()
-            self.lastValidLongitudeDegrees = wayPoint.getLongitudeDegrees()
-            return self.lastValidLongitudeDegrees
+            if index < finalRoute.getNumberOfVertices():
+                vertex = finalRoute.getVertex(index)
+                wayPoint = vertex.getWeight()
+                self.lastValidLongitudeDegrees = wayPoint.getLongitudeDegrees()
+                return self.lastValidLongitudeDegrees
         except:
             return self.lastValidLongitudeDegrees
+        return self.lastValidLongitudeDegrees 
     
     def extractAltitudeMSLmeters(self , finalRoute, index ):
         assert type(index) == int
         try:
-            vertex = finalRoute.getVertex(index)
-            wayPoint = vertex.getWeight()
-            self.lastValidAltitudeMSLmeters = wayPoint.getAltitudeMeanSeaLevelMeters()
-            return self.lastValidAltitudeMSLmeters
+            if index < finalRoute.getNumberOfVertices():
+                vertex = finalRoute.getVertex(index)
+                wayPoint = vertex.getWeight()
+                self.lastValidAltitudeMSLmeters = wayPoint.getAltitudeMeanSeaLevelMeters()
+                return self.lastValidAltitudeMSLmeters
         except:
             return self.lastValidAltitudeMSLmeters
+        return self.lastValidAltitudeMSLmeters
     
     def extractTrackCourseAngleDegrees(self , finalRoute, index):
         assert type(index) == int
@@ -59,15 +66,15 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
     
     def computeRateOfClimbDescentFeetPerMinutes(self ):
         if (self.elapsedTimeSeconds - self.previousElapsedTimeSeconds)>0.0:
-            rateOfClimbDescentFeetMinute = (self.altitudeMeanSeaLevelFeet - self.previousAltitudeMeanSeaLevelFeet)
-            rateOfClimbDescentFeetMinute = rateOfClimbDescentFeetMinute / ((self.elapsedTimeSeconds - self.previousElapsedTimeSeconds)/60.)
+            altitudeDifferenceFeet = (self.altitudeMeanSeaLevelFeet - self.previousAltitudeMeanSeaLevelFeet)
+            rateOfClimbDescentFeetSeconds= altitudeDifferenceFeet / (self.elapsedTimeSeconds - self.previousElapsedTimeSeconds)
+            rateOfClimbDescentFeetMinute = rateOfClimbDescentFeetSeconds / 60.0
         else:
             rateOfClimbDescentFeetMinute = 0.0
         return rateOfClimbDescentFeetMinute
 
     def createAircraftPRCdataChallengeFlightDataframe(self , finalRoute ,abortedFlight  , aircraftICAOcode, 
                                                       flight_id , takeOffInstant):
-        
         assert ( isinstance ( finalRoute , Graph ) )
         print (f"number of vertices =  {finalRoute.getNumberOfVertices()}" )
         print (f"number of state history items = {len(self.aircraftStateHistory)}" )
@@ -95,10 +102,10 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
         CAS_knots_list = []
         mach_list = []
         
-        maxIndex = 1000
         index = 0
+        maxIndex = len(self.aircraftStateHistory)
         for stateVectorHistory in self.aircraftStateHistory:
-            if (index > maxIndex):
+            if index > (maxIndex - 10):
                 break
             index_list.append( index )
             
@@ -143,14 +150,14 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
             ''' compute rate of climb descent feet per minutes '''
             if ( index == 0 ):
                 self.previousElapsedTimeSeconds = self.elapsedTimeSeconds
-                self.previousAltitudeMeanSeaLevelFeet = self.altitudeMeanSeaLevelMeters
-            if index > 0:
-                vertical_rate = self.computeRateOfClimbDescentFeetPerMinutes()
-            else:
+                self.previousAltitudeMeanSeaLevelFeet = self.altitudeMeanSeaLevelMeters * Meter2Feet
                 vertical_rate = 0.0
+            else:
+                vertical_rate = self.computeRateOfClimbDescentFeetPerMinutes()
+                self.previousElapsedTimeSeconds = self.elapsedTimeSeconds
+                self.previousAltitudeMeanSeaLevelFeet = self.altitudeMeanSeaLevelMeters * Meter2Feet
+
             vertical_rate_feet_minutes_list.append( vertical_rate )
-            self.previousElapsedTimeSeconds = self.elapsedTimeSeconds
-            self.previousAltitudeMeanSeaLevelFeet = self.altitudeMeanSeaLevelMeters
             
             index = index + 1
 
@@ -169,17 +176,17 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
         df_typecode          = pd.DataFrame({"typecode"      : typecode_list}          , index=index_list)
 
         df = pd.merge(df_flight_id , df_timestamp , left_index=True, right_index=True)
-        df = pd.merge(df , df_longitude_degrees , left_index=True, right_index=True)
-        df = pd.merge(df , df_latitude_degrees , left_index=True, right_index=True)
-        df = pd.merge(df , df_altitude_feet , left_index=True, right_index=True)
-        df = pd.merge(df , df_groundSpeed_knots , left_index=True, right_index=True)
-        df = pd.merge(df , df_track_degrees , left_index=True, right_index=True)
-        df = pd.merge(df , df_vertical_rate , left_index=True, right_index=True)
-        df = pd.merge(df , df_mach , left_index=True, right_index=True)
-        df = pd.merge(df , df_typecode , left_index=True, right_index=True)
-        df = pd.merge(df , df_TAS_knots , left_index=True, right_index=True)
-        df = pd.merge(df , df_CAS_knots , left_index=True, right_index=True)
-        df = pd.merge(df , df_source , left_index=True, right_index=True)
+        df = pd.merge(df , df_longitude_degrees   , left_index=True, right_index=True)
+        df = pd.merge(df , df_latitude_degrees    , left_index=True, right_index=True)
+        df = pd.merge(df , df_altitude_feet       , left_index=True, right_index=True)
+        df = pd.merge(df , df_groundSpeed_knots   , left_index=True, right_index=True)
+        df = pd.merge(df , df_track_degrees       , left_index=True, right_index=True)
+        df = pd.merge(df , df_vertical_rate       , left_index=True, right_index=True)
+        df = pd.merge(df , df_mach                , left_index=True, right_index=True)
+        df = pd.merge(df , df_typecode            , left_index=True, right_index=True)
+        df = pd.merge(df , df_TAS_knots           , left_index=True, right_index=True)
+        df = pd.merge(df , df_CAS_knots           , left_index=True, right_index=True)
+        df = pd.merge(df , df_source              , left_index=True, right_index=True)
 
         df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
         for columnName in ["flight_id","source","typecode"]:
@@ -189,6 +196,9 @@ class OpenapAircraftPRCchallenge(OpenapAircraftStateVector):
             df[columnName] = df[columnName].astype(float)
 
         ''' suppress index '''
-        #df = df.
+        print(df.dtypes)
+        print ("take off instant = {0}".format(takeOffInstant) )
+        print(tabulate(df[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         print(tabulate(df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
         return df

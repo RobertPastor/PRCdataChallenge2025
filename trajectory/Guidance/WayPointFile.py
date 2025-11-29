@@ -178,11 +178,11 @@ class Airport(WayPoint):
         return self.fieldElevationAboveSeaLevelMeters
     
     def getRunWaysAsDict(self, runwaysDatabase):
-        assert isinstance(runwaysDatabase, RunWayDataBase) and not(runwaysDatabase is None)
+        assert isinstance(runwaysDatabase, RunWaysDataBase) and not(runwaysDatabase is None)
         return runwaysDatabase.getRunWaysAsDict(self.ICAOcode)
     
     def getRunWays(self, runwaysDatabase):
-        assert isinstance(runwaysDatabase, RunWayDataBase) and not(runwaysDatabase is None)
+        assert isinstance(runwaysDatabase, RunWaysDataBase) and not(runwaysDatabase is None)
         return runwaysDatabase.getRunWays(self.ICAOcode)
     
     def dump(self):

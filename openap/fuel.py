@@ -14,13 +14,11 @@ curr_path = os.path.dirname(os.path.realpath(__file__))
 dir_fuelmodel = os.path.join(curr_path, "data/fuel/")
 file_synonym = os.path.join(curr_path, "data/fuel/_synonym.csv")
 
-print(" openap/fuel : ==================== read data fuel synonym.csv file ==============")
+print("openap/fuel : ==================== read data fuel synonym.csv file ==============")
 fuel_synonym = pd.read_csv(file_synonym)
-
 
 def func_fuel(coef):
     return lambda x: -coef * (x - 1) ** 2 + coef
-
 
 class FuelFlow(object):
     """Fuel flow model based on ICAO emission databank."""
@@ -79,7 +77,7 @@ class FuelFlow(object):
             if self.use_synonym and syno.shape[0] > 0:
                 ac = syno.new.iloc[0]
             else:
-                raise ValueError(f"Fuel polar for {self.ac} not avaiable.")
+                raise ValueError(f"Fuel polar for {self.ac} not available.")
 
         f = dir_fuelmodel + ac + ".yml"
         with open(f, "r") as file:
