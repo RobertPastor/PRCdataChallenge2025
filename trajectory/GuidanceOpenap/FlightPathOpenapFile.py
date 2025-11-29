@@ -558,49 +558,46 @@ class FlightPathOpenap(FlightPlan):
         #assert not( self.departureAirport is None)
         
         #logging.info ( self.className + " : start computing the trajectory ")
-        try:
-            if self.isDomestic() or self.isOutBound():
-                #logging.info ( self.className + " - build departure phase")
-                self.endOfSimulation, initialHeadingDegrees , initialWayPoint = self.buildDeparturePhase()
-                #logging.info( self.className + " - end of departure phase")
-            ''' end of simulation = True means the flight is aborted '''
-            if ( self.endOfSimulation == False ) and ( self.isDomestic() or self.isInBound() ):
-                #assert not(self.arrivalAirport is None)
-                #logging.info ( self.className + " : build simulated arrival phase")
-                finalRadiusOfTurnMeters = self.buildSimulatedArrivalPhase()
-                #logging.info ( self.className + " - final radius of turn = {0} meters".format(finalRadiusOfTurnMeters))
-                #sys.exit()
-            
-            #logging.debug ( self.className + "==================== Loop over the fix list ====================")
-            if (self.endOfSimulation == False):
-                #logging.info ( self.className + " : loop through fix list")
-                self.endOfSimulation, initialHeadingDegrees = self.loopThroughFixList(initialHeadingDegrees = initialHeadingDegrees,
+        
+        if self.isDomestic() or self.isOutBound():
+            #logging.info ( self.className + " - build departure phase")
+            self.endOfSimulation, initialHeadingDegrees , initialWayPoint = self.buildDeparturePhase()
+            #logging.info( self.className + " - end of departure phase")
+        ''' end of simulation = True means the flight is aborted '''
+        if ( self.endOfSimulation == False ) and ( self.isDomestic() or self.isInBound() ):
+            #assert not(self.arrivalAirport is None)
+            #logging.info ( self.className + " : build simulated arrival phase")
+            finalRadiusOfTurnMeters = self.buildSimulatedArrivalPhase()
+            #logging.info ( self.className + " - final radius of turn = {0} meters".format(finalRadiusOfTurnMeters))
+            #sys.exit()
+        
+        #logging.debug ( self.className + "==================== Loop over the fix list ====================")
+        if (self.endOfSimulation == False):
+            #logging.info ( self.className + " : loop through fix list")
+            self.endOfSimulation, initialHeadingDegrees = self.loopThroughFixList(initialHeadingDegrees = initialHeadingDegrees,
                                                                                       elapsedTimeSeconds    = initialWayPoint.getElapsedTimeSeconds())
             
-            if (self.endOfSimulation == False):
-                #logging.debug '=========== build arrival phase =============='
-                self.buildArrivalPhase(initialHeadingDegrees, finalRadiusOfTurnMeters)
+        if (self.endOfSimulation == False):
+            #logging.debug '=========== build arrival phase =============='
+            self.buildArrivalPhase(initialHeadingDegrees, finalRadiusOfTurnMeters)
                 
-            if (self.endOfSimulation == False):
-                logging.info ( self.className + ' ========== delta mass status ==============' )
-                logging.info ( self.className + ' initial mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getTakeOffMassKilograms(),
+        if (self.endOfSimulation == False):
+            logging.info ( self.className + ' ========== delta mass status ==============' )
+            logging.info ( self.className + ' initial mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getTakeOffMassKilograms(),
                                                                                                    self.aircraft.getTakeOffMassKilograms()*Kilogram2Pounds) )
-                logging.info ( self.className + ' final mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getCurrentMassKilograms(),
+            logging.info ( self.className + ' final mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getCurrentMassKilograms(),
                                                                                                  self.aircraft.getCurrentMassKilograms()*Kilogram2Pounds) )
-                logging.info ( self.className + ' diff mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getTakeOffMassKilograms()-self.aircraft.getCurrentMassKilograms(),
+            logging.info ( self.className + ' diff mass= {0:.2f} kilograms = {1:.2f} pounds'.format(self.aircraft.getTakeOffMassKilograms()-self.aircraft.getCurrentMassKilograms(),
                                                                                                 (self.aircraft.getTakeOffMassKilograms()-self.aircraft.getCurrentMassKilograms())*Kilogram2Pounds) )
-                logging.info ( self.className + ' ========== delta mass status ==============' )
+            logging.info ( self.className + ' ========== delta mass status ==============' )
                 
-            if ( self.endOfSimulation ==  True ):
-                self.abortedFlight = True
-                return False
-            
-            return True
-        
-        except Exception as e:
-            logging.error ("----> flight did not go to a normal end ---> {0}".format(e))
+        if ( self.endOfSimulation ==  True ):
             self.abortedFlight = True
             return False
+            
+        self.abortedFlight = True
+        return True
+        
             
     def createXlsOutputFile(self):
         self.finalRoute.createXlsxOutputFile(self.abortedFlight, self.aircraftICAOcode, self.departureAirport.getICAOcode(), self.arrivalAirport.getICAOcode())

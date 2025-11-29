@@ -72,8 +72,6 @@ class FlightPlan(FixList):
         self.className = self.__class__.__name__
         FixList.__init__(self, strRoute=strRoute , directRoute=directRoute)
         
-        
-        
         assert isinstance ( airportsDatabase , AirportsDatabase)
         self.airportsDatabase = airportsDatabase
         #assert self.airportsDb.readAsDict() == True

@@ -70,8 +70,10 @@ class FlightIdsToRebuild(object):
             if os.path.exists(filePathStr) and os.path.isfile(filePathStr):
                 logging.info ( "file path ->" + filePathStr + " has been already computed")
             else:
-                self.rebuildOneFlightId(flight_id)
-        
+                try:
+                    self.rebuildOneFlightId(flight_id)
+                except Exception as e:
+                    logging.error("{0}".format(e))
     def rebuildOneFlightId(self , flight_id):
     
         flightTrajectoryReBuild = FlightTrajectoryReBuild( self.train_rank_final , flight_id , 
@@ -133,23 +135,21 @@ class FlightTrajectoryReBuild(object):
     def readRunways(self , originAirportICAOcode , destinationAirportICAOcode):
         
         logging.info("-"*90)
-        try:
-            originAirportRunwaysFound = False
-            for runway in self.runwaysDataBase.getRunWays(originAirportICAOcode):
-                #logging.info(runway)
-                originAirportRunwaysFound = True
-            assert ( originAirportRunwaysFound == True)
+        
+        originAirportRunwaysFound = False
+        for runway in self.runwaysDataBase.getRunWays(originAirportICAOcode):
+            #logging.info(runway)
+            originAirportRunwaysFound = True
+        assert ( originAirportRunwaysFound == True)
             
-            destinationAirportRunwaysFound = False
-            logging.info("-"*90)
-            for runway in self.runwaysDataBase.getRunWays(destinationAirportICAOcode):
-                #logging.info(runway)
-                destinationAirportRunwaysFound = True
-            assert ( destinationAirportRunwaysFound == True)
-            return True
-        except Exception as e:
-            logging.debug(e)
-            return False
+        destinationAirportRunwaysFound = False
+        logging.info("-"*90)
+        for runway in self.runwaysDataBase.getRunWays(destinationAirportICAOcode):
+            #logging.info(runway)
+            destinationAirportRunwaysFound = True
+        assert ( destinationAirportRunwaysFound == True)
+        return True
+        
 
     def readAirports(self , originAirportICAOcode , destinationAirportICAOcode):
         
@@ -240,18 +240,18 @@ class FlightTrajectoryReBuild(object):
         
     def computeFlightProfile(self ):
         self.aircraft = None
-        try:
-            self.aircraft = OpenapAircraft( aircraftICAOcode = str(self.aircraftICAOcode).lower() , 
+        
+        self.aircraft = OpenapAircraft( aircraftICAOcode = str(self.aircraftICAOcode).lower() , 
                                         earth                = self.earth , 
                                         atmosphere           = self.atmosphere ,
                                         initialMassKilograms = None)
-            logging.info(self.aircraft)
-            if not (self.aircraft is None) :
-                routeAsString = self.computeDirectRouteAsString()
-                logging.info ( routeAsString )
-                
-                ''' 24th November 2025 - use maximum mass instead of reference mass '''
-                flightPath = FlightPathOpenap(
+        logging.info(self.aircraft)
+        if not (self.aircraft is None) :
+            routeAsString = self.computeDirectRouteAsString()
+            logging.info ( routeAsString )
+            
+            ''' 24th November 2025 - use maximum mass instead of reference mass '''
+            flightPath = FlightPathOpenap(
                     strRoute = routeAsString, 
                     aircraftICAOcode       = self.aircraftICAOcode.lower(),
                     RequestedFlightLevel   = float( self.aircraft.getMaxCruiseFlightLevel() ), 
@@ -264,29 +264,26 @@ class FlightTrajectoryReBuild(object):
                     runwaysDataBase        = self.runwaysDataBase,
                     waypointsDatabase      = self.waypointsDatabase,
                     directRoute            = True)
-                try:
-                    flightPath.computeFlight(deltaTimeSeconds = 1.0)
-                    abortedFlight = flightPath.abortedFlight
-                        #csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
-                        #flightPath.createStateVectorHistoryFile()
-                    logging.info(f"flight_id = {self.flight_id} - takeoff instant = {self.takeOffInstant}")
-                    finalRoute = flightPath.finalRoute
-                    df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(finalRoute, abortedFlight , self.aircraftICAOcode ,
+            
+            flightPath.computeFlight(deltaTimeSeconds = 1.0)
+            abortedFlight = flightPath.abortedFlight
+            #csvAltitudeMSLTimeGroundTrack = flightPath.createCsvAltitudeTimeProfile()
+            #flightPath.createStateVectorHistoryFile()
+            logging.info(f"flight_id = {self.flight_id} - takeoff instant = {self.takeOffInstant}")
+            finalRoute = flightPath.finalRoute
+            df = flightPath.getAircraft().createPRCdataChallengeFlightDataframe(finalRoute, abortedFlight , self.aircraftICAOcode ,
                                                                                        self.flight_id , self.takeOffInstant)
-                    #flightPath.createKmlXmlDocument()
+            #flightPath.createKmlXmlDocument()
 
-                    folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
-                    fileName = self.flight_id + ".parquet"
-                    path = os.path.join ( folder , fileName)
-                    df.to_parquet( path , index=False)
-                    #flightPath.createKmlXmlDocument()
-                except Exception as e:
-                    flightPath.createKmlXmlDocument()
-                    logging.info("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )
-            else:
-                logging.info("aircraft not found -> " + self.aircraftICAOcode.lower())
-        except Exception as e:
-            logging.info("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )
+            folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
+            fileName = self.flight_id + ".parquet"
+            path = os.path.join ( folder , fileName)
+            df.to_parquet( path , index=False)
+            #flightPath.createKmlXmlDocument()
+                
+        else:
+            logging.info("aircraft not found -> " + self.aircraftICAOcode.lower())
+        
         #else:
         #    logging.info(f"cannot find aircraft {self.aircraftICAOcode} in Openap database ")
             #raise ValueError(f"cannot find aircraft {self.aircraftICAOcode} in Openap database ")
@@ -308,5 +305,5 @@ if __name__ == '__main__':
     train_rank_final = "train"
     flightIdsToRebuild = FlightIdsToRebuild (train_rank_final)
     assert flightIdsToRebuild.readFlighIdsToRebuild()
-    #flightIdsToRebuild.rebuildAllFlightIds()
+    flightIdsToRebuild.rebuildAllFlightIds()
     

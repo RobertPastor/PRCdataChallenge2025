@@ -142,23 +142,27 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
             self.initialClimbAltitudeFeet = altitudeMSLfeet
         
         self.climbCASknots = CASknots
-        logging.info( self.className + " - aircraft CAS {0:.2f} knots".format ( CASknots ))
+        #print ( "-"*135)
+        #logging.info( self.className + " - aircraft CAS {0:.2f} knots".format ( CASknots ))
+        #logging.info( self.className + " - initial climb  CAS {0:.2f} knots".format ( self.initialClimbCASknots ))
 
         ''' cross over altitude when constant CAS climb starts '''
         crossOverAltitudeContantCASfeet = self.wrap.climb_cross_alt_concas() ['default'] * 1000.0 * Meter2Feet
         crossOverAltitudeConstantMachFeet = self.wrap.climb_cross_alt_conmach() ['default'] * 1000.0 * Meter2Feet
-        logging.info( self.className + " - cross over altitude MSL {0:.2f} feet".format ( crossOverAltitudeContantCASfeet ))
+        #logging.info( self.className + " - cross over altitude MSL {0:.2f} feet".format ( crossOverAltitudeContantCASfeet ))
 
         if ( altitudeMSLfeet <  crossOverAltitudeContantCASfeet):
             ''' below cross over altitude when constant CAS climb starts '''
-            logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
+            #logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
             
             self.constantClimbCASknots = self.wrap.climb_const_vcas()['default']
             ''' xp must be in increasing order '''
-            if ( self.climbCASknots < self.constantClimbCASknots):
+            if ( self.initialClimbCASknots  < self.constantClimbCASknots):
                 ''' condition to interpolate are met '''
                 assert altitudeMSLfeet >= self.initialClimbAltitudeFeet
                 assert altitudeMSLfeet <= crossOverAltitudeContantCASfeet
+                assert self.initialClimbAltitudeFeet < crossOverAltitudeContantCASfeet
+                
                 assert self.initialClimbCASknots  <= self.constantClimbCASknots
                 self.climbCASknots = interpolate ( x = altitudeMSLfeet , 
                                             xArray = [ self.initialClimbAltitudeFeet , crossOverAltitudeContantCASfeet ],
@@ -166,12 +170,12 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
             else:
                 ''' constant climb CAS reached - wait until altitude increases '''
                 ''' do not change the speed until we reach cross over altitude '''
-                pass
+                self.climbCASknots = self.initialClimbCASknots
                 
         elif ( altitudeMSLfeet >= crossOverAltitudeContantCASfeet ) \
             and ( altitudeMSLfeet <  crossOverAltitudeConstantMachFeet ):
             ''' cross over altitude from constant CAS to use constant climb mach '''
-            logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
+            #logging.info( self.className + " - aircraft altitude MSL {0:.2f} feet".format ( altitudeMSLfeet ))
 
             self.constantClimbMach = self.wrap.climb_const_mach()['default']
             self.constantClimbCASknots = mach_alt2cas( mach = self.constantClimbMach , 
@@ -179,7 +183,7 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
                                                          alt_units = 'ft',
                                                          speed_units = 'kt')
             self.climbCASknots = interpolate ( x = altitudeMSLfeet , 
-                                            xArray= [ self.wrap.climb_cross_alt_concas() ['default'] * 1000.0 * Meter2Feet , self.wrap.climb_cross_alt_conmach() ['default'] * 1000.0 * Meter2Feet ],
+                                            xArray= [ crossOverAltitudeContantCASfeet , self.wrap.climb_cross_alt_conmach() ['default'] * 1000.0 * Meter2Feet ],
                                             yArray = [ self.initialClimbCASknots , self.constantClimbCASknots ,   ] )
             self.lastClimbCASknots = self.climbCASknots
             
@@ -271,7 +275,7 @@ class OpenapAircraftSpeeds(OpenapAircraftEngine):
     
     def computeCruiseTASknots (self):
         if self.initialCruiseTASset == False:
-            self.initialClimbCASset = True
+            self.initialCruiseTASset = True
             
         #logging.info( self.className + " - target cruise = {0:.2f} mach".format( self.getTargetCruiseMach() ))
         self.targetCruiseCASknots = mach2tas( mach        = self.getTargetCruiseMach() ,

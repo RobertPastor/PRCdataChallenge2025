@@ -113,23 +113,22 @@ class AirportsDatabase(object):
         #return set() == self.airportsDataFrame.
     def readAsDict(self):
         stream = open(self.FilePath, encoding='utf-8')
-        try:
-            dictReader = csv.DictReader(stream , fieldnames=fieldNames , delimiter=";")
-            for row in dictReader:
-                #print ( row )
-                airport = {}
-                for field in fieldNames:
-                    #print ( field , row[field])
-                    airport[field] = row[field]
-                    if 'Country' in field:
-                        country = row[field]
-                        if not(country in self.countriesDb):
-                            self.countriesDb.append(country)
+        
+        dictReader = csv.DictReader(stream , fieldnames=fieldNames , delimiter=";")
+        for row in dictReader:
+            #print ( row )
+            airport = {}
+            for field in fieldNames:
+                #print ( field , row[field])
+                airport[field] = row[field]
+                if 'Country' in field:
+                    country = row[field]
+                    if not(country in self.countriesDb):
+                        self.countriesDb.append(country)
                             
-                #print ( row["ICAO Code"] )
-                self.airportsDb[row["ICAO Code"]] = airport
-        except Exception as e:
-            logging.info ( e )
+            #print ( row["ICAO Code"] )
+            self.airportsDb[row["ICAO Code"]] = airport
+    
         stream.close()
         return True
             
