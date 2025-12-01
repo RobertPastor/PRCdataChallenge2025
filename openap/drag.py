@@ -15,8 +15,7 @@ curr_path = os.path.dirname(os.path.realpath(__file__))
 dir_dragpolar = os.path.join(curr_path, "data/dragpolar/")
 file_synonym = os.path.join(curr_path, "data/dragpolar/_synonym.csv")
 
-print("openap/drag : ==================== read drap polar synonym file ==============")
-polar_synonym = pd.read_csv(file_synonym)
+
 
 
 class Drag(object):
@@ -30,6 +29,10 @@ class Drag(object):
             wave_drag (bool): enable Wave drag model (experimental).
 
         """
+        
+        print("openap/drag : ==================== read drap polar synonym file ==============")
+        self.polar_synonym = pd.read_csv(file_synonym)
+
         if not hasattr(self, "np"):
             self.np = importlib.import_module("numpy")
 
@@ -59,7 +62,7 @@ class Drag(object):
         if self.ac in ac_polar_available:
             ac = self.ac
         else:
-            syno = polar_synonym.query("orig==@self.ac")
+            syno = self.polar_synonym.query("orig==@self.ac")
             if self.use_synonym and syno.shape[0] > 0:
                 ac = syno.new.iloc[0]
             else:

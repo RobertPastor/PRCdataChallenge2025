@@ -29,9 +29,6 @@ curr_path = os.path.dirname(os.path.realpath(__file__))
 dir_wrap = os.path.join(curr_path, "data/wrap/")
 file_synonym = os.path.join(curr_path, "data/wrap/_synonym.csv")
 
-print(" openap/kinematic : ========================== read data wrap synonym.csv file =================")
-wrap_synonym = pd.read_csv(file_synonym)
-
 
 class WRAP(object):
     """Construct the kinematic model of the aicraft."""
@@ -43,6 +40,10 @@ class WRAP(object):
             ac (string): ICAO aircraft type (for example: A320).
 
         """
+        
+        print(" openap/kinematic : ========================== read data wrap synonym.csv file =================")
+        self.wrap_synonym = pd.read_csv(file_synonym)
+
         super(WRAP, self).__init__()
 
         self.ac = ac.lower()
@@ -57,7 +58,7 @@ class WRAP(object):
             raise ValueError((f"Kinematic model for {self.ac} not available."))
 
         if self.ac not in ac_wrap_available and self.use_synonym:
-            syno = wrap_synonym.query("orig==@self.ac")
+            syno = self.wrap_synonym.query("orig==@self.ac")
             if syno.shape[0] > 0:
                 self.ac = syno.new.iloc[0]
             else:

@@ -23,6 +23,7 @@ def available_aircraft(use_synonym=False):
         list of string: aircraft types.
 
     """
+    
     print("openap/prop : ================== read available aircrafts ==================")
     files = sorted(glob.glob(dir_aircraft + "*.yml"))
     acs = [f[-8:-4] for f in files]

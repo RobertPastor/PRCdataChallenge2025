@@ -14,8 +14,7 @@ curr_path = os.path.dirname(os.path.realpath(__file__))
 dir_fuelmodel = os.path.join(curr_path, "data/fuel/")
 file_synonym = os.path.join(curr_path, "data/fuel/_synonym.csv")
 
-print("openap/fuel : ==================== read data fuel synonym.csv file ==============")
-fuel_synonym = pd.read_csv(file_synonym)
+
 
 def func_fuel(coef):
     return lambda x: -coef * (x - 1) ** 2 + coef
@@ -33,6 +32,10 @@ class FuelFlow(object):
                 by in the aircraft database.
 
         """
+        
+        print("openap/fuel : ==================== read data fuel synonym.csv file ==============")
+        self.fuel_synonym = pd.read_csv(file_synonym)
+        
         if not hasattr(self, "np"):
             self.np = importlib.import_module("numpy")
 
@@ -73,7 +76,7 @@ class FuelFlow(object):
         if self.ac in ac_polar_available:
             ac = self.ac
         else:
-            syno = fuel_synonym.query("orig==@self.ac")
+            syno = self.fuel_synonym.query("orig==@self.ac")
             if self.use_synonym and syno.shape[0] > 0:
                 ac = syno.new.iloc[0]
             else:

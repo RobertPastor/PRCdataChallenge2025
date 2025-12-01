@@ -4,11 +4,19 @@ Created on 12 oct. 2025
 
 @author: robert
 '''
+
+import os
 import pandas as pd
 from datetime import datetime
 
 from sklearn.preprocessing import OneHotEncoder
 oneHotEncoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+
+
+def readNumberOfCPUs():
+    cpu_count = os.cpu_count()
+    print(f"Number of CPUs in the system: {cpu_count}")
+    return cpu_count
 
 def getCurrentDateTimeAsStr( ):
     # Create a datetime object

@@ -162,8 +162,10 @@ class FuelDatabase(object):
         
         self.fileNameFuelTrain = "fuel_train.parquet"
         self.fileNameFuelRank =  "fuel_rank_submission.parquet"
+        self.fileNameFuelFinal =  "fuel_final_submission.parquet"
         #logging.info(self.fileNameFuelRank)
         self.filesFolder = os.path.dirname(__file__)
+        
         self.filePathFuelTrain = os.path.join(self.filesFolder , self.fileNameFuelTrain)
         self.filePathFuelRank = os.path.join(self.filesFolder , self.fileNameFuelRank)
         self.filePathFuelFinal = os.path.join(self.filesFolder , self.fileNameFuelFinal)
@@ -326,8 +328,8 @@ class FuelDatabase(object):
     def extendFuelRankWithFlightTakeOff(self):    
         
         logging.basicConfig(level=logging.INFO)
-
-        flightListDatabase = FlightListDatabase()
+        train_rank_final = "rank"
+        flightListDatabase = FlightListDatabase(train_rank_final)
         assert flightListDatabase.readRankFlightList()
         
         df_rankFlightList = flightListDatabase.getRankFlightListDataframe()
@@ -352,11 +354,12 @@ class FuelDatabase(object):
         
     def extendFuelTrainWithFlightTakeOff(self ):
         
-        flightListDatabase = FlightListDatabase()
+        train_rank_final = "train"
+        flightListDatabase = FlightListDatabase(train_rank_final)
         ''' reading the Flight list -> add aircraft data '''
         assert flightListDatabase.readTrainFlightList()
         
-        df_trainFlightList = flightListDatabase.getTrainFlightListDataframe()
+        df_trainFlightList = flightListDatabase.getTrainFlightListDataframe(train_rank_final)
         logging.info( self.className + ": ---- train flight list = " + str ( list (df_trainFlightList ) ) )
         
         columnNameListToKeep = [ 'flight_id', 'takeoff' ,'origin_longitude', 'origin_latitude', 'origin_elevation', 

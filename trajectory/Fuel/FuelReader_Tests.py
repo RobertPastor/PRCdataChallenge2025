@@ -276,7 +276,8 @@ class Test_Main(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         logging.info("---------------- analyze fuel extended with flight start   ----------------")
         
-        fuelDatabase = FuelDatabase(100)
+        nb_max_fuel_files_to_analyse = 100
+        fuelDatabase = FuelDatabase(nb_max_fuel_files_to_analyse)
         assert fuelDatabase.readFuelTrain() == True
         assert fuelDatabase.checkFuelTrainHeaders() == True
         
@@ -297,5 +298,4 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     
     print(pd. __version__)
-    
     unittest.main()
