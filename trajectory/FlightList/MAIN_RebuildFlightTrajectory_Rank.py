@@ -59,7 +59,7 @@ class FlightIdsToRebuild(object):
         logging.info ( self.df_flight_ids.shape )
         return True
         
-    def rebuildAllFlightIds(self):
+    def rebuildAllFlightIds(self ,aircraftICAOcode):
         for index , row in self.df_flight_ids.iterrows():
             flight_id = row["flight_id"]
             logging.info (str(index) + " -> " +  flight_id)
@@ -71,20 +71,20 @@ class FlightIdsToRebuild(object):
                 logging.info ( "file path ->" + filePathStr + " has been already computed")
             else:
                 try:
-                    self.rebuildOneFlightId(flight_id)
+                    self.rebuildOneFlightId(flight_id , aircraftICAOcode)
                 except Exception as e:
                     logging.error("{0}".format(e))
-    def rebuildOneFlightId(self , flight_id):
+                    
+    def rebuildOneFlightId(self , flight_id , aircraftICAOcode ):
     
         flightTrajectoryReBuild = FlightTrajectoryReBuild( self.train_rank_final , flight_id , 
                                                            self.earth , self.atmosphere, 
                                                            self.airportsDatabase, self.runwaysDatabase , 
                                                            self.wayPointsDatabase)
-        flightTrajectoryReBuild.readFlightListDatabase()
-        
+        flightTrajectoryReBuild.readFlightListDatabase(aircraftICAOcode)
         ac = flightTrajectoryReBuild.extractAircraftICAOcode()
         logging.info ("aircraft = " + ac  )
-        if (ac):
+        if (ac)and (str(ac).upper() == str(aircraftICAOcode).upper()):
 
             originAirportICAOcode = flightTrajectoryReBuild.extractDepartureAirport()
             logging.info( f"origin airport =>  {originAirportICAOcode}" )  
@@ -99,7 +99,7 @@ class FlightIdsToRebuild(object):
                 flightTrajectoryReBuild.computeBestRunways(originAirportICAOcode,destinationAirportICAOcode)
                 flightTrajectoryReBuild.computeFlightProfile()
         else:
-            logging.info("aircraft not found -> " + ac)
+            logging.info("aircraft not found -> " + ac + " - or it has been filtered")
             #raise ValueError("aircraft not found -> " + ac)
 
 class FlightTrajectoryReBuild(object):
@@ -133,9 +133,7 @@ class FlightTrajectoryReBuild(object):
         pass
         
     def readRunways(self , originAirportICAOcode , destinationAirportICAOcode):
-        
         logging.info("-"*90)
-        
         originAirportRunwaysFound = False
         for runway in self.runwaysDataBase.getRunWays(originAirportICAOcode):
             #logging.info(runway)
@@ -150,7 +148,6 @@ class FlightTrajectoryReBuild(object):
         assert ( destinationAirportRunwaysFound == True)
         return True
         
-
     def readAirports(self , originAirportICAOcode , destinationAirportICAOcode):
         
         assert self.airportsDatabase.isAirportICAOcodeInDB(originAirportICAOcode)
@@ -178,14 +175,17 @@ class FlightTrajectoryReBuild(object):
         self.landedInstant = self.flightListDatabase.getLandedInstant( self.train_rank_final , self.flight_id )
         return self.landedInstant
     
-    def readFlightListDatabase(self):
+    def readFlightListDatabase(self , aircraftICAOcode):
         logging.info("---------Read Flight List <<" + self.train_rank_final +">> ------------")
         self.flightListDatabase = FlightListDatabase(self.train_rank_final)
         if self.flightListDatabase.readTrainRankFinalFlightListLite(self.train_rank_final):
             logging.info("train rank final flight list read correctly")
             
             self.flightListDataframe = self.flightListDatabase.getTrainRankFinalFlightListDataframe(self.train_rank_final)
-            #logging.info(tabulate(self.flightListDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+            ''' filter on aircraft type = A359 '''
+            self.flightListDataframe = self.flightListDataframe[self.flightListDataframe['aircraft_type'] == str(aircraftICAOcode.upper())] 
+            
+            logging.info(tabulate(self.flightListDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
             logging.info(self.flightListDataframe.shape)
             
     def computeBestRunways(self , originAirportICAOcode , destinationAirportICAOcode):
@@ -298,12 +298,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     
     train_rank_final = "rank"
-    flightIdsToRebuild = FlightIdsToRebuild (train_rank_final)
-    assert flightIdsToRebuild.readFlighIdsToRebuild()
-    flightIdsToRebuild.rebuildAllFlightIds()
+    aircraftICAOcodeToFilter = "A359"
     
-    train_rank_final = "train"
     flightIdsToRebuild = FlightIdsToRebuild (train_rank_final)
     assert flightIdsToRebuild.readFlighIdsToRebuild()
-    flightIdsToRebuild.rebuildAllFlightIds()
+    flightIdsToRebuild.rebuildAllFlightIds(aircraftICAOcodeToFilter)
+    
     

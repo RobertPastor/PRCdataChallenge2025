@@ -205,7 +205,7 @@ class FuelFlow(object):
 
         xx = self.np.linspace(0, 1, 50)
         yy = self.polyfuel(xx)
-        plt.plotFlightFeatureVersusTime(xx, yy, "--", color="gray")
+        plt.plot(xx, yy, "--", color="gray")
 
         if plotFlightFeatureVersusTime:
             plt.show()
