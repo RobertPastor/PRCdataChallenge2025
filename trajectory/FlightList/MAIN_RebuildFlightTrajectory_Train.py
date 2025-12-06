@@ -49,7 +49,7 @@ if __name__ == '__main__':
     flight_ids_list_toRebuild = flightIdsToRebuild.getFlightIdsListToRebuild()
 
     errorsDict = {}
-    #errorsDict = flightIdsToRebuild.rebuildAllFlightIds()
+    errorsDict = flightIdsToRebuild.rebuildAllFlightIds(aircraftICAOcodeToFilter)
     
     print("---------errors-----------")
     for key, value in errorsDict.items():

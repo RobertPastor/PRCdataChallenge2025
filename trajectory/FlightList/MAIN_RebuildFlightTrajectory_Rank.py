@@ -13,10 +13,11 @@ import pandas as pd
 import numpy as np
 from tabulate import tabulate
 from trajectory.Utils.utils import readNumberOfCPUs
-from pathos.multiprocessing import Pool
+from queue import Queue
 
 MaxFlightIdsInQueue =  5
 Static_Object = None
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
@@ -50,14 +51,13 @@ if __name__ == '__main__':
     data = [(flight_id, "A359") for flight_id in flight_ids_list_toRebuild]
     print (data)
     
+    ''' use a multi processes consumer queue '''
+    dataQueue = Queue()
+    for flight_id in flight_ids_list_toRebuild:
+        dataQueue.put_nowait((flight_id, "A359"))
+    
     nbCPUs = readNumberOfCPUs()
     logging.info(f"number of CPUs = {nbCPUs}")
-    
-    def call_method( *args):
-        method , flight_id , aircraftICAOcodeToFilter = args[0]
-        print(f"launching class method with arguments  = {flight_id} - {aircraftICAOcodeToFilter}")
-        """Call the given method with provided arguments."""
-        return method( flight_id , aircraftICAOcodeToFilter )
     
     counter = 0
     data = []
@@ -68,13 +68,14 @@ if __name__ == '__main__':
             
     results = []
     # do an asynchronous map, then get the results
-    with Pool(processes=nbCPUs) as pool:
-        data = data
-        result  = pool.apply_async(call_method, data)
-        results.append(result)
+    #with Pool(processes=nbCPUs) as pool:
+    #    data = data
+    #    result  = pool.apply_async(call_method, data)
+    #    results.append(result)
 
     # need to wait for all processes finish
-    while True:
+    stopOrContinue = True
+    while stopOrContinue:
         sleep(1)
         # catch exception if results are not ready yet
         try:

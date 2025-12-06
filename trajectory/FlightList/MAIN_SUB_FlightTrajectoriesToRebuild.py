@@ -50,6 +50,8 @@ class FlightIdsToRebuild(object):
         assert self.wayPointsDatabase.read() 
         logging.info ("number of way-points = {0}".format(self.wayPointsDatabase.getNumberOfWaypoints()) )
         pass
+    
+        self.errorsDict = {} 
         
     def readFlighIdsToRebuild(self):
         pass
@@ -65,7 +67,7 @@ class FlightIdsToRebuild(object):
         flight_ids_list = []
         for index , row in self.df_flight_ids.iterrows():
             flight_id = row["flight_id"]
-            logging.info (str(index) + " -> " +  flight_id)
+            #logging.info (str(index) + " -> " +  flight_id)
             
             folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
             fileName = flight_id + ".parquet"
@@ -77,7 +79,9 @@ class FlightIdsToRebuild(object):
         return flight_ids_list
 
     def rebuildAllFlightIds(self ,aircraftICAOcode):
+        counter = 0
         for index , row in self.df_flight_ids.iterrows():
+            
             flight_id = row["flight_id"]
             logging.info (str(index) + " -> " +  flight_id)
             
@@ -87,12 +91,24 @@ class FlightIdsToRebuild(object):
             if os.path.exists(filePathStr) and os.path.isfile(filePathStr):
                 logging.info ( "file path ->" + filePathStr + " has been already computed")
             else:
+                counter = counter + 1
+                if counter > 500:
+                    break
                 try:
                     self.rebuildOneFlightId(flight_id , aircraftICAOcode)
                 except Exception as e:
+                    self.errorsDict[flight_id] = "{0}".format(e)
                     logging.error("{0}".format(e))
                     
-    def rebuildOneFlightId(self , flight_id , aircraftICAOcode = "A359" ):
+        return self.errorsDict
+                    
+    def rebuildOneFlightId(self , argumentList ):
+        
+        flight_id = argumentList[0]
+        aircraftICAOcode = argumentList[1]
+        assert isinstance( flight_id , str )
+        assert isinstance( aircraftICAOcode , str )
+        print (" rebuildOneFlightId = " + flight_id + " -> aircraft ICAO code = " + aircraftICAOcode)
         try:
             print("--> rebuild flight = " + flight_id)
             flightTrajectoryReBuild = FlightTrajectoryReBuild( self.train_rank_final , flight_id , 
@@ -102,7 +118,7 @@ class FlightIdsToRebuild(object):
             flightTrajectoryReBuild.readFlightListDatabase(aircraftICAOcode)
             ac = flightTrajectoryReBuild.extractAircraftICAOcode()
             logging.info ("aircraft = " + ac  )
-            if (ac)and (str(ac).upper() == str(aircraftICAOcode).upper()):
+            if ((ac) and (aircraftICAOcode == None)) or ((ac) and (str(ac).upper() == str(aircraftICAOcode).upper())):
                 
                 originAirportICAOcode = flightTrajectoryReBuild.extractDepartureAirport()
                 logging.info( f"origin airport =>  {originAirportICAOcode}" )  
@@ -202,8 +218,9 @@ class FlightTrajectoryReBuild(object):
             logging.info("train rank final flight list read correctly")
             
             self.flightListDataframe = self.flightListDatabase.getTrainRankFinalFlightListDataframe(self.train_rank_final)
-            ''' filter on aircraft type = A359 '''
-            self.flightListDataframe = self.flightListDataframe[self.flightListDataframe['aircraft_type'] == str(aircraftICAOcode.upper())] 
+            if aircraftICAOcode:
+                ''' filter on aircraft type = A359 '''
+                self.flightListDataframe = self.flightListDataframe[self.flightListDataframe['aircraft_type'] == str(aircraftICAOcode.upper())] 
             
             logging.info(tabulate(self.flightListDataframe[:10], headers='keys', tablefmt='grid' , showindex=False , ))
             logging.info(self.flightListDataframe.shape)
@@ -260,7 +277,6 @@ class FlightTrajectoryReBuild(object):
         
     def computeFlightProfile(self ):
         self.aircraft = None
-        
         self.aircraft = OpenapAircraft( aircraftICAOcode = str(self.aircraftICAOcode).lower() , 
                                         earth                = self.earth , 
                                         atmosphere           = self.atmosphere ,
