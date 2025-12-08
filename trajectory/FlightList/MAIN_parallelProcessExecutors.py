@@ -31,7 +31,6 @@ from trajectory.FlightList.MAIN_SUB_FlightTrajectoriesToRebuild import FlightIds
 from trajectory.Utils.utils import readNumberOfCPUs
 
 from queue import Queue
-from concurrent.futures import ProcessPoolExecutor
 
 from pathos.multiprocessing import ProcessingPool
 
@@ -64,29 +63,7 @@ def fillInQueueWithFlightIds(   flight_ids_list_toRebuild ,aircraftICAOcodeToFil
     print("queue is filled")
     return dataQueue
 
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    logging.info("python version = " + platform.python_version())
-    logging.info("tensorflow version = " + tf.__version__)
-    logging.info("pandas version = " + pd. __version__)
-    logging.info("numpy version = " + np. __version__)
-        
-    logging.basicConfig(level=logging.DEBUG)
-    
-    
-    train_rank_final = "rank"
-    aircraftICAOcodeToFilter = "A359"
-    
-    flightIdsToRebuildObject = FlightIdsToRebuild (train_rank_final)
-    assert flightIdsToRebuildObject.readFlighIdsToRebuild()
-    
-    flight_ids_list_toRebuild = flightIdsToRebuildObject.getFlightIdsListToRebuild()
-    flight_ids_list_toRebuild_length = len(flight_ids_list_toRebuild)
-    logging.info(f"size of the flight ids to rebuild list = {flight_ids_list_toRebuild_length}")
-    
-    aircraftICAOcodeToFilter = "A359"
-    #flight_ids_queue = fillInQueueWithFlightIds( flight_ids_list_toRebuild , aircraftICAOcodeToFilter)
+def computeProfileForOneAircraft(aircraftICAOcodeToFilter , flight_ids_list_toRebuild , flightIdsToRebuildObject):
     
     dataArgumentsList = []
     for flight_id in flight_ids_list_toRebuild:
@@ -110,4 +87,31 @@ if __name__ == '__main__':
         pool.close()
         pool.join()
         pool.clear()
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    logging.info("python version = " + platform.python_version())
+    logging.info("tensorflow version = " + tf.__version__)
+    logging.info("pandas version = " + pd. __version__)
+    logging.info("numpy version = " + np. __version__)
+        
+    logging.basicConfig(level=logging.DEBUG)
+    
+    train_rank_final = "train"
+    #aircraftICAOcodeToFilter = "A359"
+    flightIdsToRebuildObject = FlightIdsToRebuild (train_rank_final)
+    
+    #flight_ids_list_toRebuild = flightIdsToRebuildObject.getFlightIdsListToRebuild()
+    #flight_ids_list_toRebuild_length = len(flight_ids_list_toRebuild)
+    #logging.info(f"size of the flight ids to rebuild list = {flight_ids_list_toRebuild_length}")
+    #         print("="*120)
+    ''' B789 -> fuel polar not available '''
+    for aircraftICAOcodeToFilter in ['A359' ,'B788', 'A332' ,'A21N' ,'A20N', 'A333', 'B738', 'A321' , \
+                                    'B739' ,'B77W' ,'B38M' ,'B737' ,'B772' ,'B744' ,'B763' ,'A319', 'B752' ,'MD11',\
+                                    'B77L' ,'A306' ,'B39M' ,'A318' ,'A388' ,'B748']:
+        
+        flight_ids_list_toRebuild = flightIdsToRebuildObject.getFlighIdsToRebuildFilteredByAircraft(aircraftICAOcodeToFilter)
+        
+        computeProfileForOneAircraft(aircraftICAOcodeToFilter ,flight_ids_list_toRebuild , flightIdsToRebuildObject)
     

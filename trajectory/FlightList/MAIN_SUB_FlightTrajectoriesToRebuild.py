@@ -31,6 +31,7 @@ from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsData
 class FlightIdsToRebuild(object):
     pass
     def __init__(self , train_rank_final ):
+        
         assert isinstance ( train_rank_final , str )
         assert train_rank_final == "train" or train_rank_final == "rank" or train_rank_final == "final"
         self.train_rank_final = train_rank_final
@@ -50,8 +51,29 @@ class FlightIdsToRebuild(object):
         assert self.wayPointsDatabase.read() 
         logging.info ("number of way-points = {0}".format(self.wayPointsDatabase.getNumberOfWaypoints()) )
         pass
-    
         self.errorsDict = {} 
+        
+    def getFlighIdsToRebuildFilteredByAircraft(self, aircraftICAOcodeToFilter):
+        print("="*120)
+        print("aircraft = " + aircraftICAOcodeToFilter)
+        print("="*120)
+
+        self.flightListDatabase = FlightListDatabase(self.train_rank_final)
+        assert self.flightListDatabase.readTrainRankFinalFlightListLite(self.train_rank_final)
+        logging.info("train rank final flight list read correctly")
+            
+        df = self.flightListDatabase.getTrainRankFinalFlightListDataframe(self.train_rank_final)
+        df = df[df["aircraft_type"] == aircraftICAOcodeToFilter]
+        dfSeries = df["flight_id"]
+        
+        flight_ids_list = []
+        for index, flight_id in dfSeries.items():
+            print(f"Index: {index}, Value: {flight_id}")
+            flight_ids_list.append(flight_id)
+        
+        print(flight_ids_list)
+        return flight_ids_list
+        
         
     def readFlighIdsToRebuild(self):
         pass
@@ -75,6 +97,22 @@ class FlightIdsToRebuild(object):
             if os.path.exists(filePathStr) and os.path.isfile(filePathStr):
                 logging.info ( "file path ->" + filePathStr + " has been already computed")
             else:
+                flight_ids_list.append(flight_id)
+        return flight_ids_list
+    
+    def getFlightIdsToRebuildForOneAircraft(self , aircraftICAOcodeToFilter):
+        flight_ids_list = []
+        for index , row in self.df_flight_ids.iterrows():
+            flight_id = row["flight_id"]
+            #logging.info (str(index) + " -> " +  flight_id)
+            
+            folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
+            fileName = flight_id + ".parquet"
+            filePathStr = os.path.join ( folder , fileName)
+            if os.path.exists(filePathStr) and os.path.isfile(filePathStr):
+                logging.info ( "file path ->" + filePathStr + " has been already computed")
+            else:
+                
                 flight_ids_list.append(flight_id)
         return flight_ids_list
 
@@ -105,9 +143,14 @@ class FlightIdsToRebuild(object):
     def rebuildOneFlightId(self , argumentList ):
         
         flight_id = argumentList[0]
-        aircraftICAOcode = argumentList[1]
         assert isinstance( flight_id , str )
-        assert isinstance( aircraftICAOcode , str )
+
+        aircraftICAOcode = argumentList[1]
+        if aircraftICAOcode == None:
+            ''' no filter on the aircraft type '''
+            pass
+        else:
+            assert isinstance( aircraftICAOcode , str )
         print (" rebuildOneFlightId = " + flight_id + " -> aircraft ICAO code = " + aircraftICAOcode)
         try:
             print("--> rebuild flight = " + flight_id)
@@ -277,18 +320,19 @@ class FlightTrajectoryReBuild(object):
         
     def computeFlightProfile(self ):
         self.aircraft = None
-        self.aircraft = OpenapAircraft( aircraftICAOcode = str(self.aircraftICAOcode).lower() , 
+        if (self.aircraftICAOcode):
+            self.aircraft = OpenapAircraft( aircraftICAOcode = str(self.aircraftICAOcode).lower() , 
                                         earth                = self.earth , 
                                         atmosphere           = self.atmosphere ,
                                         initialMassKilograms = None)
-        logging.info(self.aircraft)
+            logging.info(self.aircraft)
         if not (self.aircraft is None) :
             routeAsString = self.computeDirectRouteAsString()
             logging.info ( routeAsString )
             
             ''' 24th November 2025 - use maximum mass instead of reference mass '''
             flightPath = FlightPathOpenap(
-                    strRoute = routeAsString, 
+                    strRoute               = routeAsString, 
                     aircraftICAOcode       = self.aircraftICAOcode.lower(),
                     RequestedFlightLevel   = float( self.aircraft.getMaxCruiseFlightLevel() ), 
                     cruiseMach             = float( self.aircraft.getMaximumSpeedMmoMach() ), 

@@ -114,7 +114,6 @@ class FlightListDatabase(object):
         return airport.getLongitudeDegrees()
         
     def getOriginAirportICAOcode(self , train_rank, flight_id ):
-        
         if train_rank == 'train':
             origin_icao = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
             return origin_icao
@@ -140,7 +139,6 @@ class FlightListDatabase(object):
             #logging.info ( str ( origin_icao ) )
             return origin_icao
           
-    
     def getDestinationICAOairport(self , train_rank, flight_id):
         if train_rank == 'train':
             destination_icao = self.TrainFlightListDataframe[self.TrainFlightListDataframe['flight_id'] == flight_id]["destination_icao"].iloc[0]
@@ -413,6 +411,19 @@ class FlightListDatabase(object):
             return True
         else:
             return False
+        
+    def collectUniqueAircrafts(self):
+        df = None
+        logging.info(self.className + ": ------- collect Unique Airports -------- ")
+        if self.train_rank_final == "rank":
+            pass
+        elif self.train_rank_final == "train":
+            df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+            df = df['aircraft_type'].unique()
+            
+        else:
+            pass
+        return df
     
     def collectUniqueAirports(self):
         
