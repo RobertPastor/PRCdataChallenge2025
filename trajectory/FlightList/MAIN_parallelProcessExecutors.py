@@ -99,6 +99,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     
     train_rank_final = "train"
+    train_rank_final = "rank"
     #aircraftICAOcodeToFilter = "A359"
     flightIdsToRebuildObject = FlightIdsToRebuild (train_rank_final)
     
