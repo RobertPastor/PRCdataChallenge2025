@@ -23,6 +23,7 @@ from trajectory.Environment.Runways.RunWaysDatabaseFile import RunWaysDataBase
 from openap import prop
 
 from trajectory.Openap.AircraftMainFile import OpenapAircraft
+from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsDatabase
 
 from trajectory.GuidanceOpenap.FlightPathOpenapFile import FlightPathOpenap
 
@@ -31,8 +32,10 @@ class Test_Main(unittest.TestCase):
 
     def test_main_one(self):
         
+        print ("----------------------- test one --------------------------")
+        
         airportsDatabase = AirportsDatabase()
-        if airportsDatabase.read():
+        if airportsDatabase.readAsDict():
             print ("Airports database read correctly" )
             #for country in airportsDatabase.getCountries():
             #    print ( country )
@@ -45,19 +48,29 @@ class Test_Main(unittest.TestCase):
             
     def test_main_two(self):
         
+        print ("----------------------- test two --------------------------")
+        
         earth = Earth()
         atmosphere = Atmosphere()
         
-        start_time = time()
+        airportsDatabase = AirportsDatabase()
+        assert airportsDatabase.readAsDict()
         
+        runwaysDataBase = RunWaysDataBase()
+        assert runwaysDataBase.read()
+        
+        waypointsDataBase = WayPointsDatabase()
+        assert waypointsDataBase.read()
+        
+        start_time = time()
         ''' warning : wrap aircraft code letters must be in lower case '''
         aircraftICAOcode = 'a320'
         #aircraftICAOcode = 'a332'
         
         logging.info("Trajectory Compute Wrap - " + aircraftICAOcode)
-        Adep = "KATL"
-        Ades = "KLAX"
-        route = 'KATL-KLAX'
+        Adep = "MSLP"
+        Ades = "KOAK"
+        route = 'MSLP-KOAK'
         #route = "MMMX-KSEA"
         
         AdepRunway = "27R"
@@ -97,29 +110,35 @@ class Test_Main(unittest.TestCase):
                 logging.error( "Aircraft code = {0} not in openap Wrap".format( aircraftICAOcode ))
             else:
             
-                    strRoute = "ADEP" + "/" + Adep + "/" + AdepRunway 
-                    strRoute += "-" + "VUZ" + "-" + "ABQ" + "-" + "TNP" 
-                    strRoute += "-" + "ADES" + "/" + Ades + "/" + AdesRunway 
-                    logging.info(strRoute)
-                    flightPath = FlightPathOpenap(
-                            route                = strRoute, 
-                            aircraftICAOcode     = aircraftICAOcode,
-                            RequestedFlightLevel = cruiseFlightLevel, 
-                            cruiseMach           = targetCruiseMach, 
-                            takeOffMassKilograms = takeOffWeightKg)
-                    try:
-                        flightPath.computeFlight(deltaTimeSeconds = 1.0)
+                strRoute = "ADEP" + "/" + Adep + "/" + AdepRunway 
+                #strRoute += "-" + "VUZ" + "-" + "ABQ" + "-" + "TNP" 
+                strRoute += "-" + "ADES" + "/" + Ades + "/" + AdesRunway 
+                logging.info(strRoute)
+                flightPath = FlightPathOpenap(
+                        strRoute             = strRoute, 
+                        aircraftICAOcode     = aircraftICAOcode,
+                        RequestedFlightLevel = cruiseFlightLevel, 
+                        cruiseMach           = targetCruiseMach, 
+                        takeOffMassKilograms = takeOffWeightKg ,
+                        reducedClimbPowerCoeff = 0.0 ,
+                        earth                = earth ,
+                        atmosphere           = atmosphere,
+                        airportsDatabase     = airportsDatabase ,
+                        runwaysDataBase      = runwaysDataBase,
+                        waypointsDatabase    = waypointsDataBase ,
+                        directRoute          = True)
+                try:
+                    flightPath.computeFlight(deltaTimeSeconds = 1.0)
                         
-                        end_time = time()
-                        seconds_elapsed = end_time - start_time
+                    end_time = time()
+                    seconds_elapsed = end_time - start_time
                     
-                        hours, rest = divmod(seconds_elapsed, 3600)
-                        minutes, seconds = divmod(rest, 60)
-                        logging.info ( "hours = {0} - minutes = {1} - seconds = {2:.2f}".format( hours, minutes, seconds))
-                        
-                        
-                        #flightPath.createStateVectorHistoryFile()
-                        #flightPath.createKmlXmlDocument()
+                    hours, rest = divmod(seconds_elapsed, 3600)
+                    minutes, seconds = divmod(rest, 60)
+                    logging.info ( "hours = {0} - minutes = {1} - seconds = {2:.2f}".format( hours, minutes, seconds))
                     
-                    except Exception as e:
-                        logging.error("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )
+                    flightPath.createStateVectorHistoryFile()
+                    flightPath.createKmlXmlDocument()
+                    
+                except Exception as e:
+                    logging.error("Trajectory Compute Wrap - Exception = {0}".format( str(e ) ) )

@@ -81,6 +81,7 @@ class FlightPlan(FixList):
         
         assert isinstance ( waypointsDatabase , WayPointsDatabase)
         self.waypointsDatabase = waypointsDatabase
+        
         logging.info( self.className + " - size of waypoints database = {0}".format(self.waypointsDatabase.getNumberOfWaypoints()))
 
         self.buildFixList()

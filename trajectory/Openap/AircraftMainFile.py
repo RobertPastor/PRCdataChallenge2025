@@ -29,6 +29,8 @@ class OpenapAircraft(OpenapAircraftConfiguration):
         
         logger.setLevel(logging.INFO)
         self.className = self.__class__.__name__
+        assert isinstance (earth, Earth)
+        assert isinstance (atmosphere, Atmosphere)
         super().__init__(aircraftICAOcode , earth , atmosphere)
 
         self.aircraftICAOcode = aircraftICAOcode
