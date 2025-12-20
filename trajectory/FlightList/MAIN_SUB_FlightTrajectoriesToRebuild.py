@@ -50,7 +50,7 @@ class FlightIdsToRebuild(object):
         assert self.wayPointsDatabase.exists()
         assert self.wayPointsDatabase.read() 
         logging.info ("number of way-points = {0}".format(self.wayPointsDatabase.getNumberOfWaypoints()) )
-        pass
+        
         self.errorsDict = {} 
         
     def getFlighIdsToRebuildFilteredByAircraft(self, aircraftICAOcodeToFilter):
@@ -74,9 +74,8 @@ class FlightIdsToRebuild(object):
         print(flight_ids_list)
         return flight_ids_list
         
-        
     def readFlighIdsToRebuild(self):
-        pass
+        
         self.filesFolder = os.path.dirname(__file__)
         self.fileName = self.train_rank_final + "_" "FlightIdsToRebuild" + ".xlsx"
         self.filePath = os.path.join ( self.filesFolder, self.fileName)
@@ -112,17 +111,14 @@ class FlightIdsToRebuild(object):
             if os.path.exists(filePathStr) and os.path.isfile(filePathStr):
                 logging.info ( "file path ->" + filePathStr + " has been already computed")
             else:
-                
                 flight_ids_list.append(flight_id)
         return flight_ids_list
 
     def rebuildAllFlightIds(self ,aircraftICAOcode):
         counter = 0
         for index , row in self.df_flight_ids.iterrows():
-            
             flight_id = row["flight_id"]
             logging.info (str(index) + " -> " +  flight_id)
-            
             folder = self.flightsDatabase.getTrainRankFinalFlightsComputedFolderPathStr(self.train_rank_final)
             fileName = flight_id + ".parquet"
             filePathStr = os.path.join ( folder , fileName)
@@ -137,14 +133,11 @@ class FlightIdsToRebuild(object):
                 except Exception as e:
                     self.errorsDict[flight_id] = "{0}".format(e)
                     logging.error("{0}".format(e))
-                    
         return self.errorsDict
                     
     def rebuildOneFlightId(self , argumentList ):
-        
         flight_id = argumentList[0]
         assert isinstance( flight_id , str )
-
         aircraftICAOcode = argumentList[1]
         if aircraftICAOcode == None:
             ''' no filter on the aircraft type '''
@@ -162,15 +155,12 @@ class FlightIdsToRebuild(object):
             ac = flightTrajectoryReBuild.extractAircraftICAOcode()
             logging.info ("aircraft = " + ac  )
             if ((ac) and (aircraftICAOcode == None)) or ((ac) and (str(ac).upper() == str(aircraftICAOcode).upper())):
-                
                 originAirportICAOcode = flightTrajectoryReBuild.extractDepartureAirport()
                 logging.info( f"origin airport =>  {originAirportICAOcode}" )  
                 destinationAirportICAOcode =   flightTrajectoryReBuild.extractDestinationAirport()
                 logging.info( f"destination airport =>  {destinationAirportICAOcode}" )
-                
                 logging.info (f"take-off instant =  {flightTrajectoryReBuild.extractTakeOffInstant()}")
                 logging.info (f"landed instant = {flightTrajectoryReBuild.extractLandedInstant()}")
-                
                 flightTrajectoryReBuild.readAirports(originAirportICAOcode,destinationAirportICAOcode)
                 if flightTrajectoryReBuild.readRunways(originAirportICAOcode,destinationAirportICAOcode):
                     flightTrajectoryReBuild.computeBestRunways(originAirportICAOcode,destinationAirportICAOcode)

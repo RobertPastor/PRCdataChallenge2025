@@ -28,18 +28,16 @@ from trajectory.Environment.WayPoints.WayPointsDatabaseFile import WayPointsData
 from trajectory.FlightList.MAIN_SUB_FlightTrajectoriesToRebuild import FlightIdsToRebuild
 from trajectory.Utils.utils import readNumberOfCPUs
 
-
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info("python version = " + platform.python_version())
     logging.info("tensorflow version = " + tf.__version__)
     logging.info("pandas version = " + pd. __version__)
     logging.info("numpy version = " + np. __version__)
-        
+    
     logging.basicConfig(level=logging.DEBUG)
     
     nbCPUs = readNumberOfCPUs()
-    
     aircraftICAOcodeToFilter = None
     
     train_rank_final = "train"
@@ -47,7 +45,7 @@ if __name__ == '__main__':
     assert flightIdsToRebuild.readFlighIdsToRebuild()
     
     flight_ids_list_toRebuild = flightIdsToRebuild.getFlightIdsListToRebuild()
-
+    
     errorsDict = {}
     errorsDict = flightIdsToRebuild.rebuildAllFlightIds(aircraftICAOcodeToFilter)
     

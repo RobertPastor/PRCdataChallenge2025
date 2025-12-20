@@ -138,6 +138,7 @@ class FlightListDatabase(object):
             origin_icao = self.FinalFlightListDataframe[self.FinalFlightListDataframe['flight_id'] == flight_id]["origin_icao"].iloc[0]
             #logging.info ( str ( origin_icao ) )
             return origin_icao
+    
           
     def getDestinationICAOairport(self , train_rank, flight_id):
         if train_rank == 'train':
@@ -199,10 +200,21 @@ class FlightListDatabase(object):
         ac = df.iloc[first_row_index, aircraft_index]
         return ac
     
+    def collectFlightIdsForOneAircraftType(self , aircraftICAOcode ):
+        assert isinstance(aircraftICAOcode , str)
+        print ( self.className + " - aircraft ICAO caode = " + aircraftICAOcode)
+        
+        df = self.getTrainRankFinalFlightListDataframe( self.train_rank_final )
+        df = df[df['aircraft_type'] == aircraftICAOcode]
+        flight_ids_list = df['flight_id'].unique().tolist()
+        
+        #for flight_id in flight_ids_list:
+        #    print("flight_id  = " , str(flight_id) )
+        return flight_ids_list
+    
     def collectUniqueAircraftTypesFromTrainFlightList(self):
         
         assert self.extendTrainFlightListWithAircraftData() == True
-        
         df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
         aircraft_codes_list = df['aircraft_type'].unique().tolist()
         
@@ -240,11 +252,9 @@ class FlightListDatabase(object):
         logging.info(directory)
         
         file = Path(self.filePathFlightListTrain)
-        
         if directory.is_dir() and file.is_file():
             
             self.TrainFlightListDataframe = pd.read_parquet ( self.filePathFlightListTrain )
-            
             assert list(self.TrainFlightListDataframe) == initialHeaders
             
             ''' convert to datetime UTC '''
@@ -415,10 +425,13 @@ class FlightListDatabase(object):
     def collectUniqueAircrafts(self):
         df = None
         logging.info(self.className + ": ------- collect Unique Airports -------- ")
-        if self.train_rank_final == "rank":
-            pass
-        elif self.train_rank_final == "train":
+        
+        if self.train_rank_final == "train":
             df = self.TrainFlightListDataframe [self.TrainFlightListDataframe['aircraft_type'].notnull()]
+            df = df['aircraft_type'].unique()
+        
+        elif self.train_rank_final == "rank":
+            df = self.RankFlightListDataframe [self.RankFlightListDataframe['aircraft_type'].notnull()]
             df = df['aircraft_type'].unique()
             
         else:

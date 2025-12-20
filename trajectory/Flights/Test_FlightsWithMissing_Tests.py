@@ -18,8 +18,10 @@ from datetime import datetime, timedelta
 
 from trajectory.Utils.utils import dropUnusedColumns
 
-listOfErroneousFlightIds = ["prc770822360","prc770885136","prc770887555",
+listOfErroneousTrainFlightIds = ["prc770822360","prc770885136","prc770887555",
                             "prc770893597","prc772539375","prc776853928","prc777326263","prc784305329"]
+
+listOfErroneousRankFlightIds = ["prc812902111","prc810968347","prc813183257", "prc808511860"]
 
 def addTimeDiffSeconds(self , df):
     df['time_diff_seconds'] = (df['end'] - df['start']).dt.total_seconds()
@@ -44,27 +46,43 @@ def plotFlightFeatureVersusTime ( timeSeries, valuesToPlot , columnName , flight
 #============================================
 class Test_Main(unittest.TestCase):
     
-    def test_main_one(self):
-        pass
-    
-        for flight_id in listOfErroneousFlightIds:
-            print(" ========================== ")
+    def test_main_one_train(self):
+        for flight_id in listOfErroneousTrainFlightIds:
+            print(" ============train============== ")
             print ( flight_id )
-            
             flightsDatabase = FlightsDatabase()
             df = flightsDatabase.readOneTrainFileLite(flight_id)
-    
             for columnName in ["latitude","longitude",'altitude' ]:
                 print ( columnName )
-                
-                timeSeries = df['timestamp']                
+                timeSeries = df['timestamp']
                 seriesToPlot = df[columnName]
+                plotFlightFeatureVersusTime( timeSeries , seriesToPlot , columnName , flight_id )
                 
-                plotFlightFeatureVersusTime( timeSeries , seriesToPlot , columnName , flight_id)
-
+    ''' prc777326263 has pikes in latitude and longited '''
+    ''' prc784305329 has discontinuities in latitude '''
+    ''' prc784305329 missing climb phase '''
+                
+    def test_main_two_rank(self):
+        
+        for flight_id in listOfErroneousRankFlightIds:
+            print(" ============rank============== ")
+            print ( flight_id )
+            flightsDatabase = FlightsDatabase()
+            df = flightsDatabase.readOneRankFileLite(flight_id)
+            for columnName in ["latitude","longitude",'altitude' ]:
+                print ( columnName )
+                timeSeries = df['timestamp']
+                seriesToPlot = df[columnName]
+                plotFlightFeatureVersusTime( timeSeries , seriesToPlot , columnName , flight_id )
+                
+        ''' prc812902111 20 minutes cruise phase '''
+        ''' prc810968347 latitude discontinuity '''
+        ''' prc810968347 only part of descent phase '''
+        ''' prc813183257 20 minutes max in cruise '''
+        
+        
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     print(pd. __version__)
-    
     unittest.main()

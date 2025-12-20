@@ -240,6 +240,20 @@ class FlightsDatabase(object):
         self.FlightsDataframe = pd.read_parquet(flightFilePath)
         return self.FlightsDataframe
     
+    def readOneRankFileLite(self, fileName ):
+        
+        if str(fileName).endswith("parquet") == False:
+            fileName = fileName + ".parquet"
+        
+        #logging.info(self.className + ": file name = " + fileName)
+        filePath = os.path.join( self.filesFolderRank , fileName)
+        file = Path(filePath)
+        
+        assert file.is_file() == True
+        
+        self.FlightsRankDataframe = pd.read_parquet(filePath)
+        return self.FlightsRankDataframe
+    
     def readOneTrainFileLite(self, fileName ):
         
         if str(fileName).endswith("parquet") == False:
