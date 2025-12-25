@@ -5,7 +5,6 @@ Created on 1 nov. 2025
 '''
 
 from minio import Minio
-from minio.datatypes import Object
 import re
 
 import numpy as np
