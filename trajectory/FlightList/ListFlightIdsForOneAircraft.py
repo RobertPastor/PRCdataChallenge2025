@@ -1,9 +1,9 @@
 '''
-Created on 7 déc. 2025
+Created on 25 déc. 2025
 
 @author: robert
-
 '''
+import unittest
 
 import logging
 import unittest
@@ -16,28 +16,34 @@ from tabulate import tabulate
 #============================================
 class Test_Main(unittest.TestCase):
 
-    def test_Rank_flightlist_2_AircraftCodes(self):
+    def test_Rank_flightlist_4_AircraftCode(self):
         print("------------test_main rank----------------")
         
         train_rank_final = "rank"
         flightList = FlightListDatabase(train_rank_final)
-        
         assert flightList.readRankFlightListLite()
-        df = flightList.collectUniqueAircrafts ()
-        print(df)
         
-    def test_Train_flightlist_2_AircraftCodes(self):
+        flight_ids_list = flightList.collectFlightIdsForOneAircraftType('A320')
+        print ( flight_ids_list )
+        print ( len(flight_ids_list) )
+        
+        
+    def test_Train_flightlist_4_AircraftCode(self):
         print("------------test_main train----------------")
         
         train_rank_final = "train"
         flightList = FlightListDatabase(train_rank_final)
-        
         assert flightList.readTrainFlightListLite()
-        df = flightList.collectUniqueAircrafts ()
-        print(df)
-
         
+        flight_ids_list = flightList.collectFlightIdsForOneAircraftType('A320')
+        print ( flight_ids_list )
+        print ( len(flight_ids_list) )
+
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     
     unittest.main()
+    
+

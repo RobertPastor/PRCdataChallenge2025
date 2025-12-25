@@ -27,7 +27,7 @@ import logging
 
 from pathlib import Path
 
-from TensorFlow.BBB_TensorFlowBaseClassFile import TensorFlowBaseClass
+from TensorFlow.LinearRegression.BBB_TensorFlowBaseClassFile import TensorFlowBaseClass
 
 TrainDataSetRowCount = 131530
 RankDataSetRowCount = 24289

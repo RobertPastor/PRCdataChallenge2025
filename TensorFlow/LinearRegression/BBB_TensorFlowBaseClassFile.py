@@ -39,7 +39,7 @@ import logging
 from pathlib import Path
 from tabulate import tabulate
 
-from TensorFlow.CCC_TensorFlowSpeedBaseClassFile import TensorFlowSpeedBaseClass
+from TensorFlow.LinearRegression.CCC_TensorFlowSpeedBaseClassFile import TensorFlowSpeedBaseClass
 
 class TensorFlowBaseClass(TensorFlowSpeedBaseClass):
     
