@@ -21,7 +21,6 @@ from tabulate import tabulate
 ''' warning - use tensor flow 2.12.0 not the latest 2.20.0 that is causing DLL problems '''
 import tensorflow as tf
 
-
 from trajectory.Utils.utils import dropUnusedColumns
 import logging
 
@@ -236,7 +235,8 @@ if __name__ == '__main__':
     javaTrainRankfilesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents/"
     ''' common class instance '''
     prcDataChallenge2025Submissions = PRCdataChallenge2025Submissions(extendedFuelTrainDataFileName , \
-                                                                      extendedRankFuelDataFileName, extendedFinalFuelDataFileName ,\
+                                                                      extendedRankFuelDataFileName, \
+                                                                      extendedFinalFuelDataFileName ,\
                                                                       javaTrainRankfilesFolder)
     
     ''' in order to apply the same transformations - first concatenate train and rank '''
