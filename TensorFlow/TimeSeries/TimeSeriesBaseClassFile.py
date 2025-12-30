@@ -51,7 +51,7 @@ class FlightTimeSeriesBaseClass(object):
         df = df[df['aircraft_type']==aircraft_type_code]
         print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
         
-    def identifyMostFlownRoutes(self):
+    def compute_most_flown_routes(self):
         logging.info("---- identify Most Flown Routes  ---")
         df = self.trainFlightListDataFrame
 
@@ -93,7 +93,7 @@ class FlightTimeSeriesBaseClass(object):
                 origin_airport = str(result).split("-")[0]
                 logging.info (self.class_name + " - most flown origin airport = " + origin_airport )
                 
-    def concat_flights(self):
+    def compute_flight_phases(self):
         logging.info("---- concat flights ---")
         logging.info (self.class_name + " - " + str( self.top_most_flown_route ) )
 
@@ -115,15 +115,35 @@ class FlightTimeSeriesBaseClass(object):
             print(" --------------------------- " + flight_id + " --------------------")
             index = index + 1
             fileName = flight_id + ".parquet"
-            df_flight = flightsDatabase.readOneTrainFileLite(fileName)
+            df = flightsDatabase.readOneTrainFileLite(fileName)
             logging.info (self.class_name + " - index = {0} - train flight id = {1}".format( index , str( flight_id ) ) )
 
             # Count total NaNs in the DataFrame
-            total_nans = df_flight.isna().sum().sum()
-            print("\nTotal NaNs in DataFrame: {0} - nb rows = {1}".format ( total_nans , df_flight.shape[0]) )
+            total_nans = df.isna().sum().sum()
+            print("\nTotal NaNs in DataFrame: {0} - nb rows = {1}".format ( total_nans , df.shape[0]) )
             
-            print(df_flight.isna().sum())
+            #print(df_flight.isna().sum())
             
+            # Keep only 'team' and 'points' columns
+            df = df[['timestamp','altitude', 'groundspeed','vertical_rate']]
+            print (list ( df ))
+            
+            # Rename columns
+            df = df.rename(columns={'timestamp':'ts','altitude': 'alt', 'groundspeed': 'spd','vertical_rate':'roc'}).copy()
+            print (list ( df ))
+            
+            # Convert 'timestamp' column to datetime
+            df['ts'] = pd.to_datetime(df['ts'])
+            df['time_difference'] = df['ts'] - df['ts'].min()
+
+            df['time_difference_seconds'] = df['time_difference'].dt.total_seconds()
+            
+            # Sort by 'timestamp' column
+            df = df.sort_values(by='time_difference_seconds')
+            print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
+
+            print ( df.dtypes )
+
             #print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
             #print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
 

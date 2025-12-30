@@ -40,7 +40,7 @@ def zmf(x, a, b):
     a : float
         'ceiling', where the function begins falling from 1.
     b : float
-        'foot', where the function reattains zero.
+        'foot', where the function re-attains zero.
 
     Returns
     -------

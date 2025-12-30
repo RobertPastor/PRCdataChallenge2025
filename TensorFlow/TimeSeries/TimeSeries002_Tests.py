@@ -32,8 +32,8 @@ class Test(unittest.TestCase):
 
         aircraft_icao_code = "A320"
         flightTimeSeriesClass = FlightTimeSeriesClass(aircraft_icao_code)
-        flightTimeSeriesClass.identifyMostFlownRoutes()
-        flightTimeSeriesClass.concat_flights()
+        flightTimeSeriesClass.compute_most_flown_routes()
+        flightTimeSeriesClass.compute_flight_phases()
             
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
