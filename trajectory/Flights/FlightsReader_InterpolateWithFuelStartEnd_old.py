@@ -25,7 +25,6 @@ def fill_Fuel_Frame_with_empty_columns_for_interpolation(df):
     # Add an empty column (filled with NaN)
     for columnName in listOfColumns:
         df[columnName] = np.nan
-    
     return df
 
 def build_Fuel_Dataframe_from_start_end( fuelTrainDataframe ):

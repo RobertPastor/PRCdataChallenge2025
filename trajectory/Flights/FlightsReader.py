@@ -16,7 +16,6 @@ initialHeaders = ['timestamp', 'flight_id','typecode','latitude', 'longitude', '
 ''' type_code renamed as aircraft_type_code '''
 expectedHeaders = ['timestamp', 'flight_id', 'aircraft_type_code', 'latitude', 'longitude', 'altitude', 'groundspeed', 'track', 'vertical_rate', 'mach', 'TAS', 'CAS', 'source']
 
-
 def datetime_range(start, end, delta):
     current = start
     while current < end:
@@ -103,6 +102,12 @@ class FlightsDatabase(object):
     
     def getFlightId(self):
         return self.flightId
+    
+    def getMinTimeStamp(self , df_flight):
+        return df_flight['timestamp'].min()
+    
+    def getMaxTimeStamp(self , df_flight):
+        return df_flight['timestamp'].max()
     
     def interpolateTimeSeries(self , df_flight ):
         

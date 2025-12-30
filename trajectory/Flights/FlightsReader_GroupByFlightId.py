@@ -17,8 +17,7 @@ from tabulate import tabulate
 class Test_Main(unittest.TestCase):
     
     def test_visit_train_flights(self):
-        pass
-    
+        
         fligthsDatabase = FlightsDatabase()
         trainFlightsFolderStr = fligthsDatabase.getTrainFlightsFolderPathStr()
         trainFlightsFolderPath = Path(trainFlightsFolderStr)

@@ -25,7 +25,7 @@ from TensorFlow.TimeSeries.TimeSeriesClassFile import FlightTimeSeriesClass
 
 class Test(unittest.TestCase):
 
-    def testName(self):
+    def test_first_test(self):
         print ("--- test one ---")
         extendedFuelTrainDataFileName = "ExtendedFuel_train_2025-12-27-13-58-14.parquet"
         javaTrainRankfilesFolder = "C:/Users/rober/eclipse-2025-09/eclipse-jee-2025-09-R-win32-x86_64/Data-Challenge-2025/documents/"

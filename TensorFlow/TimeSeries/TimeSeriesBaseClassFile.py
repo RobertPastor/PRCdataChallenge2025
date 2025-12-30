@@ -112,11 +112,18 @@ class FlightTimeSeriesBaseClass(object):
 
         index = 0
         for flight_id in flight_ids_list:
+            print(" --------------------------- " + flight_id + " --------------------")
             index = index + 1
             fileName = flight_id + ".parquet"
             df_flight = flightsDatabase.readOneTrainFileLite(fileName)
+            logging.info (self.class_name + " - index = {0} - train flight id = {1}".format( index , str( flight_id ) ) )
+
+            # Count total NaNs in the DataFrame
+            total_nans = df_flight.isna().sum().sum()
+            print("\nTotal NaNs in DataFrame: {0} - nb rows = {1}".format ( total_nans , df_flight.shape[0]) )
+            
+            print(df_flight.isna().sum())
             
             #print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
-            print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
-            logging.info (self.class_name + " - index = {0} - train flight id = {1}".format( index , str( flight_id ) ) )
+            #print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
 
