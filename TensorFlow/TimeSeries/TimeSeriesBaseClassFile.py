@@ -17,6 +17,8 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 
+from openap.phase import FlightPhase
+
 mpl.rcParams['figure.figsize'] = (8, 6)
 mpl.rcParams['axes.grid'] = False
 
@@ -120,17 +122,17 @@ class FlightTimeSeriesBaseClass(object):
 
             # Count total NaNs in the DataFrame
             total_nans = df.isna().sum().sum()
-            print("\nTotal NaNs in DataFrame: {0} - nb rows = {1}".format ( total_nans , df.shape[0]) )
+            #print("\nTotal NaNs in DataFrame: {0} - nb rows = {1}".format ( total_nans , df.shape[0]) )
             
             #print(df_flight.isna().sum())
             
-            # Keep only 'team' and 'points' columns
+            # Keep only 'timestamp','altitude', 'groundspeed','vertical_rate' columns
             df = df[['timestamp','altitude', 'groundspeed','vertical_rate']]
-            print (list ( df ))
+            #print (list ( df ))
             
             # Rename columns
             df = df.rename(columns={'timestamp':'ts','altitude': 'alt', 'groundspeed': 'spd','vertical_rate':'roc'}).copy()
-            print (list ( df ))
+            #print (list ( df ))
             
             # Convert 'timestamp' column to datetime
             df['ts'] = pd.to_datetime(df['ts'])
@@ -138,11 +140,32 @@ class FlightTimeSeriesBaseClass(object):
 
             df['time_difference_seconds'] = df['time_difference'].dt.total_seconds()
             
-            # Sort by 'timestamp' column
-            df = df.sort_values(by='time_difference_seconds')
-            print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
+            df = df.drop(['ts', 'time_difference'], axis=1 )
+            df = df.rename(columns={'time_difference_seconds':'ts'}).copy()
 
-            print ( df.dtypes )
+            # Sort by 'timestamp' column
+            df = df.sort_values(by='ts')
+            #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
+
+            #print ( df.dtypes )
+            
+            ts = df["ts"].values
+            ts = ts - ts[0]
+            alt = df["alt"].values
+            spd = df["spd"].values
+            roc = df["roc"].values
+
+            ts_ = np.arange(0, ts[-1], 1)
+            alt_ = np.interp(ts_, ts, alt)
+            spd_ = np.interp(ts_, ts, spd)
+            roc_ = np.interp(ts_, ts, roc)
+
+            fp = FlightPhase()
+            fp.set_trajectory(ts_, alt_, spd_, roc_)
+            labels = fp.phaselabel()
+            #print ( labels )
+            #print ( set(labels))
+            print (list(dict.fromkeys(labels)))
 
             #print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
             #print(tabulate(df_flight[:3], headers='keys', tablefmt='grid' , showindex=False , ))
