@@ -53,6 +53,16 @@ class FlightTimeSeriesBaseClass(object):
         df = df[df['aircraft_type']==aircraft_type_code]
         print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
         
+    def create_plot(self , df ):
+        
+        print ( list ( df ))
+        plot_cols = ['altitude', 'groundspeed', 'vertical_rate']
+        plot_features = df[plot_cols]
+        plot_features.index = df['timestamp']
+        _ = plot_features.plot(subplots=True)
+        
+        plt.show()
+        
     def compute_most_flown_routes(self):
         logging.info("---- identify Most Flown Routes  ---")
         df = self.trainFlightListDataFrame
@@ -95,8 +105,66 @@ class FlightTimeSeriesBaseClass(object):
                 origin_airport = str(result).split("-")[0]
                 logging.info (self.class_name + " - most flown origin airport = " + origin_airport )
                 
-    def compute_flight_phases(self):
+    def concat_dataframes(self):
+        
         logging.info("---- concat flights ---")
+        logging.info (self.class_name + " - " + str( self.top_most_flown_route ) )
+
+        df = self.trainFlightListDataFrame
+        origin_airport_code = str(self.top_most_flown_route).split("-")[0]
+
+        df = df[df['origin_icao']==origin_airport_code]
+        df = df[df['aircraft_type']==self.aircraft_type_code]
+
+        #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        flight_ids_list = df['flight_id'].unique().tolist()
+        logging.info (self.class_name + " - length of list of flight ids = " + str( len ( flight_ids_list ) ) )
+        
+        flightsDatabase = FlightsDatabase()
+
+        index = 0
+        first = True
+        max_timestamp = 0.0
+        for flight_id in flight_ids_list:
+            print(" --------------------------- " + flight_id + " --------------------")
+            index = index + 1
+            if index > 50:
+                break
+            fileName = flight_id + ".parquet"
+            df = flightsDatabase.readOneTrainFileLite(fileName)
+            logging.info (self.class_name + " - index = {0} - train flight id = {1}".format( index , str( flight_id ) ) )
+            
+            # Convert 'timestamp' column to datetime
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df['time_difference'] = df['timestamp'] - df['timestamp'].min()
+            
+            df['time_difference_seconds'] = df['time_difference'].dt.total_seconds()
+            
+            df = df.drop(['timestamp', 'time_difference'], axis=1 )
+            df = df.rename(columns={'time_difference_seconds':'timestamp'}).copy()
+            
+            # Sort by 'timestamp' column
+            df = df.sort_values(by='timestamp')
+            
+            if first == True:
+                df_concat = df
+                max_timestamp = df['timestamp'].max()
+                first = False
+                
+            else:
+                df['timestamp'] = df['timestamp'] + max_timestamp
+                df_concat = pd.concat([df_concat,df])
+                max_timestamp = df['timestamp'].max()
+            
+            print ("---- concat dataframe length = {0}".format( df_concat.shape[0]))
+        ''' clean '''
+        df_concat.drop(df_concat[df_concat['groundspeed'] > 600.0].index, inplace=True)
+        df_concat.drop(df_concat[df_concat['vertical_rate'] < -3000.0].index, inplace=True)
+        self.create_plot( df_concat )
+                
+    def compute_flight_phases(self):
+        logging.info("---- compute flight phases ---")
         logging.info (self.class_name + " - " + str( self.top_most_flown_route ) )
 
         df = self.trainFlightListDataFrame
