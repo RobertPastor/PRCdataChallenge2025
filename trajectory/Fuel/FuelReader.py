@@ -288,7 +288,6 @@ class FuelDatabase(object):
                 self.FuelDataframe = pd.read_parquet ( self.filePathFuelFinal )
                 return self.FuelDataframe
                
-        
         return None
         
     def readFuelTrain(self):

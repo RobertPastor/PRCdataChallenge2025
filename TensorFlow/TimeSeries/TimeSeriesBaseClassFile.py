@@ -27,6 +27,7 @@ import logging
 
 from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
+from trajectory.Fuel.FuelReader import FuelDatabase
 
 class FlightTimeSeriesBaseClass(object):
     '''
@@ -40,17 +41,23 @@ class FlightTimeSeriesBaseClass(object):
         logging.basicConfig(level=logging.INFO)
         logging.info(self.class_name + " --- constructor ---")
         
-        ''' use train dataset to beneficiate from fuel consumption data '''
         self.aircraft_type_code = aircraft_type_code
         
+        ''' use train dataset to beneficiate from fuel consumption data '''
         train_rank_final = "train"
+        
         flightList = FlightListDatabase(train_rank_final)
         assert flightList.readTrainFlightListLite()
         
+        fuelDatabase = FuelDatabase(None)
+        assert fuelDatabase.readFuelTrain() == True
+        
         self.trainFlightListDataFrame = flightList.getTrainFlightListDataframe(train_rank_final)
+        ''' convenience rename '''
         df = self.trainFlightListDataFrame
-        ''' filter on unique aircraft '''
-        df = df[df['aircraft_type']==aircraft_type_code]
+        
+        ''' filter on one aircraft '''
+        df = df[df['aircraft_type'] == aircraft_type_code]
         print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
         
     def create_plot(self , df ):
@@ -63,7 +70,7 @@ class FlightTimeSeriesBaseClass(object):
         
         plt.show()
         
-    def compute_most_flown_routes(self):
+    def computeMostFlownRoutes(self):
         logging.info("---- identify Most Flown Routes  ---")
         df = self.trainFlightListDataFrame
 
@@ -98,13 +105,50 @@ class FlightTimeSeriesBaseClass(object):
                 self.top_most_flown_route = result
                 self.top_most_flown_routes_max = results[result]["count"]
             
+        print ( "--- most flown route - origin and destinatation airport ---")
         logging.info (self.class_name + " - most flown route -> {0} - max = {1}".format(self.top_most_flown_route , self.top_most_flown_routes_max))
+        
         for result in results:
             if ( result == self.top_most_flown_route):
                 logging.info (self.class_name + " - " + result + " - " + str( results[result]) )
-                origin_airport = str(result).split("-")[0]
-                logging.info (self.class_name + " - most flown origin airport = " + origin_airport )
-                
+                self.most_flown_origin_airport = str(result).split("-")[0]
+                logging.info (self.class_name + " - most flown origin airport = " + self.most_flown_origin_airport )
+                self.most_flown_destination_airport = str(result).split("-")[1]
+                logging.info (self.class_name + " - most flown destination airport = " + self.most_flown_destination_airport )
+        
+        
+    def getFlightListTakeOff(self):
+        
+        logging.info("---- most flown route flight Ids ---")
+        df = self.trainFlightListDataFrame
+        
+        ''' filter on list of flight ids '''
+        # Filter rows where the 'City' column matches any value in the list
+        df = df[df['origin_icao']==self.most_flown_origin_airport]
+        df = df[df['destination_icao']==self.most_flown_destination_airport]
+        df = df[df['aircraft_type']==self.aircraft_type_code]
+        
+        filtered_df = df[df['flight_id'].isin(self.flight_ids_list)]
+        print(tabulate(filtered_df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        print("dataframe shape = {0}".format(filtered_df.shape))
+
+    def listMostFlownRoutesFlightIds(self):
+        
+        logging.info("---- most flown route flight Ids ---")
+        logging.info (self.class_name + " - " + str( self.top_most_flown_route ) )
+
+        df = self.trainFlightListDataFrame
+        origin_airport_code = str(self.top_most_flown_route).split("-")[0]
+
+        df = df[df['origin_icao']==origin_airport_code]
+        df = df[df['aircraft_type']==self.aircraft_type_code]
+
+        #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        self.flight_ids_list = df['flight_id'].unique().tolist()
+        logging.info (self.class_name + " - length of list of flight ids = " + str( len ( self.flight_ids_list ) ) )
+        logging.info (self.class_name + " - list of flight ids = " + str(  ( self.flight_ids_list ) ) )
+        
     def concat_dataframes(self):
         
         logging.info("---- concat flights ---")
@@ -126,10 +170,11 @@ class FlightTimeSeriesBaseClass(object):
         index = 0
         first = True
         max_timestamp = 0.0
+        max_flights = 10
         for flight_id in flight_ids_list:
             print(" --------------------------- " + flight_id + " --------------------")
             index = index + 1
-            if index > 50:
+            if index > max_flights:
                 break
             fileName = flight_id + ".parquet"
             df = flightsDatabase.readOneTrainFileLite(fileName)
@@ -158,9 +203,11 @@ class FlightTimeSeriesBaseClass(object):
                 max_timestamp = df['timestamp'].max()
             
             print ("---- concat dataframe length = {0}".format( df_concat.shape[0]))
+            
         ''' clean '''
         df_concat.drop(df_concat[df_concat['groundspeed'] > 600.0].index, inplace=True)
         df_concat.drop(df_concat[df_concat['vertical_rate'] < -3000.0].index, inplace=True)
+        ''' plot '''
         self.create_plot( df_concat )
                 
     def compute_flight_phases(self):
@@ -187,7 +234,6 @@ class FlightTimeSeriesBaseClass(object):
             fileName = flight_id + ".parquet"
             df = flightsDatabase.readOneTrainFileLite(fileName)
             logging.info (self.class_name + " - index = {0} - train flight id = {1}".format( index , str( flight_id ) ) )
-
             # Count total NaNs in the DataFrame
             total_nans = df.isna().sum().sum()
             #print("\nTotal NaNs in DataFrame: {0} - nb rows = {1}".format ( total_nans , df.shape[0]) )
