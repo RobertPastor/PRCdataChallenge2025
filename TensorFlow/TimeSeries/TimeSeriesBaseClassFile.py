@@ -43,18 +43,20 @@ class FlightTimeSeriesBaseClass(object):
         
         self.aircraft_type_code = aircraft_type_code
         
+        self.flightsDatabase = FlightsDatabase()
+        
+        self.fuelTrainDatabase = FuelDatabase(None)
+        assert self.fuelTrainDatabase.readFuelTrain() == True
+        
         ''' use train dataset to beneficiate from fuel consumption data '''
         train_rank_final = "train"
         
         flightList = FlightListDatabase(train_rank_final)
         assert flightList.readTrainFlightListLite()
         
-        fuelDatabase = FuelDatabase(None)
-        assert fuelDatabase.readFuelTrain() == True
-        
         self.trainFlightListDataFrame = flightList.getTrainFlightListDataframe(train_rank_final)
         ''' convenience rename '''
-        df = self.trainFlightListDataFrame
+        df  = self.trainFlightListDataFrame
         
         ''' filter on one aircraft '''
         df = df[df['aircraft_type'] == aircraft_type_code]
@@ -116,7 +118,6 @@ class FlightTimeSeriesBaseClass(object):
                 self.most_flown_destination_airport = str(result).split("-")[1]
                 logging.info (self.class_name + " - most flown destination airport = " + self.most_flown_destination_airport )
         
-        
     def getFlightListTakeOff(self):
         
         logging.info("---- most flown route flight Ids ---")
@@ -124,9 +125,9 @@ class FlightTimeSeriesBaseClass(object):
         
         ''' filter on list of flight ids '''
         # Filter rows where the 'City' column matches any value in the list
-        df = df[df['origin_icao']==self.most_flown_origin_airport]
-        df = df[df['destination_icao']==self.most_flown_destination_airport]
-        df = df[df['aircraft_type']==self.aircraft_type_code]
+        df = df[df['origin_icao']      == self.most_flown_origin_airport]
+        df = df[df['destination_icao'] == self.most_flown_destination_airport]
+        df = df[df['aircraft_type']    == self.aircraft_type_code]
         
         filtered_df = df[df['flight_id'].isin(self.flight_ids_list)]
         print(tabulate(filtered_df[:10], headers='keys', tablefmt='grid' , showindex=False , ))
@@ -139,9 +140,11 @@ class FlightTimeSeriesBaseClass(object):
 
         df = self.trainFlightListDataFrame
         origin_airport_code = str(self.top_most_flown_route).split("-")[0]
+        destination_airport_code = str(self.top_most_flown_route).split("-")[1]
 
-        df = df[df['origin_icao']==origin_airport_code]
-        df = df[df['aircraft_type']==self.aircraft_type_code]
+        df = df[df['origin_icao']       == origin_airport_code]
+        df = df[df['destination_icao']  == destination_airport_code]
+        df = df[df['aircraft_type']     == self.aircraft_type_code]
 
         #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
         
@@ -149,22 +152,83 @@ class FlightTimeSeriesBaseClass(object):
         logging.info (self.class_name + " - length of list of flight ids = " + str( len ( self.flight_ids_list ) ) )
         logging.info (self.class_name + " - list of flight ids = " + str(  ( self.flight_ids_list ) ) )
         
+    def concatFlightAndFuel(self):
+        
+        logging.info("---- concat flights and Fuel  ---")
+        logging.info("---- concat set Flight List takeof as time reference ---")
+        
+        df_flightList = self.trainFlightListDataFrame
+        origin_airport_code      = str(self.top_most_flown_route).split("-")[0]
+        destination_airport_code = str(self.top_most_flown_route).split("-")[1]
+
+        df_flightList = df_flightList[df_flightList['origin_icao']      == origin_airport_code]
+        df_flightList = df_flightList[df_flightList['destination_icao'] == destination_airport_code]
+        df_flightList = df_flightList[df_flightList['aircraft_type']    == self.aircraft_type_code]
+
+        #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
+        flight_ids_list = df_flightList['flight_id'].unique().tolist()
+        logging.info (self.class_name + " - length of list of flight ids = " + str( len ( flight_ids_list ) ) )
+        
+        flight_id = flight_ids_list[0]
+        print ("first flight id = {0}".format(flight_id))
+        
+        ''' convert flight list takeoff in datetime '''
+        df_flightList['takeOff_datetime'] = pd.to_datetime( df_flightList['takeoff'] )
+        
+        # Get the first value in the 'Name' column
+        takeOffDateTime = df_flightList['takeOff_datetime'].iloc[0]
+
+        ''' filter on one flight id '''
+        df_flightList = df_flightList[df_flightList['flight_id'] == flight_id]
+        ''' should list only on flight list '''
+        print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        ''' goal is to add takeoff column to the merge of flight and fuel for the same flight id '''
+        print ( "---- one flight dataframe for one flight id ---")
+        df_flight = self.flightsDatabase.readOneTrainFileLite(flight_id)
+        print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        df_flight['takeOff'] = takeOffDateTime
+        
+        df_flight['time_difference'] = df_flight['timestamp'] - df_flight['takeOff']
+        df_flight['time_difference_seconds'] = df_flight['time_difference'].dt.total_seconds()
+        print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
+        ''' filter fuel on flight id and perform concat '''
+        ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''     
+        #assert self.fuelTrainDatabase.readFuelTrain()
+        #df_fuel = self.fuelTrainDatabase.getFuelTrainDataframe()
+        
+        #df_fuel = df_fuel[df_fuel['flight_id'] == flight_id]
+        #print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        #print ( ''' concat flight and fuel dataframes ''')
+        #df_concat  = pd.concat ( [df_flight , df_fuel])
+        #print(tabulate(df_concat[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+
+
     def concat_dataframes(self):
         
         logging.info("---- concat flights ---")
         logging.info (self.class_name + " - " + str( self.top_most_flown_route ) )
 
-        df = self.trainFlightListDataFrame
-        origin_airport_code = str(self.top_most_flown_route).split("-")[0]
+        df_flightList = self.trainFlightListDataFrame
+        origin_airport_code      = str(self.top_most_flown_route).split("-")[0]
+        destination_airport_code = str(self.top_most_flown_route).split("-")[1]
 
-        df = df[df['origin_icao']==origin_airport_code]
-        df = df[df['aircraft_type']==self.aircraft_type_code]
+        df_flightList = df_flightList[df_flightList['origin_icao']      == origin_airport_code]
+        df_flightList = df_flightList[df_flightList['destination_icao'] == destination_airport_code]
+        df_flightList = df_flightList[df_flightList['aircraft_type']    == self.aircraft_type_code]
 
         #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
-        
-        flight_ids_list = df['flight_id'].unique().tolist()
+        flight_ids_list = df_flightList['flight_id'].unique().tolist()
         logging.info (self.class_name + " - length of list of flight ids = " + str( len ( flight_ids_list ) ) )
+                
+        ''' convert flight list takeoff in datetime '''
+        df_flightList['takeOff_datetime'] = pd.to_datetime( df_flightList['takeoff'] )
+        print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
+        ''' goal is to add takeoff column to the merge of flight and fuel for the same flight id '''
         flightsDatabase = FlightsDatabase()
 
         index = 0
@@ -177,30 +241,34 @@ class FlightTimeSeriesBaseClass(object):
             if index > max_flights:
                 break
             fileName = flight_id + ".parquet"
-            df = flightsDatabase.readOneTrainFileLite(fileName)
+            
+            ''' dataframe of one flight '''
+            df_flight = flightsDatabase.readOneTrainFileLite(fileName)
             logging.info (self.class_name + " - index = {0} - train flight id = {1}".format( index , str( flight_id ) ) )
             
+            ''' reference is the takeoff of the flight from the flight list '''
+            
             # Convert 'timestamp' column to datetime
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            df['time_difference'] = df['timestamp'] - df['timestamp'].min()
+            #df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df_flight['time_difference'] = df_flight['timestamp'] - df_flight['timestamp'].min()
             
-            df['time_difference_seconds'] = df['time_difference'].dt.total_seconds()
+            df_flight['time_difference_seconds'] = df_flight['time_difference'].dt.total_seconds()
             
-            df = df.drop(['timestamp', 'time_difference'], axis=1 )
-            df = df.rename(columns={'time_difference_seconds':'timestamp'}).copy()
+            df_flight = df_flight.drop(['timestamp', 'time_difference'], axis=1 )
+            df_flight = df_flight.rename(columns={'time_difference_seconds':'timestamp'}).copy()
             
             # Sort by 'timestamp' column
-            df = df.sort_values(by='timestamp')
+            df_flight = df_flight.sort_values(by='timestamp')
             
             if first == True:
-                df_concat = df
-                max_timestamp = df['timestamp'].max()
+                df_concat = df_flight
+                max_timestamp = df_flight['timestamp'].max()
                 first = False
                 
             else:
-                df['timestamp'] = df['timestamp'] + max_timestamp
-                df_concat = pd.concat([df_concat,df])
-                max_timestamp = df['timestamp'].max()
+                df_flight['timestamp'] = df_flight['timestamp'] + max_timestamp
+                df_concat = pd.concat([df_concat,df_flight])
+                max_timestamp = df_flight['timestamp'].max()
             
             print ("---- concat dataframe length = {0}".format( df_concat.shape[0]))
             
@@ -209,7 +277,7 @@ class FlightTimeSeriesBaseClass(object):
         df_concat.drop(df_concat[df_concat['vertical_rate'] < -3000.0].index, inplace=True)
         ''' plot '''
         self.create_plot( df_concat )
-                
+        
     def compute_flight_phases(self):
         logging.info("---- compute flight phases ---")
         logging.info (self.class_name + " - " + str( self.top_most_flown_route ) )

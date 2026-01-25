@@ -93,7 +93,7 @@ class Test_Main(unittest.TestCase):
                         filteredFuelDataframe = fuelTrainDataframe[fuelTrainDataframe['flight_id'] == flight_id]
                         print ( filteredFuelDataframe.shape )
     
-                        ''' concat the dataframe '''
+                        ''' concat the dataframes '''
                         flightTrainDataframe = pd.concat ( [flightTrainDataframe , filteredFuelDataframe])
                         print ( flightTrainDataframe.shape )
                         
