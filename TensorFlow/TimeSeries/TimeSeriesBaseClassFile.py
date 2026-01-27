@@ -29,6 +29,8 @@ from trajectory.FlightList.FlightListReader import FlightListDatabase
 from trajectory.Flights.FlightsReader import FlightsDatabase
 from trajectory.Fuel.FuelReader import FuelDatabase
 
+from trajectory.Utils.utils import keepOnlyColumns
+
 class FlightTimeSeriesBaseClass(object):
     '''
     classdocs
@@ -197,10 +199,13 @@ class FlightTimeSeriesBaseClass(object):
         ''' filter fuel on flight id and perform concat '''
         ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''     
         #assert self.fuelTrainDatabase.readFuelTrain()
-        #df_fuel = self.fuelTrainDatabase.getFuelTrainDataframe()
+        df_fuel = self.fuelTrainDatabase.getFuelTrainDataframe()
+        print ( str ( list ( df_fuel )))
         
-        #df_fuel = df_fuel[df_fuel['flight_id'] == flight_id]
-        #print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        list_of_columns_to_keep = ['flight_id','takeoff','fuel_burn_start','fuel_burn_end','fuel_kg','time_diff_seconds','fuel_flow_kg_sec','flight_distance_Nm','flight_duration_sec','fuel_burn_relative_start','fuel_burn_relative_end']
+        df_fuel = keepOnlyColumns (df_fuel , list_of_columns_to_keep)
+        df_fuel = df_fuel[df_fuel['flight_id'] == flight_id]
+        print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         #print ( ''' concat flight and fuel dataframes ''')
         #df_concat  = pd.concat ( [df_flight , df_fuel])
