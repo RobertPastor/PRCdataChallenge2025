@@ -17,6 +17,8 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 
+import pytz
+
 from openap.phase import FlightPhase
 
 mpl.rcParams['figure.figsize'] = (8, 6)
@@ -154,10 +156,10 @@ class FlightTimeSeriesBaseClass(object):
         logging.info (self.class_name + " - length of list of flight ids = " + str( len ( self.flight_ids_list ) ) )
         logging.info (self.class_name + " - list of flight ids = " + str(  ( self.flight_ids_list ) ) )
         
-    def concatFlightAndFuel(self):
         
-        logging.info("---- concat flights and Fuel  ---")
-        logging.info("---- concat set Flight List takeof as time reference ---")
+    def computeFlight(self):
+        
+        logging.info("---- compute flight  ---")
         
         df_flightList = self.trainFlightListDataFrame
         origin_airport_code      = str(self.top_most_flown_route).split("-")[0]
@@ -177,47 +179,75 @@ class FlightTimeSeriesBaseClass(object):
         ''' convert flight list takeoff in datetime '''
         df_flightList['takeOff_datetime'] = pd.to_datetime( df_flightList['takeoff'] )
         
-        # Get the first value in the 'Name' column
+        ''' Get the first value in the 'takeOff_datetime' column '''
         takeOffDateTime = df_flightList['takeOff_datetime'].iloc[0]
 
         ''' filter on one flight id '''
         df_flightList = df_flightList[df_flightList['flight_id'] == flight_id]
-        ''' should list only on flight list '''
+        print(''' should list only one an only one flight id ''')
         print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         ''' goal is to add takeoff column to the merge of flight and fuel for the same flight id '''
         print ( "---- one flight dataframe for one flight id ---")
         df_flight = self.flightsDatabase.readOneTrainFileLite(flight_id)
-        print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
-        df_flight['takeOff'] = takeOffDateTime
-        
-        df_flight['time_difference'] = df_flight['timestamp'] - df_flight['takeOff']
-        df_flight['time_difference_seconds'] = df_flight['time_difference'].dt.total_seconds()
-        ''' rename column '''
-        df_flight.rename(columns={'time_difference_seconds': 'delta_from_takeoff_seconds'}, inplace=True)
+        df_flight['takeoff'] = takeOffDateTime
         print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
-        print(''' ---- filter fuel on flight id and perform concat --- ''')
+        df_flight['time_difference'] = df_flight['timestamp'] - df_flight['takeoff']
+        
+        ''' relative reference for a flight '''
+        df_flight['time_difference_seconds'] = df_flight['time_difference'].dt.total_seconds()
+        ''' rename column '''
+        df_flight.rename(columns={'time_difference_seconds': 'timestamp_deltaSeconds'}, inplace=True)
+        
+        list_of_columns_to_keep = ['flight_id','takeoff','altitude','groundspeed','vertical_rate','timestamp_deltaSeconds']
+        df_flight = keepOnlyColumns (df_flight , list_of_columns_to_keep)
+        print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(df_flight[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        self.df_flight = df_flight
+        
+        return flight_id
+        
+    def computeFuel(self, flight_id):
+
+        print(''' ---- filter fuel on flight id  --- ''')
         ''' in order for the fuel start and end to exist as new rows in the flight dataframe '''     
         #assert self.fuelTrainDatabase.readFuelTrain()
         df_fuel = self.fuelTrainDatabase.getFuelTrainDataframe()
         #print ( str ( list ( df_fuel )))
         
-        list_of_columns_to_keep = ['flight_id','takeoff','fuel_burn_start','fuel_burn_end','fuel_kg','time_diff_seconds','fuel_flow_kg_sec','flight_distance_Nm','flight_duration_sec','fuel_burn_relative_start','fuel_burn_relative_end']
+        #list_of_columns_to_keep = ['flight_id','takeoff','fuel_burn_start','fuel_burn_end','fuel_kg','time_diff_seconds','fuel_flow_kg_sec','flight_distance_Nm','flight_duration_sec','fuel_burn_relative_start','fuel_burn_relative_end']
+        list_of_columns_to_keep = ['flight_id','takeoff','fuel_flow_kg_sec','fuel_burn_relative_start','fuel_burn_relative_end']
         df_fuel = keepOnlyColumns (df_fuel , list_of_columns_to_keep)
         df_fuel = df_fuel[df_fuel['flight_id'] == flight_id]
         
-        ''' rename column '''
-        df_fuel.rename(columns={'time_difference_seconds': 'delta_from_takeoff_seconds'}, inplace=True)
-        print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        # Convert index to DatetimeIndex
+        df_fuel.index = pd.to_datetime(df_fuel.takeoff)
+        df_fuel['takeoff'] = df_fuel['takeoff'].dt.tz_localize(None)
+        #df_fuel.index = df_fuel.index.tz_convert(None)
+        # Convert to another UTC
+        #df_fuel = df_fuel.tz_convert(None)
         
+        print(''' rename column to timestamp ''')
+        df_fuel.rename(columns={'fuel_burn_relative_end': 'timestamp'}, inplace=True)
+        print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        # Convert to another UTC
+        print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(df_fuel[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        
+        self.df_fuel = df_fuel
+        
+    def concatFlightAndFuel(self):
+
         print ( ''' -------- concat flight and fuel dataframes --------------- ''')
-        df_concat  = pd.concat ( [df_flight , df_fuel])
+        df_concat  = pd.concat ( [self.df_flight , self.df_fuel])
         
         # Trier par la colonne 'Âge'
         df_concat = df_concat.sort_values(by="delta_from_takeoff_seconds")
-        print(tabulate(df_concat[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(df_concat[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(df_concat[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
 
 
     def concat_dataframes(self):

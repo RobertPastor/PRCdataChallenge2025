@@ -36,7 +36,9 @@ class Test(unittest.TestCase):
         flightTimeSeriesClass.listMostFlownRoutesFlightIds()
         flightTimeSeriesClass.getFlightListTakeOff()
         
-        flightTimeSeriesClass.concatFlightAndFuel()
+        flight_id = flightTimeSeriesClass.computeFlight()
+        flightTimeSeriesClass.computeFuel(flight_id)
+        #flightTimeSeriesClass.concatFlightAndFuel()
         #flightTimeSeriesClass.compute_flight_phases()
         #flightTimeSeriesClass.concat_dataframes()
 
