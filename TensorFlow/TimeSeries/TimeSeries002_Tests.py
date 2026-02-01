@@ -38,7 +38,10 @@ class Test(unittest.TestCase):
         
         flight_id = flightTimeSeriesClass.computeFlight()
         flightTimeSeriesClass.computeFuel(flight_id)
-        #flightTimeSeriesClass.concatFlightAndFuel()
+        flightTimeSeriesClass.concatFlightAndFuel()
+        
+        flightTimeSeriesClass.plotMainFeatures()
+        
         #flightTimeSeriesClass.compute_flight_phases()
         #flightTimeSeriesClass.concat_dataframes()
 

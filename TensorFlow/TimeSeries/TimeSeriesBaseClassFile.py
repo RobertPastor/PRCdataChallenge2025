@@ -69,7 +69,8 @@ class FlightTimeSeriesBaseClass(object):
     def create_plot(self , df ):
         
         print ( list ( df ))
-        plot_cols = ['altitude', 'groundspeed', 'vertical_rate']
+        print ( df.info())
+        plot_cols = ['altitude', 'groundspeed', 'vertical_rate','fuel_flow_kg_sec']
         plot_features = df[plot_cols]
         plot_features.index = df['timestamp']
         _ = plot_features.plot(subplots=True)
@@ -111,7 +112,7 @@ class FlightTimeSeriesBaseClass(object):
                 self.top_most_flown_route = result
                 self.top_most_flown_routes_max = results[result]["count"]
             
-        print ( "--- most flown route - origin and destinatation airport ---")
+        print ( "--- most flown route - origin and destination airport ---")
         logging.info (self.class_name + " - most flown route -> {0} - max = {1}".format(self.top_most_flown_route , self.top_most_flown_routes_max))
         
         for result in results:
@@ -170,10 +171,10 @@ class FlightTimeSeriesBaseClass(object):
         df_flightList = df_flightList[df_flightList['aircraft_type']    == self.aircraft_type_code]
 
         #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
-        flight_ids_list = df_flightList['flight_id'].unique().tolist()
-        logging.info (self.class_name + " - length of list of flight ids = " + str( len ( flight_ids_list ) ) )
+        self.flight_ids_list = df_flightList['flight_id'].unique().tolist()
+        logging.info (self.class_name + " - length of list of flight ids = " + str( len ( self.flight_ids_list ) ) )
         
-        flight_id = flight_ids_list[0]
+        flight_id = self.flight_ids_list[0]
         print ("first flight id = {0}".format(flight_id))
         
         ''' convert flight list takeoff in datetime '''
@@ -203,11 +204,13 @@ class FlightTimeSeriesBaseClass(object):
         
         list_of_columns_to_keep = ['flight_id','takeoff','altitude','groundspeed','vertical_rate','timestamp_deltaSeconds']
         df_flight = keepOnlyColumns (df_flight , list_of_columns_to_keep)
+        
+        df_flight.rename(columns={'timestamp_deltaSeconds': 'timestamp'}, inplace=True)
+
         print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         print(tabulate(df_flight[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         
         self.df_flight = df_flight
-        
         return flight_id
         
     def computeFuel(self, flight_id):
@@ -232,7 +235,6 @@ class FlightTimeSeriesBaseClass(object):
         
         print(''' rename column to timestamp ''')
         df_fuel.rename(columns={'fuel_burn_relative_end': 'timestamp'}, inplace=True)
-        print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         # Convert to another UTC
         print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         print(tabulate(df_fuel[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
@@ -245,10 +247,11 @@ class FlightTimeSeriesBaseClass(object):
         df_concat  = pd.concat ( [self.df_flight , self.df_fuel])
         
         # Trier par la colonne 'Âge'
-        df_concat = df_concat.sort_values(by="delta_from_takeoff_seconds")
+        df_concat = df_concat.sort_values(by="timestamp")
         print(tabulate(df_concat[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
         print(tabulate(df_concat[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
-
+        
+        self.df_concat = df_concat
 
     def concat_dataframes(self):
         
@@ -318,8 +321,13 @@ class FlightTimeSeriesBaseClass(object):
         ''' clean '''
         df_concat.drop(df_concat[df_concat['groundspeed'] > 600.0].index, inplace=True)
         df_concat.drop(df_concat[df_concat['vertical_rate'] < -3000.0].index, inplace=True)
+        
+        self.df_concat = df_concat
+        
+    def plotMainFeatures(self):
+    
         ''' plot '''
-        self.create_plot( df_concat )
+        self.create_plot( self.df_concat )
         
     def compute_flight_phases(self):
         logging.info("---- compute flight phases ---")
