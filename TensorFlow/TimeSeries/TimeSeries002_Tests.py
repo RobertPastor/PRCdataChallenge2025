@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
+from tabulate import tabulate
 
 mpl.rcParams['figure.figsize'] = (8, 6)
 mpl.rcParams['axes.grid'] = False
@@ -36,11 +37,35 @@ class Test(unittest.TestCase):
         flightTimeSeriesClass.listMostFlownRoutesFlightIds()
         flightTimeSeriesClass.getFlightListTakeOff()
         
-        flight_id = flightTimeSeriesClass.computeFlight()
-        flightTimeSeriesClass.computeFuel(flight_id)
-        flightTimeSeriesClass.concatFlightAndFuel()
+        flight_ids_list = flightTimeSeriesClass.computeFlightIdsList()
+        print ( str ( flight_ids_list ))
         
-        flightTimeSeriesClass.plotMainFeatures()
+        first = True
+        df_concat_all = None
+        count = 0
+        for flight_id in flight_ids_list:
+            count = count + 1
+            if count > 10:
+                break
+            
+            df_flight = flightTimeSeriesClass.computeFlight(flight_id)
+            df_fuel   = flightTimeSeriesClass.computeFuel(flight_id)
+            
+            if first == True:
+                first = False
+                df_concat_all = flightTimeSeriesClass.concatFlightAndFuel(df_flight , df_fuel)
+            else:
+                df_concat = flightTimeSeriesClass.concatFlightAndFuel(df_flight , df_fuel)
+                df_concat_all = pd.concat ( [df_concat_all , df_concat])
+                
+            print("-------------- " + str(flight_id) + " --------")
+            print ( df_concat_all.shape )
+            print("-------------- " + str(flight_id) + " --------")
+
+        print(tabulate(df_concat_all[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
+        print(tabulate(df_concat_all[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+
+        #flightTimeSeriesClass.plotMainFeatures()
         
         #flightTimeSeriesClass.compute_flight_phases()
         #flightTimeSeriesClass.concat_dataframes()

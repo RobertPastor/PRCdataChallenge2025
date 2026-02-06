@@ -158,9 +158,9 @@ class FlightTimeSeriesBaseClass(object):
         logging.info (self.class_name + " - list of flight ids = " + str(  ( self.flight_ids_list ) ) )
         
         
-    def computeFlight(self):
+    def computeFlightIdsList (self):
         
-        logging.info("---- compute flight  ---")
+        logging.info("---- compute flight  ids list ---")
         
         df_flightList = self.trainFlightListDataFrame
         origin_airport_code      = str(self.top_most_flown_route).split("-")[0]
@@ -172,9 +172,22 @@ class FlightTimeSeriesBaseClass(object):
 
         #print(tabulate(df[:3], headers='keys', tablefmt='grid' , showindex=False , ))
         self.flight_ids_list = df_flightList['flight_id'].unique().tolist()
-        logging.info (self.class_name + " - length of list of flight ids = " + str( len ( self.flight_ids_list ) ) )
+        return self.flight_ids_list 
         
-        flight_id = self.flight_ids_list[0]
+        
+    def computeFlight(self , flight_id):
+        
+        logging.info("---- compute flight  ---")
+        
+        df_flightList = self.trainFlightListDataFrame
+        origin_airport_code      = str(self.top_most_flown_route).split("-")[0]
+        destination_airport_code = str(self.top_most_flown_route).split("-")[1]
+
+        df_flightList = df_flightList[df_flightList['origin_icao']      == origin_airport_code]
+        df_flightList = df_flightList[df_flightList['destination_icao'] == destination_airport_code]
+        df_flightList = df_flightList[df_flightList['aircraft_type']    == self.aircraft_type_code]
+        
+        #flight_id = self.flight_ids_list[0]
         print ("first flight id = {0}".format(flight_id))
         
         ''' convert flight list takeoff in datetime '''
@@ -186,14 +199,14 @@ class FlightTimeSeriesBaseClass(object):
         ''' filter on one flight id '''
         df_flightList = df_flightList[df_flightList['flight_id'] == flight_id]
         print(''' should list only one an only one flight id ''')
-        print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         ''' goal is to add takeoff column to the merge of flight and fuel for the same flight id '''
         print ( "---- one flight dataframe for one flight id ---")
         df_flight = self.flightsDatabase.readOneTrainFileLite(flight_id)
         
         df_flight['takeoff'] = takeOffDateTime
-        print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
 
         df_flight['time_difference'] = df_flight['timestamp'] - df_flight['takeoff']
         
@@ -207,11 +220,11 @@ class FlightTimeSeriesBaseClass(object):
         
         df_flight.rename(columns={'timestamp_deltaSeconds': 'timestamp'}, inplace=True)
 
-        print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-        print(tabulate(df_flight[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_flight[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_flight[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         
         self.df_flight = df_flight
-        return flight_id
+        return df_flight
         
     def computeFuel(self, flight_id):
 
@@ -236,22 +249,24 @@ class FlightTimeSeriesBaseClass(object):
         print(''' rename column to timestamp ''')
         df_fuel.rename(columns={'fuel_burn_relative_end': 'timestamp'}, inplace=True)
         # Convert to another UTC
-        print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
-        print(tabulate(df_fuel[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_fuel[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_fuel[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         
         self.df_fuel = df_fuel
+        return df_fuel
         
-    def concatFlightAndFuel(self):
+    def concatFlightAndFuel(self, df_flight , df_fuel):
 
         print ( ''' -------- concat flight and fuel dataframes --------------- ''')
-        df_concat  = pd.concat ( [self.df_flight , self.df_fuel])
+        df_concat  = pd.concat ( [df_flight , df_fuel])
         
         # Trier par la colonne 'Âge'
         df_concat = df_concat.sort_values(by="timestamp")
-        print(tabulate(df_concat[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
-        print(tabulate(df_concat[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_concat[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_concat[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
         
         self.df_concat = df_concat
+        return df_concat
 
     def concat_dataframes(self):
         
@@ -272,7 +287,7 @@ class FlightTimeSeriesBaseClass(object):
                 
         ''' convert flight list takeoff in datetime '''
         df_flightList['takeOff_datetime'] = pd.to_datetime( df_flightList['takeoff'] )
-        print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
+        #print(tabulate(df_flightList[:10], headers='keys', tablefmt='grid' , showindex=False , ))
         
         ''' goal is to add takeoff column to the merge of flight and fuel for the same flight id '''
         flightsDatabase = FlightsDatabase()
