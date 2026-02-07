@@ -45,7 +45,7 @@ class Test(unittest.TestCase):
         count = 0
         for flight_id in flight_ids_list:
             count = count + 1
-            if count > 10:
+            if count > 3:
                 break
             
             df_flight = flightTimeSeriesClass.computeFlight(flight_id)
@@ -61,11 +61,15 @@ class Test(unittest.TestCase):
             print("-------------- " + str(flight_id) + " --------")
             print ( df_concat_all.shape )
             print("-------------- " + str(flight_id) + " --------")
+            
+        ''' clean '''
+        df_concat_all.drop(df_concat_all[df_concat_all['groundspeed'] > 600.0].index, inplace=True)
+        df_concat_all.drop(df_concat_all[df_concat_all['vertical_rate'] < -3000.0].index, inplace=True)
 
         print(tabulate(df_concat_all[:10] , headers='keys', tablefmt='grid' , showindex=False , ))
         print(tabulate(df_concat_all[-10:], headers='keys', tablefmt='grid' , showindex=False , ))
 
-        #flightTimeSeriesClass.plotMainFeatures()
+        flightTimeSeriesClass.plotMainFeatures(df_concat_all)
         
         #flightTimeSeriesClass.compute_flight_phases()
         #flightTimeSeriesClass.concat_dataframes()

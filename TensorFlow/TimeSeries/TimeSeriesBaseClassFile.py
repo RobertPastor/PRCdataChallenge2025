@@ -238,7 +238,7 @@ class FlightTimeSeriesBaseClass(object):
         list_of_columns_to_keep = ['flight_id','takeoff','fuel_flow_kg_sec','fuel_burn_relative_start','fuel_burn_relative_end']
         df_fuel = keepOnlyColumns (df_fuel , list_of_columns_to_keep)
         df_fuel = df_fuel[df_fuel['flight_id'] == flight_id]
-        
+        print("fuel dataframe shape = {0}".format( df_fuel.shape ))
         # Convert index to DatetimeIndex
         df_fuel.index = pd.to_datetime(df_fuel.takeoff)
         df_fuel['takeoff'] = df_fuel['takeoff'].dt.tz_localize(None)
@@ -339,10 +339,10 @@ class FlightTimeSeriesBaseClass(object):
         
         self.df_concat = df_concat
         
-    def plotMainFeatures(self):
+    def plotMainFeatures(self , df):
     
         ''' plot '''
-        self.create_plot( self.df_concat )
+        self.create_plot( df )
         
     def compute_flight_phases(self):
         logging.info("---- compute flight phases ---")
